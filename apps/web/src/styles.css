@@ -313,10 +313,10 @@ input[type="color"] {
 
 .rack {
   display: grid;
-  grid-template-columns: repeat(8, minmax(34px, 58px));
-  justify-content: center;
-  gap: 6px;
-  width: min(100%, 520px);
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  width: 100%;
+  max-width: 520px;
 }
 
 .tile {
@@ -338,10 +338,9 @@ input[type="color"] {
 }
 
 .tile span {
-  max-width: calc(100% - 10px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  font-size: clamp(0.72rem, 1.2vw, 0.95rem);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .tile.selected {
@@ -417,7 +416,7 @@ strong {
   }
 
   .rack {
-    grid-template-columns: repeat(4, minmax(34px, 58px));
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .control-strip {

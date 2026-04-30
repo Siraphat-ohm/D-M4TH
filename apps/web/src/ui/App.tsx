@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { createClassicalConfig, createPartyConfig, tileBagScaleForPlayerCount, type MatchConfig } from "@d-m4th/config";
-import { faceOptionsForTileLabel, tileRequiresFace, type Placement, type PublicSnapshot, type Tile } from "@d-m4th/game";
+import { faceOptionsForTileLabel, type PublicSnapshot, type Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "../protocol-client";
 import { createDragPreviewSize, textColorForPlayerColor } from "../board/board-interaction";
-import {
-  findDraftPlacementAt,
-  moveOrSwapDraftPlacement,
-  toggleSelection,
-  type TurnMode,
-  upsertDraftPlacement
-} from "../turn/turn-controls";
+import { useTurnController } from "../turn/use-turn-controller";
 import { BoardCanvas } from "./BoardCanvas";
 
 type ViewMode = "create" | "join";
@@ -19,12 +13,6 @@ const EMPTY_RACK: Tile[] = [];
 interface PrivateState {
   playerId: string;
   rack: Tile[];
-}
-
-interface PendingFacePlacement {
-  tile: Tile;
-  x: number;
-  y: number;
 }
 
 export function App() {
@@ -37,19 +25,16 @@ export function App() {
   const [snapshot, setSnapshot] = useState<PublicSnapshot>();
   const [privateState, setPrivateState] = useState<PrivateState>();
   const [connected, setConnected] = useState(false);
-  const [selectedTileId, setSelectedTileId] = useState<string>();
-  const [pendingFacePlacement, setPendingFacePlacement] = useState<PendingFacePlacement>();
-  const [draft, setDraft] = useState<Placement[]>([]);
-  const draftRef = useRef<Placement[]>([]);
-  const autoPreviewRequestIdRef = useRef<string | undefined>(undefined);
-  const [turnMode, setTurnMode] = useState<TurnMode>("play");
-  const [swapSelectedTileIds, setSwapSelectedTileIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
-  const [previewScore, setPreviewScore] = useState<number>();
+
+  const turnHandleRef = useRef<(message: ServerMessage) => boolean>(() => false);
+
   const client = useMemo(() => {
     return new ProtocolClient(defaultWebSocketUrl(), handleMessage, setConnected);
 
     function handleMessage(message: ServerMessage): void {
+      if (turnHandleRef.current(message)) return;
+
       if (message.type === "room:snapshot") {
         setSnapshot(message.snapshot);
 
@@ -58,24 +43,11 @@ export function App() {
         }
       }
 
-      if (message.type === "play:previewed") {
-        if (message.requestId !== autoPreviewRequestIdRef.current) {
-          return;
-        }
-
-        setPreviewScore(message.score.totalScore);
-      }
-
       if (message.type === "action:accepted") {
         setNotice(message.action);
       }
 
       if (message.type === "action:rejected") {
-        if (message.requestId === autoPreviewRequestIdRef.current) {
-          setPreviewScore(undefined);
-          return;
-        }
-
         setNotice(message.reason);
       }
 
@@ -92,29 +64,11 @@ export function App() {
 
   const isMyTurn = snapshot?.currentPlayerId === privateState?.playerId;
   const activeConfig = snapshot?.config ?? config;
-  const currentPlayer = snapshot?.players.find((player) => player.id === snapshot.currentPlayerId);
-  const draftTileIds = new Set(draft.map((placement) => placement.tileId));
   const rack = privateState?.rack ?? EMPTY_RACK;
-  const visibleRack = turnMode === "swap" ? rack : rack.filter((tile) => !draftTileIds.has(tile.id));
   const ownColor = snapshot?.players.find((player) => player.id === privateState?.playerId)?.color ?? color;
-  const selectedRackTileIds = turnMode === "swap" ? new Set(swapSelectedTileIds) : new Set(selectedTileId ? [selectedTileId] : []);
-  const tileBagScale = tileBagScaleForPlayerCount(snapshot?.players.length ?? activeConfig.maxPlayers);
 
-  useEffect(() => {
-    if (!isMyTurn || draft.length === 0) {
-      autoPreviewRequestIdRef.current = undefined;
-      setPreviewScore(undefined);
-      return;
-    }
-
-    const requestId = `auto-preview:${createRequestId()}`;
-    autoPreviewRequestIdRef.current = requestId;
-    const timerId = window.setTimeout(() => {
-      client.send({ type: "play:preview", requestId, placements: draft });
-    }, 150);
-
-    return () => window.clearTimeout(timerId);
-  }, [client, draft, isMyTurn]);
+  const turn = useTurnController({ client, isMyTurn, rack });
+  turnHandleRef.current = turn.handleMessage;
 
   function createRoom(): void {
     client.send({ type: "room:create", requestId: createRequestId(), name, color, config });
@@ -134,129 +88,6 @@ export function App() {
 
   function startMatch(): void {
     client.send({ type: "match:start", requestId: createRequestId() });
-  }
-
-  function handleBoardCellClick(x: number, y: number): void {
-    if (turnMode !== "play" || !isMyTurn) {
-      return;
-    }
-
-    const target = { x, y };
-    const targetDraft = findDraftPlacementAt(draftRef.current, target);
-
-    if (!selectedTileId) {
-      setSelectedTileId(targetDraft?.tileId);
-      return;
-    }
-
-    const selectedDraft = draftRef.current.find((placement) => placement.tileId === selectedTileId);
-
-    if (selectedDraft) {
-      updateAndBroadcastDraft(moveOrSwapDraftPlacement({ draft: draftRef.current, tileId: selectedTileId, target }));
-      setSelectedTileId(undefined);
-      return;
-    }
-
-    if (targetDraft) {
-      setSelectedTileId(targetDraft.tileId);
-      return;
-    }
-
-    placeRackTile(selectedTileId, x, y);
-  }
-
-  function placeRackTile(tileId: string, x: number, y: number): void {
-    const tile = privateState?.rack.find((candidate) => candidate.id === tileId);
-
-    if (turnMode !== "play" || !isMyTurn || !tile) {
-      return;
-    }
-
-    if (tileRequiresFace(tile.label)) {
-      setPendingFacePlacement({ tile, x, y });
-      return;
-    }
-
-    placeResolvedRackTile(tile, x, y);
-  }
-
-  function placeResolvedRackTile(tile: Tile, x: number, y: number, face?: string): void {
-    const placement: Placement = face ? { tileId: tile.id, x, y, face } : { tileId: tile.id, x, y };
-    updateAndBroadcastDraft(upsertDraftPlacement(draftRef.current, placement));
-    setSelectedTileId(undefined);
-    setPendingFacePlacement(undefined);
-  }
-
-  function commitPlay(): void {
-    client.send({ type: "play:commit", requestId: createRequestId(), placements: draftRef.current });
-    updateDraft([]);
-    setPreviewScore(undefined);
-  }
-
-  function handleSwapAction(): void {
-    if (turnMode !== "swap") {
-      enterSwapMode();
-      return;
-    }
-
-    if (swapSelectedTileIds.length === 0) {
-      return;
-    }
-
-    client.send({ type: "turn:swap", requestId: createRequestId(), tileIds: swapSelectedTileIds });
-    setSwapSelectedTileIds([]);
-    setTurnMode("play");
-  }
-
-  function passTurn(): void {
-    client.send({ type: "turn:pass", requestId: createRequestId() });
-  }
-
-  function recallRack(): void {
-    if (turnMode === "swap") {
-      setTurnMode("play");
-      setSwapSelectedTileIds([]);
-      return;
-    }
-
-    updateDraft([]);
-    setSelectedTileId(undefined);
-    setPendingFacePlacement(undefined);
-    setPreviewScore(undefined);
-    client.send({ type: "rack:recall", requestId: createRequestId() });
-  }
-
-  function enterSwapMode(): void {
-    setTurnMode("swap");
-    setSelectedTileId(undefined);
-    setPendingFacePlacement(undefined);
-    setSwapSelectedTileIds([]);
-
-    if (draftRef.current.length > 0) {
-      updateDraft([]);
-      client.send({ type: "rack:recall", requestId: createRequestId() });
-    }
-  }
-
-  function handleRackSelect(tile: Tile): void {
-    if (turnMode === "swap") {
-      setSwapSelectedTileIds((selectedIds) => toggleSelection(selectedIds, tile.id));
-      return;
-    }
-
-    setSelectedTileId(tile.id);
-    setPreviewScore(undefined);
-  }
-
-  function updateAndBroadcastDraft(nextDraft: Placement[]): void {
-    updateDraft(nextDraft);
-    setPreviewScore(undefined);
-    client.send({ type: "placement:draft", requestId: createRequestId(), placements: nextDraft });
-  }
-
-  function updateDraft(nextDraft: Placement[]): void {
-    draftRef.current = nextDraft;
-    setDraft(nextDraft);
   }
 
   return (
@@ -304,8 +135,7 @@ export function App() {
 
           {snapshot && (
             <>
-              <LobbyPanel snapshot={snapshot} tileBagScale={tileBagScale} onStart={startMatch} />
-              <TurnStatus currentPlayerName={currentPlayer?.name} isMyTurn={isMyTurn} status={snapshot.status} />
+              <LobbyPanel snapshot={snapshot} onStart={startMatch} />
               <Hud snapshot={snapshot} />
             </>
           )}
@@ -316,49 +146,49 @@ export function App() {
         <section className="play-surface">
           <BoardCanvas
             snapshot={snapshot}
-            draft={draft}
+            draft={turn.draft}
             rack={rack}
             currentPlayerId={privateState?.playerId}
-            selectedTileId={selectedTileId}
-            placementDisabled={turnMode === "swap"}
-            onCellClick={handleBoardCellClick}
-            onTileDrop={placeRackTile}
+            selectedTileId={turn.selectedTileId}
+            placementDisabled={turn.placementDisabled}
+            onCellClick={turn.handleBoardCellClick}
+            onTileDrop={turn.placeRackTile}
           />
           <div className="control-strip">
             <section className="rack-panel">
               <Rack
-                rack={visibleRack}
-                selectedTileIds={selectedRackTileIds}
+                rack={turn.visibleRack}
+                selectedTileIds={turn.selectedRackTileIds}
                 playerColor={ownColor}
-                canDrag={turnMode === "play"}
-                onSelect={handleRackSelect}
+                canDrag={turn.turnMode === "play"}
+                onSelect={turn.handleRackSelect}
               />
             </section>
             <section className="action-panel">
               <div className="action-bar">
-                <button className="primary" onClick={commitPlay} disabled={!isMyTurn || draft.length === 0}>
+                <button className="primary" onClick={turn.commitPlay} disabled={!isMyTurn || turn.draft.length === 0}>
                   Play
                 </button>
-                <button onClick={handleSwapAction} disabled={!isMyTurn || (turnMode === "swap" && swapSelectedTileIds.length === 0)}>
-                  {turnMode === "swap" ? `Swap ${swapSelectedTileIds.length}` : "Swap"}
+                <button onClick={turn.handleSwapAction} disabled={!isMyTurn || (turn.turnMode === "swap" && turn.swapSelectedTileIds.length === 0)}>
+                  {turn.turnMode === "swap" ? `Swap ${turn.swapSelectedTileIds.length}` : "Swap"}
                 </button>
-                <button onClick={passTurn} disabled={!isMyTurn || turnMode === "swap"}>
+                <button onClick={turn.passTurn} disabled={!isMyTurn || turn.turnMode === "swap"}>
                   Pass
                 </button>
-                <button onClick={recallRack} disabled={turnMode === "play" && draft.length === 0}>
-                  {turnMode === "swap" ? "Cancel" : "Recall"}
+                <button onClick={turn.recallRack} disabled={turn.turnMode === "play" && turn.draft.length === 0}>
+                  {turn.turnMode === "swap" ? "Cancel" : "Recall"}
                 </button>
                 {activeConfig.mode !== "classical" && <button disabled>Use Skill</button>}
               </div>
-              {previewScore !== undefined && <strong className="preview-score">Score +{previewScore}</strong>}
+              {turn.previewScore !== undefined && <strong className="preview-score">Score +{turn.previewScore}</strong>}
             </section>
           </div>
-          {pendingFacePlacement && (
+          {turn.pendingFacePlacement && (
             <FaceSelectionDialog
               playerColor={ownColor}
-              tile={pendingFacePlacement.tile}
-              onCancel={() => setPendingFacePlacement(undefined)}
-              onSelect={(face) => placeResolvedRackTile(pendingFacePlacement.tile, pendingFacePlacement.x, pendingFacePlacement.y, face)}
+              tile={turn.pendingFacePlacement.tile}
+              onCancel={turn.cancelPendingFace}
+              onSelect={(face) => turn.placeResolvedRackTile(turn.pendingFacePlacement!.tile, turn.pendingFacePlacement!.x, turn.pendingFacePlacement!.y, face)}
             />
           )}
         </section>
@@ -410,48 +240,50 @@ function CreateControls(props: { config: MatchConfig; onChange: (config: MatchCo
   );
 }
 
-function LobbyPanel(props: { snapshot: PublicSnapshot; tileBagScale: number; onStart: () => void }) {
-  const { snapshot, tileBagScale, onStart } = props;
-  const inviteUrl = `${window.location.origin}?room=${snapshot.code}`;
+function LobbyPanel(props: { snapshot: PublicSnapshot; onStart: () => void }) {
+  const inviteUrl = `${window.location.origin}?room=${props.snapshot.code}`;
 
   return (
     <div className="panel compact">
       <div className="room-code">
-        <span>{snapshot.code}</span>
-        <button onClick={() => navigator.clipboard.writeText(inviteUrl)}>Copy link</button>
+        <span>{props.snapshot.code}</span>
+        <button onClick={() => copyText(inviteUrl)}>Copy link</button>
       </div>
-      <p className="config-hint">
-        Bag scale now: {tileBagScale}x · Bag tiles: {snapshot.status === "playing" ? snapshot.tileBagCount : "not dealt"}
-      </p>
-      <button className="primary" onClick={onStart} disabled={snapshot.status !== "lobby"}>
+      <button className="primary" onClick={props.onStart} disabled={props.snapshot.status !== "lobby"}>
         Start
       </button>
     </div>
   );
 }
 
-function TurnStatus(props: { currentPlayerName?: string; isMyTurn: boolean; status: PublicSnapshot["status"] }) {
-  const label = props.status === "playing" ? props.currentPlayerName ?? "Unknown" : "Waiting";
-
-  return (
-    <div className="turn-status" role="status" aria-live="polite">
-      <span>Turn</span>
-      <strong>{props.isMyTurn ? "Your turn" : label}</strong>
-    </div>
-  );
-}
-
 function Hud(props: { snapshot: PublicSnapshot }) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (props.snapshot.status !== "playing") return;
+
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [props.snapshot.status, props.snapshot.turnStartedAt, props.snapshot.currentPlayerId]);
+
+  const now = Date.now();
+
   return (
     <div className="player-list">
-      {props.snapshot.players.map((player) => (
-        <div className={props.snapshot.currentPlayerId === player.id ? "player-row current" : "player-row"} key={player.id}>
-          <span className="swatch" style={{ background: player.color }} />
-          <span>{player.name}</span>
-          <strong>{player.score}</strong>
-          <time>{formatTime(player.remainingMs)}</time>
-        </div>
-      ))}
+      {props.snapshot.players.map((player) => {
+        const isActive = props.snapshot.currentPlayerId === player.id;
+        const elapsed = isActive ? Math.max(0, now - props.snapshot.turnStartedAt) : 0;
+        const remaining = Math.max(0, player.remainingMs - elapsed);
+
+        return (
+          <div className={isActive ? "player-row current" : "player-row"} key={player.id}>
+            <span className="swatch" style={{ background: player.color }} />
+            <span>{player.name}</span>
+            <strong>{player.score}</strong>
+            <time>{formatTime(remaining)}</time>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -560,6 +392,25 @@ function FaceSelectionDialog(props: {
       </div>
     </div>
   );
+}
+
+function copyText(text: string): void {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text: string): void {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.position = "fixed";
+  el.style.left = "-9999px";
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand("copy");
+  el.remove();
 }
 
 function formatTime(ms: number): string {
