@@ -1,0 +1,20 @@
+{
+  "name": "@d-m4th/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@d-m4th/config": "workspace:*",
+    "@d-m4th/game": "workspace:*",
+    "@d-m4th/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
