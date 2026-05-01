@@ -99,6 +99,20 @@ describe("game engine", () => {
 
     expect(result.ok).toBe(true);
     expect(host.score).toBe(-1);
+    expect(host.lastPenaltyPoints).toBe(10);
+  });
+
+  test("clears shown penalty when that player's next turn starts", () => {
+    const { engine, match, host, guest } = startedMatch();
+    match.turnStartedAt = 0;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
+    expect(host.lastPenaltyPoints).toBe(10);
+    expect(match.currentPlayerId).toBe(guest.id);
+
+    expect(engine.passTurn(match, guest.id, match.config.turnTimeMs + 2).ok).toBe(true);
+    expect(match.currentPlayerId).toBe(host.id);
+    expect(host.lastPenaltyPoints).toBeUndefined();
   });
 
   test("lets blank tiles choose a face while scoring zero", () => {
