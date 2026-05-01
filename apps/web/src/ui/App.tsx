@@ -1,18 +1,30 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClassicalConfig, createPartyConfig, tileBagScaleForPlayerCount, type MatchConfig } from "@d-m4th/config";
-import { faceOptionsForTileLabel, type PublicSnapshot, type Tile } from "@d-m4th/game";
+import type { Placement, PublicSnapshot, Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "../protocol-client";
-import { createDragPreviewSize, textColorForPlayerColor } from "../board/board-interaction";
 import { useTurnController } from "../turn/use-turn-controller";
 import { BoardCanvas } from "./BoardCanvas";
+import { ColorPicker } from "./ColorPicker";
+import { FaceSelectionDialog, LogDialog } from "./Dialogs";
+import { PlayerInfoList } from "./PlayerInfoList";
+import { Rack } from "./Rack";
+import type { LogEntry, NoticeTone } from "./types";
 
 type ViewMode = "create" | "join";
 const EMPTY_RACK: Tile[] = [];
+const EMPTY_DRAFT: Placement[] = [];
+const NOTICE_AUTO_DISMISS_MS = 4000;
 
 interface PrivateState {
   playerId: string;
   rack: Tile[];
+}
+
+interface NoticeState {
+  text: string;
+  tone: NoticeTone;
+  sticky?: boolean;
 }
 
 export function App() {
@@ -24,13 +36,16 @@ export function App() {
   const [config, setConfig] = useState<MatchConfig>(createClassicalConfig());
   const [snapshot, setSnapshot] = useState<PublicSnapshot>();
   const [privateState, setPrivateState] = useState<PrivateState>();
-  const [connected, setConnected] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<NoticeState>();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
 
   const turnHandleRef = useRef<(message: ServerMessage) => boolean>(() => false);
+  const nextLogIdRef = useRef(1);
 
   const client = useMemo(() => {
-    return new ProtocolClient(defaultWebSocketUrl(), handleMessage, setConnected);
+    return new ProtocolClient(defaultWebSocketUrl(), handleMessage, () => {});
 
     function handleMessage(message: ServerMessage): void {
       if (turnHandleRef.current(message)) return;
@@ -44,30 +59,55 @@ export function App() {
       }
 
       if (message.type === "action:accepted") {
-        setNotice(message.action);
+        addLog(message.action, "success");
+        setNotice({ text: message.action, tone: "success" });
       }
 
       if (message.type === "action:rejected") {
-        setNotice(message.reason);
+        addLog(message.reason, "danger");
+        setNotice({ text: message.reason, tone: "danger" });
       }
 
       if (message.type === "match:ended") {
-        setNotice(`Match ended: ${message.snapshot.endedReason ?? "complete"}`);
+        addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
+        setNotice({
+          text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
+          tone: "info",
+          sticky: true
+        });
       }
     }
   }, []);
+
+  function addLog(text: string, tone: NoticeTone): void {
+    setLogEntries((entries) => [
+      { id: nextLogIdRef.current++, text, tone, at: Date.now() },
+      ...entries
+    ].slice(0, 30));
+  }
 
   useEffect(() => {
     client.connect();
     return () => client.close();
   }, [client]);
 
+  useEffect(() => {
+    if (!notice || notice.sticky) {
+      return;
+    }
+
+    const timerId = window.setTimeout(() => setNotice(undefined), NOTICE_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timerId);
+  }, [notice]);
+
   const isMyTurn = snapshot?.currentPlayerId === privateState?.playerId;
+  const isPlaying = snapshot?.status === "playing";
   const activeConfig = snapshot?.config ?? config;
   const rack = privateState?.rack ?? EMPTY_RACK;
   const ownColor = snapshot?.players.find((player) => player.id === privateState?.playerId)?.color ?? color;
+  const showSetupPreview = !isPlaying;
 
-  const turn = useTurnController({ client, isMyTurn, rack });
+  const turn = useTurnController({ client, isMyTurn, rack, rackSize: activeConfig.rackSize });
   turnHandleRef.current = turn.handleMessage;
 
   function createRoom(): void {
@@ -92,11 +132,19 @@ export function App() {
 
   return (
     <div className="puzzle-theme-root">
-      <main className="app-shell">
-        <section className="sidebar">
-          <div className="brand-row">
+      <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
+        <section className={sidebarCollapsed && isPlaying ? "sidebar collapsed" : "sidebar"}>
+          <div className="sidebar-header">
             <h1>D-M4TH</h1>
-            <span className={connected ? "status online" : "status"}>{connected ? "Online" : "Offline"}</span>
+            {isPlaying && (
+              <button
+                className="sidebar-toggle"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+              >
+                {sidebarCollapsed ? "▶" : "◀"}
+              </button>
+            )}
           </div>
 
           {!snapshot && (
@@ -115,7 +163,7 @@ export function App() {
               </label>
               <label>
                 Color
-                <input type="color" value={color} onChange={(event) => setColor(event.target.value)} />
+                <ColorPicker value={color} onChange={setColor} />
               </label>
               {viewMode === "create" ? (
                 <CreateControls config={config} onChange={configure} onSubmit={createRoom} />
@@ -133,31 +181,53 @@ export function App() {
             </div>
           )}
 
-          {snapshot && (
+          {snapshot?.status === "lobby" && (
             <>
               <LobbyPanel snapshot={snapshot} onStart={startMatch} />
-              <Hud snapshot={snapshot} />
+              <PlayerInfoList snapshot={snapshot} />
             </>
           )}
 
-          {notice && <p className="notice">{notice}</p>}
+          {isPlaying && snapshot && (
+            <PlayerInfoList snapshot={snapshot} previewScore={turn.previewScore} />
+          )}
+
+          {notice && <NoticeBanner notice={notice} onDismiss={() => setNotice(undefined)} />}
         </section>
 
-        <section className="play-surface">
-          <BoardCanvas
-            snapshot={snapshot}
-            draft={turn.draft}
-            rack={rack}
-            currentPlayerId={privateState?.playerId}
-            selectedTileId={turn.selectedTileId}
-            placementDisabled={turn.placementDisabled}
-            onCellClick={turn.handleBoardCellClick}
-            onTileDrop={turn.placeRackTile}
-          />
+        {showSetupPreview && (
+          <section className="setup-preview">
+            <BoardCanvas
+              previewBoardSize={activeConfig.boardSize}
+              draft={EMPTY_DRAFT}
+              rack={EMPTY_RACK}
+              placementDisabled
+              onCellClick={() => {}}
+              onDraftTileDoubleClick={() => {}}
+              onTileDrop={() => {}}
+              variant="preview"
+            />
+          </section>
+        )}
+
+        {isPlaying && <section className="play-surface min-w-0">
+          <div className="board-scroll-container px-1 md:px-0">
+            <BoardCanvas
+              snapshot={snapshot}
+              draft={turn.draft}
+              rack={rack}
+              currentPlayerId={privateState?.playerId}
+              selectedTileId={turn.selectedTileId}
+              placementDisabled={turn.placementDisabled}
+              onCellClick={turn.handleBoardCellClick}
+              onDraftTileDoubleClick={turn.handleBoardCellDoubleClick}
+              onTileDrop={turn.placeRackTile}
+            />
+          </div>
           <div className="control-strip">
             <section className="rack-panel">
               <Rack
-                rack={turn.visibleRack}
+                rackSlots={turn.rackSlots}
                 selectedTileIds={turn.selectedRackTileIds}
                 playerColor={ownColor}
                 canDrag={turn.turnMode === "play"}
@@ -166,7 +236,11 @@ export function App() {
             </section>
             <section className="action-panel">
               <div className="action-bar">
-                <button className="primary" onClick={turn.commitPlay} disabled={!isMyTurn || turn.draft.length === 0}>
+                <button
+                  className="primary"
+                  onClick={turn.commitPlay}
+                  disabled={!isMyTurn || turn.draft.length === 0}
+                >
                   Play
                 </button>
                 <button onClick={turn.handleSwapAction} disabled={!isMyTurn || (turn.turnMode === "swap" && turn.swapSelectedTileIds.length === 0)}>
@@ -178,9 +252,7 @@ export function App() {
                 <button onClick={turn.recallRack} disabled={turn.turnMode === "play" && turn.draft.length === 0}>
                   {turn.turnMode === "swap" ? "Cancel" : "Recall"}
                 </button>
-                {activeConfig.mode !== "classical" && <button disabled>Use Skill</button>}
               </div>
-              {turn.previewScore !== undefined && <strong className="preview-score">Score +{turn.previewScore}</strong>}
             </section>
           </div>
           {turn.pendingFacePlacement && (
@@ -191,8 +263,27 @@ export function App() {
               onSelect={(face) => turn.placeResolvedRackTile(turn.pendingFacePlacement!.tile, turn.pendingFacePlacement!.x, turn.pendingFacePlacement!.y, face)}
             />
           )}
-        </section>
+        </section>}
+
+        {isPlaying && (
+          <button className="floating-log-button" onClick={() => setLogOpen(true)}>
+            Log {logEntries.length}
+          </button>
+        )}
+
+        {logOpen && <LogDialog entries={logEntries} onClose={() => setLogOpen(false)} />}
       </main>
+    </div>
+  );
+}
+
+function NoticeBanner(props: { notice: NoticeState; onDismiss: () => void }) {
+  return (
+    <div className={`notice ${props.notice.tone}`} role="status" aria-live="polite">
+      <span>{props.notice.text}</span>
+      <button type="button" aria-label="Dismiss notice" onClick={props.onDismiss}>
+        Close
+      </button>
     </div>
   );
 }
@@ -241,183 +332,16 @@ function CreateControls(props: { config: MatchConfig; onChange: (config: MatchCo
 }
 
 function LobbyPanel(props: { snapshot: PublicSnapshot; onStart: () => void }) {
-  const inviteUrl = `${window.location.origin}?room=${props.snapshot.code}`;
-
   return (
     <div className="panel compact">
       <div className="room-code">
         <span>{props.snapshot.code}</span>
-        <button onClick={() => copyText(inviteUrl)}>Copy link</button>
       </div>
       <button className="primary" onClick={props.onStart} disabled={props.snapshot.status !== "lobby"}>
         Start
       </button>
     </div>
   );
-}
-
-function Hud(props: { snapshot: PublicSnapshot }) {
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (props.snapshot.status !== "playing") return;
-
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [props.snapshot.status, props.snapshot.turnStartedAt, props.snapshot.currentPlayerId]);
-
-  const now = Date.now();
-
-  return (
-    <div className="player-list">
-      {props.snapshot.players.map((player) => {
-        const isActive = props.snapshot.currentPlayerId === player.id;
-        const elapsed = isActive ? Math.max(0, now - props.snapshot.turnStartedAt) : 0;
-        const remaining = Math.max(0, player.remainingMs - elapsed);
-
-        return (
-          <div className={isActive ? "player-row current" : "player-row"} key={player.id}>
-            <span className="swatch" style={{ background: player.color }} />
-            <span>{player.name}</span>
-            <strong>{player.score}</strong>
-            <time>{formatTime(remaining)}</time>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Rack(props: {
-  rack: Tile[];
-  selectedTileIds: ReadonlySet<string>;
-  playerColor: string;
-  canDrag: boolean;
-  onSelect: (tile: Tile) => void;
-}) {
-  const textColor = textColorForPlayerColor(props.playerColor);
-
-  return (
-    <div className="rack">
-      {props.rack.map((tile) => (
-        <button
-          className={props.selectedTileIds.has(tile.id) ? "tile selected" : "tile"}
-          draggable={props.canDrag}
-          key={tile.id}
-          style={{ background: props.playerColor, color: textColor }}
-          onClick={() => props.onSelect(tile)}
-          onDragStart={(event) => {
-            if (!props.canDrag) {
-              event.preventDefault();
-              return;
-            }
-
-            props.onSelect(tile);
-            event.dataTransfer.setData("text/plain", tile.id);
-            setTileDragImage({
-              event,
-              label: tile.label,
-              playerColor: props.playerColor,
-              textColor
-            });
-          }}
-        >
-          <span>{tile.label}</span>
-          <small>{tile.value}</small>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function setTileDragImage(params: {
-  event: DragEvent<HTMLButtonElement>;
-  label: string;
-  playerColor: string;
-  textColor: string;
-}): void {
-  const size = createDragPreviewSize(readBoardCellSize());
-  const preview = document.createElement("div");
-  preview.textContent = params.label;
-  preview.style.position = "fixed";
-  preview.style.left = "-1000px";
-  preview.style.top = "-1000px";
-  preview.style.width = `${size}px`;
-  preview.style.height = `${size}px`;
-  preview.style.display = "grid";
-  preview.style.placeItems = "center";
-  preview.style.border = "3px solid #f7e6a6";
-  preview.style.borderRadius = "0";
-  preview.style.background = params.playerColor;
-  preview.style.color = params.textColor;
-  preview.style.font = `400 ${Math.max(10, Math.floor(size * 0.28))}px "Silkscreen", monospace`;
-  document.body.append(preview);
-  params.event.dataTransfer.effectAllowed = "move";
-  params.event.dataTransfer.setDragImage(preview, size / 2, size / 2);
-  window.setTimeout(() => preview.remove(), 0);
-}
-
-function readBoardCellSize(): number {
-  const board = document.querySelector<HTMLElement>(".board-host");
-
-  if (!board) {
-    return 48;
-  }
-
-  const boardSize = Number(board.dataset.boardSize ?? 15);
-  return Math.min(board.clientWidth, board.clientHeight) / boardSize;
-}
-
-function FaceSelectionDialog(props: {
-  tile: Tile;
-  playerColor: string;
-  onCancel: () => void;
-  onSelect: (face: string) => void;
-}) {
-  const textColor = textColorForPlayerColor(props.playerColor);
-  const faces = faceOptionsForTileLabel(props.tile.label);
-
-  return (
-    <div className="dialog-backdrop">
-      <div className="face-dialog" role="dialog" aria-modal="true" aria-label={`${props.tile.label} face`}>
-        <strong>{props.tile.label}</strong>
-        <div className="face-options">
-          {faces.map((face) => (
-            <button key={face} style={{ background: props.playerColor, color: textColor }} onClick={() => props.onSelect(face)}>
-              {face}
-            </button>
-          ))}
-        </div>
-        <button onClick={props.onCancel}>Cancel</button>
-      </div>
-    </div>
-  );
-}
-
-function copyText(text: string): void {
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
-}
-
-function fallbackCopy(text: string): void {
-  const el = document.createElement("textarea");
-  el.value = text;
-  el.style.position = "fixed";
-  el.style.left = "-9999px";
-  document.body.appendChild(el);
-  el.select();
-  document.execCommand("copy");
-  el.remove();
-}
-
-function formatTime(ms: number): string {
-  const totalSeconds = Math.ceil(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, "0");
-  return `${minutes}:${seconds}`;
 }
 
 function readInitialRoomCode(): string {
