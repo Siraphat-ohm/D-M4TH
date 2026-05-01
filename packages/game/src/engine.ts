@@ -8,7 +8,7 @@ import {
 import { validatePlay } from "./play-validator";
 import { createTileBag, drawTiles } from "./tile-catalog";
 import type { BoardTile, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown } from "./types";
-import { createId, createRoomCode, errorMessage, getPlayer, nextTurnPlayer, shuffleTiles, toPublicPlayer } from "./utils";
+import { createId, createRoomCode, errorMessage, getPlayer, nextTurnPlayer, shuffle, shuffleTiles, toPublicPlayer } from "./utils";
 
 export interface CreateMatchInput {
   hostName: string;
@@ -41,7 +41,7 @@ export class GameEngine {
       board: [],
       lastPlacements: [],
       players: [host],
-      playerOrder: [host.id],
+      playerOrder: [],
       tileBag: [],
       consecutivePasses: 0,
       turnStartedAt: now,
@@ -66,7 +66,6 @@ export class GameEngine {
     });
 
     match.players.push(player);
-    match.playerOrder.push(player.id);
     return accepted(player);
   }
 
@@ -98,6 +97,7 @@ export class GameEngine {
     }
 
     match.status = "playing";
+    match.playerOrder = shuffle(match.players.map((p) => p.id), `${match.id}:start`);
     match.currentPlayerId = match.playerOrder[0];
     match.turnStartedAt = now;
     return accepted(match);

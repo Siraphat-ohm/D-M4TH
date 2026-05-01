@@ -1,3 +1,4 @@
+import seedrandom from "seedrandom";
 import type { Coordinate, MatchState, Player, PublicPlayer, Tile } from "./types";
 
 /**
@@ -53,32 +54,23 @@ export function toPublicPlayer(player: Player): PublicPlayer {
  * Array / Tile Utilities
  */
 
+export function shuffle<T>(items: readonly T[], seed: string): T[] {
+  const shuffled = [...items];
+  const rng = seedrandom(seed);
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(rng() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+/**
+ * Legacy alias for tile bag
+ */
 export function shuffleTiles(tiles: readonly Tile[], seed: string): Tile[] {
-  const shuffledTiles = [...tiles];
-  let state = hashSeed(seed);
-
-  for (let index = shuffledTiles.length - 1; index > 0; index -= 1) {
-    state = nextRandomState(state);
-    const swapIndex = state % (index + 1);
-    [shuffledTiles[index], shuffledTiles[swapIndex]] = [shuffledTiles[swapIndex], shuffledTiles[index]];
-  }
-
-  return shuffledTiles;
-}
-
-function hashSeed(seed: string): number {
-  let hash = 2166136261;
-
-  for (const character of seed) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function nextRandomState(state: number): number {
-  return (Math.imul(state, 1664525) + 1013904223) >>> 0;
+  return shuffle(tiles, seed);
 }
 
 /**

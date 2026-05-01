@@ -213,6 +213,26 @@ describe("game engine", () => {
     expect(createTileSet(3)).toHaveLength(300);
   });
 
+  test("randomizes start player order", () => {
+    const engine = new GameEngine();
+    
+    // We run multiple starts with different match IDs (which are used as seeds)
+    const startRoles = new Set<string>();
+    
+    for (let i = 0; i < 20; i++) {
+      const match = engine.createMatch({ hostName: "Ada", hostColor: "#f97316" });
+      const hostId = match.players[0].id;
+      const guest = engine.joinMatch(match, { name: "Grace", color: "#2563eb" });
+      const guestId = guest.value!.id;
+      
+      engine.startMatch(match, 0);
+      startRoles.add(match.currentPlayerId === hostId ? "host" : "guest");
+    }
+    
+    // With 20 runs, it's extremely unlikely (1 in 2^20) that the same role always starts
+    expect(startRoles.size).toBe(2);
+  });
+
   describe("lastPlacements tracking", () => {
     test("records placed tiles after commitPlay", () => {
       const { engine, match, host } = startedMatch();
@@ -354,11 +374,14 @@ function startedMatch(config = createPartyConfig({ maxPlayers: 2 })): {
     throw new Error(startResult.error);
   }
 
+  const host = match.players.find((p) => p.id === match.currentPlayerId)!;
+  const guest = match.players.find((p) => p.id !== match.currentPlayerId)!;
+
   return {
     engine,
     match,
-    host: match.players[0],
-    guest: match.players[1]
+    host,
+    guest
   };
 }
 

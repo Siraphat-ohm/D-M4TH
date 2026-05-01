@@ -10,9 +10,11 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@d-m4th/config": "workspace:*"
+    "@d-m4th/config": "workspace:*",
+    "seedrandom": "^3.0.5"
   },
   "devDependencies": {
+    "@types/seedrandom": "^3.0.8",
     "typescript": "^5.9.3"
   }
 }
