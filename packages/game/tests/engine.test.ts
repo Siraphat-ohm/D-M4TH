@@ -212,6 +212,126 @@ describe("game engine", () => {
     expect(createTileSet(2)).toHaveLength(200);
     expect(createTileSet(3)).toHaveLength(300);
   });
+
+  describe("lastPlacements tracking", () => {
+    test("records placed tiles after commitPlay", () => {
+      const { engine, match, host } = startedMatch();
+      host.rack = equationRack();
+
+      engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      );
+
+      expect(match.lastPlacements).toHaveLength(3);
+      expect(match.lastPlacements.map((t) => t.x)).toEqual([7, 8, 9]);
+      expect(match.lastPlacements.every((t) => t.ownerId === host.id)).toBe(true);
+    });
+
+    test("replaces lastPlacements on subsequent play", () => {
+      const { engine, match, host, guest } = startedMatch();
+      host.rack = equationRack();
+
+      engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      );
+
+      const hostPlacements = match.lastPlacements.slice();
+
+      guest.rack = equationRack();
+      engine.commitPlay(
+        match,
+        guest.id,
+        [
+          { tileId: "a", x: 7, y: 8 },
+          { tileId: "b", x: 8, y: 8 },
+          { tileId: "c", x: 9, y: 8 }
+        ],
+        0
+      );
+
+      expect(match.lastPlacements).toHaveLength(3);
+      expect(match.lastPlacements).not.toEqual(hostPlacements);
+      expect(match.lastPlacements.every((t) => t.ownerId === guest.id)).toBe(true);
+    });
+
+    test("preserves lastPlacements after pass", () => {
+      const { engine, match, host, guest } = startedMatch();
+      host.rack = equationRack();
+
+      engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      );
+
+      const played = match.lastPlacements.slice();
+
+      engine.passTurn(match, guest.id, 0);
+
+      expect(match.lastPlacements).toEqual(played);
+    });
+
+    test("preserves lastPlacements after swap", () => {
+      const { engine, match, host, guest } = startedMatch();
+      host.rack = equationRack();
+
+      engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      );
+
+      const played = match.lastPlacements.slice();
+
+      engine.swapTiles(match, guest.id, [guest.rack[0].id], 0);
+
+      expect(match.lastPlacements).toEqual(played);
+    });
+
+    test("includes lastPlacements in snapshot", () => {
+      const { engine, match, host } = startedMatch();
+      host.rack = equationRack();
+
+      engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      );
+
+      const snapshot = engine.createSnapshot(match);
+
+      expect(snapshot.lastPlacements).toEqual(match.lastPlacements);
+    });
+  });
 });
 
 function startedMatch(config = createPartyConfig({ maxPlayers: 2 })): {

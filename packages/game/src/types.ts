@@ -77,6 +77,7 @@ export interface MatchState {
   status: MatchStatus;
   config: MatchConfig;
   board: BoardTile[];
+  lastPlacements: BoardTile[];
   players: Player[];
   playerOrder: string[];
   currentPlayerId?: string;
@@ -93,6 +94,7 @@ export interface PublicSnapshot {
   status: MatchStatus;
   config: MatchConfig;
   board: BoardTile[];
+  lastPlacements: BoardTile[];
   players: PublicPlayer[];
   playerOrder: string[];
   currentPlayerId?: string;

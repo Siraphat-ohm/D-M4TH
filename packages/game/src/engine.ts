@@ -45,6 +45,7 @@ export class GameEngine {
       status: "lobby",
       config,
       board: [],
+      lastPlacements: [],
       players: [host],
       playerOrder: [host.id],
       tileBag: [],
@@ -125,6 +126,7 @@ export class GameEngine {
       const boardTiles = createBoardTiles(player, placements);
 
       match.board.push(...boardTiles);
+      match.lastPlacements = boardTiles;
       player.rack = player.rack.filter((tile) => !placedTileIds.has(tile.id));
       player.score += score.totalScore;
       player.rack.push(...drawTiles(match.tileBag, match.config.rackSize - player.rack.length));
@@ -190,6 +192,7 @@ export class GameEngine {
       status: match.status,
       config: match.config,
       board: match.board,
+      lastPlacements: match.lastPlacements,
       players: match.players.map(toPublicPlayer),
       playerOrder: match.playerOrder,
       currentPlayerId: match.currentPlayerId,
