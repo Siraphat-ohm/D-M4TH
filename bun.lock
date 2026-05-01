@@ -11,7 +11,7 @@
     },
     "apps/server": {
       "name": "@d-m4th/server",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@d-m4th/config": "workspace:*",
         "@d-m4th/game": "workspace:*",
@@ -23,7 +23,7 @@
     },
     "apps/web": {
       "name": "@d-m4th/web",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@d-m4th/config": "workspace:*",
         "@d-m4th/game": "workspace:*",
@@ -45,14 +45,14 @@
     },
     "packages/config": {
       "name": "@d-m4th/config",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "devDependencies": {
         "typescript": "^5.9.3",
       },
     },
     "packages/game": {
       "name": "@d-m4th/game",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@d-m4th/config": "workspace:*",
         "seedrandom": "^3.0.5",
@@ -64,7 +64,7 @@
     },
     "packages/protocol": {
       "name": "@d-m4th/protocol",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@d-m4th/config": "workspace:*",
         "@d-m4th/game": "workspace:*",

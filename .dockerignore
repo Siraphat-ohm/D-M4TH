@@ -1,0 +1,13 @@
+.git
+.github
+.claude
+.codex
+.remember
+.agents
+node_modules
+dist
+coverage
+*.log
+.DS_Store
+deploy/docker/.env
+Dockerfile.*
