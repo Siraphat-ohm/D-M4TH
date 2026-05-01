@@ -62,6 +62,7 @@ select:focus {
 }
 
 button:disabled {
+  border-color: var(--panel-border);
   color: #67748f;
   background: #121828;
   cursor: not-allowed;

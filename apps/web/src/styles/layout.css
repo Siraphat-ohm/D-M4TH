@@ -14,9 +14,11 @@
 }
 
 .app-shell--lobby {
-  grid-template-columns: 420px minmax(420px, 1fr);
+  grid-template-columns: minmax(300px, 380px) minmax(420px, 1fr) minmax(300px, 380px);
   align-items: start;
-  justify-content: start;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
 }
 
 .app-shell--playing {
@@ -30,6 +32,26 @@
   border-right: 1px solid var(--line);
   padding: 16px;
   background: var(--panel);
+  min-width: 0;
+}
+
+.lobby-setup-panel,
+.lobby-status {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lobby-setup-panel {
+  grid-column: 1;
+}
+
+.lobby-status {
+  grid-column: 3;
+}
+
+.lobby-notice {
+  grid-column: 1;
   min-width: 0;
 }
 
@@ -59,8 +81,7 @@
   grid-row: 1;
   display: grid;
   align-content: start;
-  justify-items: start;
-  padding: 16px;
+  justify-items: center;
   min-width: 0;
 }
 
@@ -101,6 +122,8 @@
   .app-shell--lobby,
   .app-shell--playing {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 10px;
   }
 
   .sidebar {
@@ -109,7 +132,15 @@
     padding: 12px;
   }
 
+  .lobby-setup-panel,
+  .lobby-status,
+  .lobby-notice,
   .setup-preview {
+    grid-column: 1;
+  }
+
+  .setup-preview {
+    grid-row: auto;
     padding: 10px;
   }
 

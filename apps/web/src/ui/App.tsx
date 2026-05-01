@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClassicalConfig, createPartyConfig, tileBagScaleForPlayerCount, type MatchConfig } from "@d-m4th/config";
+import { createClassicalConfig, type MatchConfig } from "@d-m4th/config";
 import type { Placement, PublicSnapshot, Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "../protocol-client";
 import { useTurnController } from "../turn/use-turn-controller";
 import { BoardCanvas } from "./BoardCanvas";
-import { ColorPicker } from "./ColorPicker";
 import { FaceSelectionDialog, LogDialog } from "./Dialogs";
+import { LobbyRoom } from "./LobbyRoom";
 import { PlayerInfoList } from "./PlayerInfoList";
 import { Rack } from "./Rack";
 import type { LogEntry, NoticeTone } from "./types";
@@ -30,7 +30,7 @@ interface NoticeState {
 export function App() {
   const initialRoomCode = readInitialRoomCode();
   const [viewMode, setViewMode] = useState<ViewMode>(initialRoomCode ? "join" : "create");
-  const [name, setName] = useState("Player");
+  const [name, setName] = useState("");
   const [color, setColor] = useState("#f97316");
   const [roomCode, setRoomCode] = useState(initialRoomCode);
   const [config, setConfig] = useState<MatchConfig>(createClassicalConfig());
@@ -105,17 +105,26 @@ export function App() {
   const activeConfig = snapshot?.config ?? config;
   const rack = privateState?.rack ?? EMPTY_RACK;
   const ownColor = snapshot?.players.find((player) => player.id === privateState?.playerId)?.color ?? color;
+  const playerName = name.trim();
   const showSetupPreview = !isPlaying;
 
   const turn = useTurnController({ client, isMyTurn, rack, rackSize: activeConfig.rackSize });
   turnHandleRef.current = turn.handleMessage;
 
   function createRoom(): void {
-    client.send({ type: "room:create", requestId: createRequestId(), name, color, config });
+    if (!playerName) {
+      return;
+    }
+
+    client.send({ type: "room:create", requestId: createRequestId(), name: playerName, color, config });
   }
 
   function joinRoom(): void {
-    client.send({ type: "room:join", requestId: createRequestId(), code: roomCode, name, color });
+    if (!playerName) {
+      return;
+    }
+
+    client.send({ type: "room:join", requestId: createRequestId(), code: roomCode, name: playerName, color });
   }
 
   function configure(nextConfig: MatchConfig): void {
@@ -133,10 +142,37 @@ export function App() {
   return (
     <div className="puzzle-theme-root">
       <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
-        <section className={sidebarCollapsed && isPlaying ? "sidebar collapsed" : "sidebar"}>
-          <div className="sidebar-header">
-            <h1>D-M4TH</h1>
-            {isPlaying && (
+        {!isPlaying && (
+          <>
+            <LobbyRoom
+              color={color}
+              config={activeConfig}
+              name={name}
+              nameRequired={playerName.length === 0}
+              roomCode={roomCode}
+              snapshot={snapshot?.status === "lobby" ? snapshot : undefined}
+              viewMode={viewMode}
+              onColorChange={setColor}
+              onConfigChange={configure}
+              onCreateRoom={createRoom}
+              onJoinRoom={joinRoom}
+              onNameChange={setName}
+              onRoomCodeChange={setRoomCode}
+              onStartMatch={startMatch}
+              onViewModeChange={setViewMode}
+            />
+            {notice && (
+              <section className="lobby-notice">
+                <NoticeBanner notice={notice} onDismiss={() => setNotice(undefined)} />
+              </section>
+            )}
+          </>
+        )}
+
+        {isPlaying && (
+          <section className={sidebarCollapsed ? "sidebar collapsed" : "sidebar"}>
+            <div className="sidebar-header">
+              <h1>D-M4TH</h1>
               <button
                 className="sidebar-toggle"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -144,56 +180,11 @@ export function App() {
               >
                 {sidebarCollapsed ? "▶" : "◀"}
               </button>
-            )}
-          </div>
-
-          {!snapshot && (
-            <div className="panel">
-              <div className="tabs">
-                <button className={viewMode === "create" ? "active" : ""} onClick={() => setViewMode("create")}>
-                  Create
-                </button>
-                <button className={viewMode === "join" ? "active" : ""} onClick={() => setViewMode("join")}>
-                  Join
-                </button>
-              </div>
-              <label>
-                Name
-                <input value={name} maxLength={24} onChange={(event) => setName(event.target.value)} />
-              </label>
-              <label>
-                Color
-                <ColorPicker value={color} onChange={setColor} />
-              </label>
-              {viewMode === "create" ? (
-                <CreateControls config={config} onChange={configure} onSubmit={createRoom} />
-              ) : (
-                <>
-                  <label>
-                    Room code
-                    <input value={roomCode} maxLength={6} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} />
-                  </label>
-                  <button className="primary" onClick={joinRoom}>
-                    Join room
-                  </button>
-                </>
-              )}
             </div>
-          )}
-
-          {snapshot?.status === "lobby" && (
-            <>
-              <LobbyPanel snapshot={snapshot} onStart={startMatch} />
-              <PlayerInfoList snapshot={snapshot} />
-            </>
-          )}
-
-          {isPlaying && snapshot && (
-            <PlayerInfoList snapshot={snapshot} previewScore={turn.previewScore} />
-          )}
-
-          {notice && <NoticeBanner notice={notice} onDismiss={() => setNotice(undefined)} />}
-        </section>
+            {snapshot && <PlayerInfoList snapshot={snapshot} previewScore={turn.previewScore} />}
+            {notice && <NoticeBanner notice={notice} onDismiss={() => setNotice(undefined)} />}
+          </section>
+        )}
 
         {showSetupPreview && (
           <section className="setup-preview">
@@ -283,62 +274,6 @@ function NoticeBanner(props: { notice: NoticeState; onDismiss: () => void }) {
       <span>{props.notice.text}</span>
       <button type="button" aria-label="Dismiss notice" onClick={props.onDismiss}>
         Close
-      </button>
-    </div>
-  );
-}
-
-function CreateControls(props: { config: MatchConfig; onChange: (config: MatchConfig) => void; onSubmit: () => void }) {
-  const { config, onChange, onSubmit } = props;
-
-  return (
-    <>
-      <label>
-        Mode
-        <select
-          value={config.mode}
-          onChange={(event) => onChange(event.target.value === "classical" ? createClassicalConfig() : createPartyConfig())}
-        >
-          <option value="classical">Classical</option>
-          <option value="party">Party</option>
-        </select>
-      </label>
-      <label>
-        Max players
-        <input
-          type="number"
-          min={2}
-          max={6}
-          value={config.maxPlayers}
-          onChange={(event) => onChange(createPartyConfig({ ...config, maxPlayers: Number(event.target.value) }))}
-        />
-      </label>
-      <p className="config-hint">Bag scale at max: {tileBagScaleForPlayerCount(config.maxPlayers)}x</p>
-      <label>
-        Board size
-        <input
-          type="number"
-          min={15}
-          step={2}
-          value={config.boardSize}
-          onChange={(event) => onChange(createPartyConfig({ ...config, boardSize: Number(event.target.value) }))}
-        />
-      </label>
-      <button className="primary" onClick={onSubmit}>
-        Create room
-      </button>
-    </>
-  );
-}
-
-function LobbyPanel(props: { snapshot: PublicSnapshot; onStart: () => void }) {
-  return (
-    <div className="panel compact">
-      <div className="room-code">
-        <span>{props.snapshot.code}</span>
-      </div>
-      <button className="primary" onClick={props.onStart} disabled={props.snapshot.status !== "lobby"}>
-        Start
       </button>
     </div>
   );

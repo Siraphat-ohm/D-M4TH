@@ -48,9 +48,70 @@ input[type="color"] {
   padding: 4px;
 }
 
-.room-code span {
-  font-size: 1.5rem;
+.room-code span,
+.lobby-panel-heading span {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.room-code strong {
   color: var(--gold);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.lobby-empty-state {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.lobby-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.lobby-panel-heading strong {
+  color: var(--cyan);
+  font-weight: 400;
+}
+
+.lobby-player-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 54px;
+  border: 1px solid var(--line);
+  padding: 8px;
+}
+
+.lobby-player-score {
+  color: var(--muted);
+}
+
+.lobby-player-state {
+  grid-column: 3;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.lobby-player-row.waiting {
+  color: var(--muted);
+}
+
+.lobby-player-row.waiting .swatch {
+  background: transparent;
+  border-color: var(--panel-border);
 }
 
 .notice {
@@ -81,11 +142,6 @@ input[type="color"] {
 .notice button {
   min-height: 32px;
   white-space: nowrap;
-}
-
-.config-hint {
-  margin: 0;
-  color: var(--muted);
 }
 
 .player-list {
