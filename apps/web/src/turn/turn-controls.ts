@@ -37,6 +37,10 @@ export function upsertDraftPlacement(draft: readonly Placement[], placement: Pla
   return [...draft.filter((draftPlacement) => draftPlacement.tileId !== placement.tileId), placement];
 }
 
+export function removeDraftPlacement(draft: readonly Placement[], tileId: string): Placement[] {
+  return draft.filter((draftPlacement) => draftPlacement.tileId !== tileId);
+}
+
 export function toggleSelection(selectedIds: readonly string[], tileId: string): string[] {
   if (selectedIds.includes(tileId)) {
     return selectedIds.filter((selectedId) => selectedId !== tileId);
