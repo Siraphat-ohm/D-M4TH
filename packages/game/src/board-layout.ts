@@ -1,4 +1,5 @@
 import type { BoardCell, BoardTile, Coordinate, Direction } from "./types";
+import { cellKey } from "./utils";
 
 export const START_COORDINATE: Coordinate = { x: 7, y: 7 };
 const CLASSICAL_LAYOUT_SIZE = 15;
@@ -92,10 +93,6 @@ export function createClassicalBoardLayout(boardSize = CLASSICAL_LAYOUT_SIZE): B
   startCell.pieceMultiplier = TRIPLE_MULTIPLIER;
 
   return [...cells.values()].sort((a, b) => a.y - b.y || a.x - b.x);
-}
-
-export function cellKey({ x, y }: Coordinate): string {
-  return `${x}:${y}`;
 }
 
 export function getBoardCell(layout: readonly BoardCell[], coordinate: Coordinate): BoardCell {

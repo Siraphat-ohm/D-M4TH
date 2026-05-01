@@ -1,5 +1,6 @@
 import { tileBagScaleForPlayerCount } from "@d-m4th/config";
 import type { Tile, TileDefinition } from "./types";
+import { shuffleTiles } from "./utils";
 
 export const TILE_DEFINITIONS: readonly TileDefinition[] = [
   { label: "0", value: 1, count: 5 },
@@ -102,32 +103,4 @@ export function createTileSet(scale: number): Tile[] {
 
 export function drawTiles(tileBag: Tile[], count: number): Tile[] {
   return tileBag.splice(0, Math.max(0, count));
-}
-
-export function shuffleTiles(tiles: readonly Tile[], seed: string): Tile[] {
-  const shuffledTiles = [...tiles];
-  let state = hashSeed(seed);
-
-  for (let index = shuffledTiles.length - 1; index > 0; index -= 1) {
-    state = nextRandomState(state);
-    const swapIndex = state % (index + 1);
-    [shuffledTiles[index], shuffledTiles[swapIndex]] = [shuffledTiles[swapIndex], shuffledTiles[index]];
-  }
-
-  return shuffledTiles;
-}
-
-function hashSeed(seed: string): number {
-  let hash = 2166136261;
-
-  for (const character of seed) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function nextRandomState(state: number): number {
-  return (Math.imul(state, 1664525) + 1013904223) >>> 0;
 }

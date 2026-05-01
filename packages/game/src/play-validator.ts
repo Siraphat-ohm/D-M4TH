@@ -2,6 +2,7 @@ import { buildContiguousLine, createClassicalBoardLayout, detectDirection } from
 import { scoreLine } from "./scoring";
 import { faceOptionsForTileLabel, tileRequiresFace } from "./tile-catalog";
 import type { BoardTile, MatchState, Placement, Player, ScoreBreakdown } from "./types";
+import { cellKey } from "./utils";
 
 export function validatePlay(match: MatchState, player: Player, placements: readonly Placement[]): ScoreBreakdown {
   if (placements.length === 0) {
@@ -96,8 +97,4 @@ function validatePlacementFace(tileLabel: string, face: string | undefined): voi
   if (face && !faceOptionsForTileLabel(tileLabel).includes(face)) {
     throw new Error("Tile face is not supported");
   }
-}
-
-function cellKey(coordinate: { x: number; y: number }): string {
-  return `${coordinate.x},${coordinate.y}`;
 }

@@ -6,8 +6,9 @@ import {
   type MatchConfig
 } from "@d-m4th/config";
 import { validatePlay } from "./play-validator";
-import { createTileBag, drawTiles, shuffleTiles } from "./tile-catalog";
+import { createTileBag, drawTiles } from "./tile-catalog";
 import type { BoardTile, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown } from "./types";
+import { createId, createRoomCode, errorMessage, getPlayer, nextTurnPlayer, shuffleTiles, toPublicPlayer } from "./utils";
 
 export interface CreateMatchInput {
   hostName: string;
@@ -285,51 +286,10 @@ function ensureCurrentTurn(match: MatchState, playerId: string): void {
   }
 }
 
-function getPlayer(match: MatchState, playerId: string): Player {
-  const player = match.players.find((candidate) => candidate.id === playerId);
-
-  if (!player) {
-    throw new Error("Unknown player");
-  }
-
-  return player;
-}
-
-function nextTurnPlayer(match: MatchState): string {
-  const currentIndex = match.playerOrder.findIndex((playerId) => playerId === match.currentPlayerId);
-  const nextIndex = (currentIndex + 1) % match.playerOrder.length;
-  return match.playerOrder[nextIndex];
-}
-
-function toPublicPlayer(player: Player) {
-  return {
-    id: player.id,
-    name: player.name,
-    color: player.color,
-    score: player.score,
-    lastPenaltyPoints: player.lastPenaltyPoints,
-    rackCount: player.rack.length,
-    remainingMs: player.remainingMs,
-    connected: player.connected
-  };
-}
-
 function accepted<T>(value: T): EngineResult<T> {
   return { ok: true, value };
 }
 
 function rejected<T>(error: string): EngineResult<T> {
   return { ok: false, error };
-}
-
-function createId(prefix: string): string {
-  return `${prefix}_${crypto.randomUUID()}`;
-}
-
-function createRoomCode(): string {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown engine error";
 }

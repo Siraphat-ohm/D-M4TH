@@ -1,4 +1,4 @@
-import { GameEngine, type BoardTile, type MatchState, type Placement, type Player } from "@d-m4th/game";
+import { GameEngine, type BoardTile, type MatchState, type Placement, type Player, getPlayer as readPlayer } from "@d-m4th/game";
 import { faceOptionsForTileLabel, tileRequiresFace } from "@d-m4th/game";
 import { encodeServerMessage, parseClientMessage, type ClientMessage, type ServerMessage } from "@d-m4th/protocol";
 
@@ -307,14 +307,4 @@ export class RoomRegistry {
 
     return room;
   }
-}
-
-function readPlayer(match: MatchState, playerId: string): Player {
-  const player = match.players.find((candidate) => candidate.id === playerId);
-
-  if (!player) {
-    throw new Error("Unknown player");
-  }
-
-  return player;
 }

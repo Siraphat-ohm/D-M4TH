@@ -6,3 +6,4 @@ export * from "./play-validator";
 export * from "./scoring";
 export * from "./tile-catalog";
 export * from "./types";
+export * from "./utils";
