@@ -5,6 +5,7 @@ import { createRequestId, type ProtocolClient } from "../protocol-client";
 import {
   findDraftPlacementAt,
   moveOrSwapDraftPlacement,
+  removeDraftPlacement,
   toggleSelection,
   type TurnMode,
   upsertDraftPlacement
@@ -20,8 +21,9 @@ export function useTurnController(params: {
   client: ProtocolClient;
   isMyTurn: boolean;
   rack: Tile[];
+  rackSize: number;
 }) {
-  const { client, isMyTurn, rack } = params;
+  const { client, isMyTurn, rack, rackSize } = params;
 
   const [draft, setDraft] = useState<Placement[]>([]);
   const draftRef = useRef<Placement[]>([]);
@@ -34,6 +36,7 @@ export function useTurnController(params: {
 
   const draftTileIds = new Set(draft.map((p) => p.tileId));
   const visibleRack = turnMode === "swap" ? rack : rack.filter((tile) => !draftTileIds.has(tile.id));
+  const rackSlots = createRackSlots(visibleRack, rackSize);
   const selectedRackTileIds = turnMode === "swap"
     ? new Set(swapSelectedTileIds)
     : new Set(selectedTileId ? [selectedTileId] : []);
@@ -110,6 +113,23 @@ export function useTurnController(params: {
     updateAndBroadcastDraft(upsertDraftPlacement(draftRef.current, placement));
     setSelectedTileId(undefined);
     setPendingFacePlacement(undefined);
+  }
+
+  function handleBoardCellDoubleClick(x: number, y: number): void {
+    if (turnMode !== "play" || !isMyTurn) return;
+
+    const draftPlacement = findDraftPlacementAt(draftRef.current, { x, y });
+
+    if (!draftPlacement) {
+      return;
+    }
+
+    updateAndBroadcastDraft(removeDraftPlacement(draftRef.current, draftPlacement.tileId));
+    setPendingFacePlacement(undefined);
+
+    if (selectedTileId === draftPlacement.tileId) {
+      setSelectedTileId(undefined);
+    }
   }
 
   function commitPlay(): void {
@@ -191,10 +211,12 @@ export function useTurnController(params: {
     turnMode,
     previewScore,
     visibleRack,
+    rackSlots,
     selectedRackTileIds,
     swapSelectedTileIds,
     placementDisabled: turnMode === "swap",
     handleBoardCellClick,
+    handleBoardCellDoubleClick,
     placeRackTile,
     placeResolvedRackTile,
     commitPlay,
@@ -205,6 +227,10 @@ export function useTurnController(params: {
     cancelPendingFace: () => setPendingFacePlacement(undefined),
     handleMessage
   };
+}
+
+function createRackSlots(rack: readonly Tile[], rackSize: number): Array<Tile | undefined> {
+  return [...rack, ...Array.from({ length: Math.max(0, rackSize - rack.length) }, () => undefined)];
 }
 
 export type { PendingFacePlacement };
