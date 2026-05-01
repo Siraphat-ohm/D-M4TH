@@ -1,30 +1,40 @@
 # D-M4TH
 
-Multiplayer math equation game (Scrabble-like). Players build equations on a grid board using number/operator tiles. Real-time 1v1 via WebSocket.
+Multiplayer math equation game (Scrabble-like). Players build equations on a grid board using number/operator tiles. Real-time multiplayer via WebSocket.
 
 ## Architecture
 
 Bun monorepo with workspaces:
 
 - `apps/server/` — Bun WebSocket server (`apps/server/src/index.ts`, `room-registry.ts`). Routes messages, delegates to game engine.
-- `apps/web/` — React 19 + Vite client. Phaser 4 for board canvas. All UI in `apps/web/src/ui/App.tsx`.
+- `apps/web/` — React 19 + Vite client. Phaser 4 for board canvas and setup preview only.
 - `packages/game/` — Pure game engine: board state, equation parser, scoring, tile catalog. No I/O dependencies.
 - `packages/config/` — Match config factories (classical/party mode presets).
 - `packages/protocol/` — Type-safe client/server message definitions.
 
 Key decisions:
-- React handles lobby, HUD, rack, action bar. Phaser handles board canvas only (ADR 0002).
+- React handles lobby, player info, rack, action bar, dialogs, logs, and shell UI. Phaser handles board canvas only (ADR 0002).
 - Game engine is pure TypeScript — testable without server or client.
 - Server is thin adapter: validates protocol, calls engine, broadcasts snapshots.
+- Turn state extracted into `useTurnController` hook (see `apps/web/src/turn/use-turn-controller.ts`).
+- Setup/lobby board preview is read-only UI. It must not create or mutate authoritative game state.
 
 ## Commands
 
 ```bash
-bun run dev          # Start server (port 2567)
-bun run dev:web      # Start Vite dev server
-bun test             # Run tests (Bun test runner)
-bun run typecheck    # TypeScript check all workspaces
-bun run build        # Build all packages
+rtk bun run dev          # Start server (port 2567)
+rtk bun run dev:web      # Start Vite dev server
+rtk bun test             # Run tests (Bun test runner)
+rtk bun run typecheck    # TypeScript check all workspaces
+rtk bun run build        # Build all packages
+```
+
+Web-only validation:
+
+```bash
+cd apps/web && rtk bun run typecheck
+cd apps/web && rtk bun run build
+rtk bun test apps/web/src/ui/tile-display.test.ts apps/web/src/board/board-interaction.test.ts apps/web/src/turn/turn-controls.test.ts
 ```
 
 ## Domain Terms
@@ -42,15 +52,22 @@ Defined in `CONTEXT.md`. Key ones: Match, Room, Rack (8 tiles), Tile Bag, Board 
 
 Full rules in `game-detail.md`.
 
-## Known Bugs
+## Current UI Decisions
 
-- Match timer: shows initial value, doesn't tick until first play. Should count from match start.
-- Copy link: `navigator.clipboard.writeText` in lobby fails on some browsers/contexts.
-- Rack panel: doesn't fit 8 tiles comfortably on mobile.
+- Flat UI: no rounded corners, glow, decorative shadows, or tile shadows.
+- Functional colors stay for player identity, premium cells, and action state.
+- Rack stays 8 slots with empty placeholders.
+- Draft board tiles return to rack on double click / double tap.
+- PlayerInfo replaces the old HUD list and shows name, score, turn timer, full timer, and penalty when present.
+- Preview score highlights on the active player's score, not in the action bar.
+- Log opens from a fixed bottom-right button during match.
+- Create/lobby screen is two columns: setup panel left, read-only board preview right.
 
-## UI Direction
+## Current Work
 
-Balatro-inspired aesthetic. Board + HUD + rack pending redesign using `frontend-design` skill.
+Flat gameplay UI redesign in progress. Full audit and phase reference in `PLAN.md`.
+
+Agents: `frontend-ux-game-team` (UI/UX), `backend-game-dev` (server/engine).
 
 ## Code Conventions
 
@@ -58,7 +75,10 @@ Balatro-inspired aesthetic. Board + HUD + rack pending redesign using `frontend-
 - Tests use Bun test runner (`bun:test`). Tests colocated with source (`*.test.ts`).
 - Phaser loaded dynamically (`import("phaser")`) — keep Phaser types minimal in BoardCanvas.
 - All game state flows through `PublicSnapshot` from server. Client never computes authoritative state.
-- Draft placements managed client-side in `turn-controls.ts`. Preview score via `play:preview` protocol message.
+- Draft placements managed client-side via `useTurnController` hook in `turn/use-turn-controller.ts`.
+- ProtocolClient message routing: turn-related messages (preview/rejection) handled by `turnHandleRef` before App-level handling.
+- Keep React UI split into focused components under `apps/web/src/ui/`; avoid dumping new UI into `App.tsx`.
+- Keep styles split under `apps/web/src/styles/`; `apps/web/src/styles.css` should stay import-only.
 
 ## Project Structure
 
@@ -68,12 +88,19 @@ apps/server/src/
   room-registry.ts      # Room lifecycle, message routing
 apps/web/src/
   main.tsx              # React root
-  ui/App.tsx            # All UI components (lobby, HUD, rack, actions)
-  ui/BoardCanvas.tsx    # Phaser board adapter
+  ui/App.tsx            # Shell, protocol wiring, high-level layout
+  ui/BoardCanvas.tsx    # Phaser board adapter and board preview
+  ui/Rack.tsx           # Rack tiles and drag preview
+  ui/PlayerInfoList.tsx # Player rows, timers, score preview
+  ui/Dialogs.tsx        # Face selection and match log dialogs
+  ui/ColorPicker.tsx    # Player color picker
+  ui/tile-display.ts    # UI-only tile label formatting
   board/board-interaction.ts  # Board coordinate math, tile rendering helpers
   protocol-client.ts    # WebSocket client
-  turn/turn-controls.ts # Draft placement, swap selection logic
-  styles.css            # Global styles
+  turn/turn-controls.ts # Pure draft placement, swap selection functions
+  turn/use-turn-controller.ts # Turn state hook (draft, swap, preview, face placement)
+  styles.css            # Import-only style entrypoint
+  styles/               # Split CSS by concern: base, layout, panels, game, dialogs, color picker
 packages/game/src/
   engine.ts             # Game state machine, turn processing
   types.ts              # All game types (Tile, Placement, PublicSnapshot, etc.)
@@ -86,4 +113,5 @@ packages/config/src/
 packages/protocol/src/
   index.ts              # ClientMessage, ServerMessage union types
 docs/adr/               # Architecture Decision Records
+PLAN.md                 # UI redesign plan + audit
 ```
