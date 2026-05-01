@@ -5,15 +5,8 @@ import {
   createClassicalConfig,
   type MatchConfig
 } from "@d-m4th/config";
-import {
-  buildContiguousLine,
-  cellKey,
-  coversStart,
-  createClassicalBoardLayout,
-  detectDirection
-} from "./board-layout";
-import { scoreLine } from "./scoring";
-import { createTileBag, drawTiles, faceOptionsForTileLabel, shuffleTiles, tileRequiresFace } from "./tile-catalog";
+import { validatePlay } from "./play-validator";
+import { createTileBag, drawTiles, shuffleTiles } from "./tile-catalog";
 import type { BoardTile, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown } from "./types";
 
 export interface CreateMatchInput {
@@ -111,7 +104,10 @@ export class GameEngine {
 
   previewPlay(match: MatchState, playerId: string, placements: readonly Placement[]): EngineResult<ScoreBreakdown> {
     try {
-      return accepted(this.evaluatePlay(match, playerId, placements));
+      ensurePlaying(match);
+      ensureCurrentTurn(match, playerId);
+      const player = getPlayer(match, playerId);
+      return accepted(validatePlay(match, player, placements));
     } catch (error) {
       return rejected(errorMessage(error));
     }
@@ -119,11 +115,21 @@ export class GameEngine {
 
   commitPlay(match: MatchState, playerId: string, placements: readonly Placement[], now = Date.now()): EngineResult<ScoreBreakdown> {
     try {
+      ensurePlaying(match);
       ensureCurrentTurn(match, playerId);
-      const score = this.evaluatePlay(match, playerId, placements);
       const player = getPlayer(match, playerId);
+      const score = validatePlay(match, player, placements);
+      
+      const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
+      const boardTiles: BoardTile[] = placements.map(p => ({
+        ...rackById.get(p.tileId)!,
+        label: p.face ?? rackById.get(p.tileId)!.label,
+        x: p.x,
+        y: p.y,
+        ownerId: player.id
+      }));
+
       const placedTileIds = new Set(placements.map((placement) => placement.tileId));
-      const boardTiles = createBoardTiles(player, placements);
 
       match.board.push(...boardTiles);
       match.lastPlacements = boardTiles;
@@ -185,7 +191,7 @@ export class GameEngine {
     }
   }
 
-  createSnapshot(match: MatchState, ghostPlacements: PublicSnapshot["ghostPlacements"] = []): PublicSnapshot {
+  createSnapshot(match: MatchState): PublicSnapshot {
     return {
       id: match.id,
       code: match.code,
@@ -199,8 +205,7 @@ export class GameEngine {
       tileBagCount: match.tileBag.length,
       consecutivePasses: match.consecutivePasses,
       turnStartedAt: match.turnStartedAt,
-      endedReason: match.endedReason,
-      ghostPlacements
+      endedReason: match.endedReason
     };
   }
 
@@ -210,35 +215,6 @@ export class GameEngine {
       playerId,
       rack: player.rack
     };
-  }
-
-  private evaluatePlay(match: MatchState, playerId: string, placements: readonly Placement[]): ScoreBreakdown {
-    ensurePlaying(match);
-    ensureCurrentTurn(match, playerId);
-
-    if (placements.length === 0) {
-      throw new Error("Play must include at least one tile");
-    }
-
-    const player = getPlayer(match, playerId);
-    const boardTiles = createBoardTiles(player, placements);
-    ensureCellsAvailable(match, boardTiles);
-
-    if (match.board.length === 0 && !coversStart(boardTiles, match.config.boardSize)) {
-      throw new Error("First play must cover the start star");
-    }
-
-    const direction = detectDirection(boardTiles);
-    const line = buildContiguousLine({ board: match.board, placements: boardTiles, direction });
-    const placedTileIds = new Set(boardTiles.map((tile) => tile.id));
-    const layout = createClassicalBoardLayout(match.config.boardSize);
-
-    return scoreLine({
-      layout,
-      line,
-      placedTileIds,
-      rackSize: match.config.rackSize
-    });
   }
 
   private finishTurn(match: MatchState, player: Player, now: number): void {
@@ -293,71 +269,6 @@ function createPlayer(input: { id: string; name: string; color: string; totalTim
     remainingMs: input.totalTimeMs,
     connected: true
   };
-}
-
-function createBoardTiles(player: Player, placements: readonly Placement[]): BoardTile[] {
-  const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
-  const usedCoordinates = new Set<string>();
-  const usedTileIds = new Set<string>();
-
-  return placements.map((placement) => {
-    const tile = rackById.get(placement.tileId);
-
-    if (!tile) {
-      throw new Error("Placement contains a tile not in the player rack");
-    }
-
-    validatePlacementFace(tile.label, placement.face);
-
-    if (usedTileIds.has(placement.tileId)) {
-      throw new Error("Cannot place the same tile more than once");
-    }
-
-    const key = cellKey(placement);
-
-    if (usedCoordinates.has(key)) {
-      throw new Error("Cannot place multiple tiles on the same cell");
-    }
-
-    usedTileIds.add(placement.tileId);
-    usedCoordinates.add(key);
-
-    return {
-      ...tile,
-      label: placement.face ?? tile.label,
-      x: placement.x,
-      y: placement.y,
-      ownerId: player.id
-    };
-  });
-}
-
-function validatePlacementFace(tileLabel: string, face: string | undefined): void {
-  if (!tileRequiresFace(tileLabel) && face) {
-    throw new Error("Only assignable tiles can choose a face");
-  }
-
-  if (tileRequiresFace(tileLabel) && !face) {
-    throw new Error("Assignable tile must choose a face");
-  }
-
-  if (face && !faceOptionsForTileLabel(tileLabel).includes(face)) {
-    throw new Error("Tile face is not supported");
-  }
-}
-
-function ensureCellsAvailable(match: MatchState, placements: readonly BoardTile[]): void {
-  const occupiedCells = new Set(match.board.map(cellKey));
-
-  for (const placement of placements) {
-    if (placement.x < 0 || placement.y < 0 || placement.x >= match.config.boardSize || placement.y >= match.config.boardSize) {
-      throw new Error("Placement is outside the board");
-    }
-
-    if (occupiedCells.has(cellKey(placement))) {
-      throw new Error("Placement overlaps an occupied cell");
-    }
-  }
 }
 
 function ensurePlaying(match: MatchState): void {

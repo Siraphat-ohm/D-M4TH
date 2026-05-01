@@ -39,8 +39,11 @@ describe("room registry", () => {
       JSON.stringify({ type: "placement:draft", requestId: "4", placements: [{ tileId: rack[0].id, x: 7, y: 7 }] })
     );
 
+    const presenceMessage = guest.messages.find((m) => m.type === "room:presence") as Extract<ServerMessage, { type: "room:presence" }>;
+
     expect(lastSnapshot(guest).snapshot.board).toHaveLength(0);
-    expect(lastSnapshot(guest).snapshot.ghostPlacements[0].placements).toHaveLength(1);
+    expect(presenceMessage).toBeDefined();
+    expect(presenceMessage.ghostPlacements[0].placements).toHaveLength(1);
   });
 });
 

@@ -16,7 +16,7 @@ Key decisions:
 - React handles lobby, player info, rack, action bar, dialogs, logs, and shell UI. Phaser handles board canvas only (ADR 0002).
 - Game engine is pure TypeScript — testable without server or client.
 - Server is thin adapter: validates protocol, calls engine, broadcasts snapshots.
-- Turn state extracted into `useTurnController` hook (see `apps/web/src/turn/use-turn-controller.ts`).
+- Turn state extracted into `useTurnController` hook which wraps the pure `DraftManager` (see `apps/web/src/turn/use-turn-controller.ts` and `packages/game/src/draft.ts`).
 - Setup/lobby board preview is read-only UI. It must not create or mutate authoritative game state.
 
 ## Commands
@@ -81,7 +81,7 @@ Agents: `frontend-ux-game-team` (UI/UX), `backend-game-dev` (server/engine).
 - TypeScript strict mode. No runtime framework in packages/game.
 - Tests use Bun test runner (`bun:test`). Tests colocated with source (`*.test.ts`).
 - Phaser loaded dynamically (`import("phaser")`) — keep Phaser types minimal in BoardCanvas.
-- All game state flows through `PublicSnapshot` from server. Client never computes authoritative state.
+- All authoritative game state flows through `PublicSnapshot` from server. Transient multiplayer state (like ghost placements) flows through separate `room:presence` messages.
 - Draft placements managed client-side via `useTurnController` hook in `turn/use-turn-controller.ts`.
 - ProtocolClient message routing: turn-related messages (preview/rejection) handled by `turnHandleRef` before App-level handling.
 - Keep React UI split into focused components under `apps/web/src/ui/`; avoid dumping new UI into `App.tsx`.

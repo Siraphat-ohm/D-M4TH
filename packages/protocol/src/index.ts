@@ -15,7 +15,7 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { type: "room:snapshot"; snapshot: PublicSnapshot; private?: PrivatePlayerPayload }
-  | { type: "placement:ghost"; playerId: string; placements: BoardTile[] }
+  | { type: "room:presence"; ghostPlacements: Array<{ playerId: string; placements: BoardTile[] }> }
   | { type: "play:previewed"; requestId: string; score: ScoreBreakdown }
   | { type: "action:accepted"; requestId: string; action: string }
   | { type: "action:rejected"; requestId?: string; reason: string }

@@ -1,21 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { tileRequiresFace, type Placement, type Tile } from "@d-m4th/game";
+import { DraftManager, type Placement, type Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { createRequestId, type ProtocolClient } from "../protocol-client";
-import {
-  findDraftPlacementAt,
-  moveOrSwapDraftPlacement,
-  removeDraftPlacement,
-  toggleSelection,
-  type TurnMode,
-  upsertDraftPlacement
-} from "./turn-controls";
-
-interface PendingFacePlacement {
-  tile: Tile;
-  x: number;
-  y: number;
-}
+import { toggleSelection, type TurnMode } from "./turn-controls";
 
 export function useTurnController(params: {
   client: ProtocolClient;
@@ -25,15 +12,16 @@ export function useTurnController(params: {
 }) {
   const { client, isMyTurn, rack, rackSize } = params;
 
-  const [draft, setDraft] = useState<Placement[]>([]);
-  const draftRef = useRef<Placement[]>([]);
+  const [draftManager, setDraftManager] = useState<DraftManager>(DraftManager.empty());
+  const draftRef = useRef<DraftManager>(draftManager);
+  
   const [selectedTileId, setSelectedTileId] = useState<string>();
-  const [pendingFacePlacement, setPendingFacePlacement] = useState<PendingFacePlacement>();
   const autoPreviewRequestIdRef = useRef<string | undefined>(undefined);
   const [turnMode, setTurnMode] = useState<TurnMode>("play");
   const [swapSelectedTileIds, setSwapSelectedTileIds] = useState<string[]>([]);
   const [previewScore, setPreviewScore] = useState<number>();
 
+  const draft = draftManager.placements;
   const draftTileIds = new Set(draft.map((p) => p.tileId));
   const visibleRack = turnMode === "swap" ? rack : rack.filter((tile) => !draftTileIds.has(tile.id));
   const rackSlots = createRackSlots(visibleRack, rackSize);
@@ -51,38 +39,35 @@ export function useTurnController(params: {
     const requestId = `auto-preview:${createRequestId()}`;
     autoPreviewRequestIdRef.current = requestId;
     const timerId = window.setTimeout(() => {
-      client.send({ type: "play:preview", requestId, placements: draft });
+      client.send({ type: "play:preview", requestId, placements: draft.map((p) => ({ ...p })) });
     }, 150);
 
     return () => window.clearTimeout(timerId);
   }, [client, draft, isMyTurn]);
 
-  function updateDraft(nextDraft: Placement[]): void {
-    draftRef.current = nextDraft;
-    setDraft(nextDraft);
+  function updateDraftManager(nextManager: DraftManager): void {
+    draftRef.current = nextManager;
+    setDraftManager(nextManager);
   }
 
-  function updateAndBroadcastDraft(nextDraft: Placement[]): void {
-    updateDraft(nextDraft);
+  function updateAndBroadcastDraft(nextManager: DraftManager): void {
+    updateDraftManager(nextManager);
     setPreviewScore(undefined);
-    client.send({ type: "placement:draft", requestId: createRequestId(), placements: nextDraft });
+    client.send({ type: "placement:draft", requestId: createRequestId(), placements: [...nextManager.placements] });
   }
 
   function handleBoardCellClick(x: number, y: number): void {
     if (turnMode !== "play" || !isMyTurn) return;
 
-    const target = { x, y };
-    const targetDraft = findDraftPlacementAt(draftRef.current, target);
+    const targetDraft = draftRef.current.at(x, y);
 
     if (!selectedTileId) {
       setSelectedTileId(targetDraft?.tileId);
       return;
     }
 
-    const selectedDraft = draftRef.current.find((p) => p.tileId === selectedTileId);
-
-    if (selectedDraft) {
-      updateAndBroadcastDraft(moveOrSwapDraftPlacement({ draft: draftRef.current, tileId: selectedTileId, target }));
+    if (draftRef.current.has(selectedTileId)) {
+      updateAndBroadcastDraft(draftRef.current.move(selectedTileId, x, y));
       setSelectedTileId(undefined);
       return;
     }
@@ -97,35 +82,30 @@ export function useTurnController(params: {
 
   function placeRackTile(tileId: string, x: number, y: number): void {
     const tile = rack.find((candidate) => candidate.id === tileId);
-
     if (turnMode !== "play" || !isMyTurn || !tile) return;
 
-    if (tileRequiresFace(tile.label)) {
-      setPendingFacePlacement({ tile, x, y });
-      return;
-    }
+    const nextManager = draftRef.current.place(tile, x, y);
+    updateAndBroadcastDraft(nextManager);
 
-    placeResolvedRackTile(tile, x, y);
+    if (!nextManager.pendingFace) {
+      setSelectedTileId(undefined);
+    }
   }
 
   function placeResolvedRackTile(tile: Tile, x: number, y: number, face?: string): void {
-    const placement: Placement = face ? { tileId: tile.id, x, y, face } : { tileId: tile.id, x, y };
-    updateAndBroadcastDraft(upsertDraftPlacement(draftRef.current, placement));
+    if (face) {
+      updateAndBroadcastDraft(draftRef.current.resolveFace(face));
+    }
     setSelectedTileId(undefined);
-    setPendingFacePlacement(undefined);
   }
 
   function handleBoardCellDoubleClick(x: number, y: number): void {
     if (turnMode !== "play" || !isMyTurn) return;
 
-    const draftPlacement = findDraftPlacementAt(draftRef.current, { x, y });
+    const draftPlacement = draftRef.current.at(x, y);
+    if (!draftPlacement) return;
 
-    if (!draftPlacement) {
-      return;
-    }
-
-    updateAndBroadcastDraft(removeDraftPlacement(draftRef.current, draftPlacement.tileId));
-    setPendingFacePlacement(undefined);
+    updateAndBroadcastDraft(draftRef.current.recall(draftPlacement.tileId));
 
     if (selectedTileId === draftPlacement.tileId) {
       setSelectedTileId(undefined);
@@ -133,8 +113,8 @@ export function useTurnController(params: {
   }
 
   function commitPlay(): void {
-    client.send({ type: "play:commit", requestId: createRequestId(), placements: draftRef.current });
-    updateDraft([]);
+    client.send({ type: "play:commit", requestId: createRequestId(), placements: draftRef.current.placements.map((p) => ({ ...p })) });
+    updateDraftManager(draftRef.current.clear());
     setPreviewScore(undefined);
   }
 
@@ -142,11 +122,11 @@ export function useTurnController(params: {
     if (turnMode !== "swap") {
       setTurnMode("swap");
       setSelectedTileId(undefined);
-      setPendingFacePlacement(undefined);
+      updateDraftManager(draftRef.current.cancelFace());
       setSwapSelectedTileIds([]);
 
-      if (draftRef.current.length > 0) {
-        updateDraft([]);
+      if (draftRef.current.placements.length > 0) {
+        updateDraftManager(draftRef.current.clear());
         client.send({ type: "rack:recall", requestId: createRequestId() });
       }
       return;
@@ -170,9 +150,8 @@ export function useTurnController(params: {
       return;
     }
 
-    updateDraft([]);
+    updateDraftManager(draftRef.current.clear());
     setSelectedTileId(undefined);
-    setPendingFacePlacement(undefined);
     setPreviewScore(undefined);
     client.send({ type: "rack:recall", requestId: createRequestId() });
   }
@@ -207,7 +186,7 @@ export function useTurnController(params: {
   return {
     draft,
     selectedTileId,
-    pendingFacePlacement,
+    pendingFacePlacement: draftManager.pendingFace,
     turnMode,
     previewScore,
     visibleRack,
@@ -224,7 +203,7 @@ export function useTurnController(params: {
     passTurn,
     recallRack,
     handleRackSelect,
-    cancelPendingFace: () => setPendingFacePlacement(undefined),
+    cancelPendingFace: () => updateDraftManager(draftRef.current.cancelFace()),
     handleMessage
   };
 }
@@ -232,5 +211,3 @@ export function useTurnController(params: {
 function createRackSlots(rack: readonly Tile[], rackSize: number): Array<Tile | undefined> {
   return [...rack, ...Array.from({ length: Math.max(0, rackSize - rack.length) }, () => undefined)];
 }
-
-export type { PendingFacePlacement };

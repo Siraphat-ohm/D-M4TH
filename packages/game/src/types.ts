@@ -102,7 +102,6 @@ export interface PublicSnapshot {
   consecutivePasses: number;
   turnStartedAt: number;
   endedReason?: string;
-  ghostPlacements: PlacementDraft[];
 }
 
 export interface PrivatePlayerPayload {

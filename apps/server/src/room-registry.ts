@@ -147,11 +147,24 @@ export class RoomRegistry {
     const room = this.readSessionRoom(connection);
     const session = this.readSession(connection);
     const player = readPlayer(room.match, session.playerId);
-    const placements = createDraftTiles(player, message.placements);
+    const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
+    
+    // Ghost placements are transient, we just broadcast what the client says they are dragging.
+    // Strict validation happens during play:preview and play:commit via PlayValidator.
+    const placements = message.placements.map(p => {
+      const tile = rackById.get(p.tileId) || { id: p.tileId, label: p.face ?? "?", value: 0 };
+      return {
+        ...tile,
+        label: p.face ?? tile.label,
+        x: p.x,
+        y: p.y,
+        ownerId: player.id
+      };
+    });
 
     room.ghostPlacements.set(session.playerId, placements);
-    this.broadcast(room, { type: "placement:ghost", playerId: session.playerId, placements }, connection.id);
-    this.broadcastSnapshot(room);
+    const ghostPlacements = [...room.ghostPlacements].map(([playerId, placements]) => ({ playerId, placements }));
+    this.broadcast(room, { type: "room:presence", ghostPlacements }, connection.id);
   }
 
   private previewPlay(connection: RoomConnection, message: Extract<ClientMessage, { type: "play:preview" }>): void {
@@ -221,13 +234,11 @@ export class RoomRegistry {
       return;
     }
 
-    const ghostPlacements = [...room.ghostPlacements].map(([playerId, placements]) => ({ playerId, placements }));
-
     for (const [connectionId, connection] of room.connections) {
       const session = room.sessions.get(connectionId);
       const message = {
         type: "room:snapshot",
-        snapshot: this.engine.createSnapshot(room.match, ghostPlacements),
+        snapshot: this.engine.createSnapshot(room.match),
         private: session ? this.engine.createPrivatePayload(room.match, session.playerId) : undefined
       } satisfies ServerMessage;
       this.send(connection, message);
@@ -295,42 +306,6 @@ export class RoomRegistry {
     }
 
     return room;
-  }
-}
-
-function createDraftTiles(player: Player, placements: readonly Placement[]): BoardTile[] {
-  const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
-
-  return placements.map((placement) => {
-    const tile = rackById.get(placement.tileId);
-
-    if (!tile) {
-      throw new Error("Draft contains a tile not in the player rack");
-    }
-
-    validatePlacementFace(tile.label, placement.face);
-
-    return {
-      ...tile,
-      label: placement.face ?? tile.label,
-      x: placement.x,
-      y: placement.y,
-      ownerId: player.id
-    };
-  });
-}
-
-function validatePlacementFace(tileLabel: string, face: string | undefined): void {
-  if (!tileRequiresFace(tileLabel) && face) {
-    throw new Error("Only assignable tiles can choose a face");
-  }
-
-  if (tileRequiresFace(tileLabel) && !face) {
-    throw new Error("Assignable tile must choose a face");
-  }
-
-  if (face && !faceOptionsForTileLabel(tileLabel).includes(face)) {
-    throw new Error("Tile face is not supported");
   }
 }
 
