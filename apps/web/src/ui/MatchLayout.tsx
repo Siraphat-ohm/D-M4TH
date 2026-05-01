@@ -49,21 +49,24 @@ export function MatchLayout(props: MatchLayoutProps) {
         <MatchTopBar snapshot={snapshot} previewScore={turn.previewScore} />
       </section>
 
-      <section className="board-stage">
-        <div className="board-scroll-container">
-          <BoardCanvas
-            snapshot={snapshot}
-            ghostPlacements={ghostPlacements}
-            draft={turn.draft}
-            rack={rack}
-            currentPlayerId={privateState?.playerId}
-            selectedTileId={turn.selectedTileId}
-            placementDisabled={turn.placementDisabled}
-            onCellClick={turn.handleBoardCellClick}
-            onDraftTileDoubleClick={turn.handleBoardCellDoubleClick}
-            onTileDrop={turn.placeRackTile}
-          />
-        </div>
+      <section className="match-main">
+        <section className="board-stage">
+          <div className="board-scroll-container">
+            <BoardCanvas
+              snapshot={snapshot}
+              ghostPlacements={ghostPlacements}
+              draft={turn.draft}
+              rack={rack}
+              currentPlayerId={privateState?.playerId}
+              selectedTileId={turn.selectedTileId}
+              placementDisabled={turn.placementDisabled}
+              onCellClick={turn.handleBoardCellClick}
+              onDraftTileDoubleClick={turn.handleBoardCellDoubleClick}
+              onTileDrop={turn.placeRackTile}
+            />
+          </div>
+        </section>
+
       </section>
 
       <section className="control-strip">

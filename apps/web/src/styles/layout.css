@@ -115,12 +115,27 @@
 .match-topbar {
   grid-row: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(150px, 13vw, 190px) clamp(130px, 11vw, 170px);
+  grid-template-columns: 1fr auto;
   gap: var(--match-gap);
-  min-width: 0;
   width: min(100%, var(--match-max-width));
   margin: 0 auto;
   align-items: stretch;
+}
+
+.hud-metrics-group {
+  grid-column: 2;
+  display: flex;
+  gap: var(--match-gap);
+  align-items: stretch;
+  justify-self: end;
+}
+
+.match-topbar .hud-metric--turn {
+  width: var(--actions-width);
+}
+
+.match-topbar .hud-metric--bag {
+  width: var(--actions-width);
 }
 
 .board-stage {
