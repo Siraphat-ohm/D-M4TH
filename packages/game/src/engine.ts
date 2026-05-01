@@ -244,6 +244,7 @@ export class GameEngine {
 
     if (elapsedMs > match.config.turnTimeMs) {
       player.score -= TURN_OVERTIME_PENALTY;
+      player.lastPenaltyPoints = TURN_OVERTIME_PENALTY;
     }
 
     if (player.remainingMs === 0) {
@@ -253,6 +254,8 @@ export class GameEngine {
     }
 
     const nextPlayerId = nextTurnPlayer(match);
+    const nextPlayer = getPlayer(match, nextPlayerId);
+    nextPlayer.lastPenaltyPoints = undefined;
     match.currentPlayerId = nextPlayerId;
     match.turnStartedAt = now;
   }
@@ -390,6 +393,7 @@ function toPublicPlayer(player: Player) {
     name: player.name,
     color: player.color,
     score: player.score,
+    lastPenaltyPoints: player.lastPenaltyPoints,
     rackCount: player.rack.length,
     remainingMs: player.remainingMs,
     connected: player.connected
