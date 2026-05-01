@@ -36,6 +36,7 @@ export interface Player {
   name: string;
   color: string;
   score: number;
+  lastPenaltyPoints?: number;
   rack: Tile[];
   remainingMs: number;
   connected: boolean;
@@ -46,6 +47,7 @@ export interface PublicPlayer {
   name: string;
   color: string;
   score: number;
+  lastPenaltyPoints?: number;
   rackCount: number;
   remainingMs: number;
   connected: boolean;
