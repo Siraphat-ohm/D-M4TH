@@ -1,31 +1,28 @@
-FROM oven/bun:1.3.10 AS deps
-WORKDIR /app
-
-# Keep the workspace graph identical to the repo lockfile.
-# Root package.json likely includes workspaces such as apps/* and packages/*.
-# If apps/web/package.json is missing during install, Bun tries to rewrite bun.lock,
-# and --frozen-lockfile fails even though the server image only runs apps/server.
-COPY package.json bun.lock tsconfig.base.json ./
-COPY apps/server/package.json apps/server/package.json
-COPY apps/web/package.json apps/web/package.json
-COPY packages/config/package.json packages/config/package.json
-COPY packages/game/package.json packages/game/package.json
-COPY packages/protocol/package.json packages/protocol/package.json
-
-RUN bun install --frozen-lockfile
-
 FROM oven/bun:1.3.10 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=2567
 
-COPY --from=deps /app/node_modules ./node_modules
+# Keep the container layout identical to the monorepo layout.
+# The server imports workspace packages such as @d-m4th/game at runtime.
 COPY package.json bun.lock tsconfig.base.json ./
-COPY apps/server ./apps/server
+COPY apps ./apps
 COPY packages ./packages
+
+RUN bun install --frozen-lockfile
+
+# Belt-and-suspenders workspace links. Bun usually creates these for workspaces,
+# but production images must not boot without them.
+RUN mkdir -p node_modules/@d-m4th \
+  && rm -rf node_modules/@d-m4th/game node_modules/@d-m4th/config node_modules/@d-m4th/protocol \
+  && ln -s ../../packages/game node_modules/@d-m4th/game \
+  && ln -s ../../packages/config node_modules/@d-m4th/config \
+  && ln -s ../../packages/protocol node_modules/@d-m4th/protocol
+
+# Fail the image build if the server cannot resolve the workspace package.
+RUN bun -e "await import('@d-m4th/game'); console.log('workspace import ok')"
 
 EXPOSE 2567
 
-# Do not run the dev/watch script in production.
 CMD ["bun", "apps/server/src/index.ts"]
