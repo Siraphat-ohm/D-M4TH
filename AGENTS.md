@@ -19,11 +19,13 @@ D-M4TH is a multiplayer math equation board game, Scrabble-like, using:
 ## Hard Architecture Rules
 
 - packages/game must stay pure TypeScript with no I/O, DOM, React, Phaser, or server dependency.
+- Use `seedrandom` via the `shuffle` utility in `utils.ts` for all deterministic randomization.
 - Server is a thin adapter: validate protocol, call engine, broadcast PublicSnapshot.
 - Client never computes authoritative game state.
 - React owns lobby, player info, rack, actions, dialogs, logs, and UI.
 - Phaser owns board canvas rendering only. Do not put non-board UI in Phaser.
 - Draft placements are client-side and managed by useTurnController wrapping DraftManager.
+- Player start order is randomized at match start using the match ID as a seed.
 - Setup/lobby board preview is display-only. It must not create game state.
 - Keep UI split into focused components. Do not dump new UI into App.tsx.
 - Keep CSS split under apps/web/src/styles/. Do not dump new styles into styles.css.

@@ -82,6 +82,7 @@ export interface MatchState {
   playerOrder: string[];
   currentPlayerId?: string;
   tileBag: Tile[];
+  drawsSinceLastEquals: Record<string, number>;
   consecutivePasses: number;
   turnStartedAt: number;
   createdAt: number;

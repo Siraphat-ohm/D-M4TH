@@ -15,8 +15,10 @@ Bun monorepo with workspaces:
 Key decisions:
 - React handles lobby, player info, rack, action bar, dialogs, logs, and shell UI. Phaser handles board canvas only (ADR 0002).
 - Game engine is pure TypeScript — testable without server or client.
+- Use `seedrandom` via generic `shuffle` utility for deterministic randomization (see `packages/game/src/utils.ts`).
 - Server is thin adapter: validates protocol, calls engine, broadcasts snapshots.
 - Turn state extracted into `useTurnController` hook which wraps the pure `DraftManager` (see `apps/web/src/turn/use-turn-controller.ts` and `packages/game/src/draft.ts`).
+- Player start order randomized at match start using match ID as seed.
 - Setup/lobby board preview is read-only UI. It must not create or mutate authoritative game state.
 
 ## Commands

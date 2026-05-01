@@ -101,17 +101,19 @@
 .play-surface {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--match-gap);
   min-width: 0;
   min-height: 0;
   width: 100%;
+  height: 100%;
   max-width: var(--match-max-width);
   margin: 0 auto;
   justify-items: center;
 }
 
 .match-topbar {
+  grid-row: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(150px, 13vw, 190px) clamp(130px, 11vw, 170px);
   gap: var(--match-gap);
@@ -121,8 +123,8 @@
   align-items: stretch;
 }
 
-.board-stage,
-.match-main {
+.board-stage {
+  grid-row: 2;
   position: relative;
   display: grid;
   place-items: center;
@@ -131,6 +133,10 @@
   min-width: 0;
   min-height: 0;
   overflow: visible;
+}
+
+.control-strip {
+  grid-row: 3;
 }
 
 .match-notice {

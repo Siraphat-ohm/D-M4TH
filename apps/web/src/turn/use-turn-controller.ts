@@ -53,7 +53,11 @@ export function useTurnController(params: {
   function updateAndBroadcastDraft(nextManager: DraftManager): void {
     updateDraftManager(nextManager);
     setPreviewScore(undefined);
-    client.send({ type: "placement:draft", requestId: createRequestId(), placements: [...nextManager.placements] });
+    client.send({
+      type: "placement:draft",
+      requestId: createRequestId(),
+      placements: nextManager.placements.map((p) => ({ ...p }))
+    });
   }
 
   function handleBoardCellClick(x: number, y: number): void {

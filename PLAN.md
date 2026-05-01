@@ -20,6 +20,8 @@ The match UI is now built around the **Monochrome + Player Accent** direction:
 - Removed accepted-action notice banners during gameplay; actions are recorded in the log instead.
 - Added `lucide-react` icons for HUD, log, and action controls.
 - Added responsive board sizing with CSS/ResizeObserver budgeting and Phaser resize handling.
+- Optimized Phaser rendering with object pooling for tiles and text, significantly reducing GC pressure.
+- Decoupled Phaser lifecycle from React by extracting `BoardGame` and `BoardScene` classes.
 - Fixed Phaser board lifecycle so resize changes do not leave the board stuck on `Loading board`.
 - Capped rack tile size so rack tiles stay readable without overpowering the board.
 

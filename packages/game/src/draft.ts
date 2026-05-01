@@ -45,14 +45,14 @@ export class DraftManager {
       return this;
     }
 
-    const targetPlacement = this.at(x, y);
+    const target = this.at(x, y);
 
     const nextPlacements = this.placements.map((placement) => {
       if (placement.tileId === tileId) {
         return { ...placement, x, y };
       }
 
-      if (targetPlacement && placement.tileId === targetPlacement.tileId) {
+      if (target && placement.tileId === target.tileId) {
         return { ...placement, x: source.x, y: source.y };
       }
 

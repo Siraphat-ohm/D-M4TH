@@ -7,7 +7,7 @@ import {
 } from "@d-m4th/config";
 import { validatePlay } from "./play-validator";
 import { createTileBag, drawTiles } from "./tile-catalog";
-import type { BoardTile, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown } from "./types";
+import type { BoardTile, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown, Tile } from "./types";
 import { createId, createRoomCode, errorMessage, getPlayer, nextTurnPlayer, shuffle, shuffleTiles, toPublicPlayer } from "./utils";
 
 export interface CreateMatchInput {
@@ -43,6 +43,7 @@ export class GameEngine {
       players: [host],
       playerOrder: [],
       tileBag: [],
+      drawsSinceLastEquals: {},
       consecutivePasses: 0,
       turnStartedAt: now,
       createdAt: now
@@ -93,7 +94,7 @@ export class GameEngine {
 
     match.tileBag = createTileBag(match.players.length, match.id);
     for (const player of match.players) {
-      player.rack = drawTiles(match.tileBag, match.config.rackSize);
+      player.rack = this.drawFairInitialRack(match, player.id);
     }
 
     match.status = "playing";
@@ -120,7 +121,7 @@ export class GameEngine {
       ensureCurrentTurn(match, playerId);
       const player = getPlayer(match, playerId);
       const score = validatePlay(match, player, placements);
-      
+
       const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
       const boardTiles: BoardTile[] = placements.map(p => ({
         ...rackById.get(p.tileId)!,
@@ -136,7 +137,10 @@ export class GameEngine {
       match.lastPlacements = boardTiles;
       player.rack = player.rack.filter((tile) => !placedTileIds.has(tile.id));
       player.score += score.totalScore;
-      player.rack.push(...drawTiles(match.tileBag, match.config.rackSize - player.rack.length));
+
+      const countNeeded = match.config.rackSize - player.rack.length;
+      player.rack.push(...this.drawFairTiles(match, playerId, countNeeded));
+
       match.consecutivePasses = 0;
       this.finishTurn(match, player, now);
       this.resolveEndgame(match);
@@ -168,8 +172,9 @@ export class GameEngine {
       }
 
       player.rack = player.rack.filter((tile) => !selectedIds.has(tile.id));
-      player.rack.push(...drawTiles(match.tileBag, selectedTiles.length));
+      player.rack.push(...this.drawFairTiles(match, playerId, selectedTiles.length));
       match.tileBag = shuffleTiles([...match.tileBag, ...selectedTiles], `${match.id}:${now}:swap`);
+
       match.consecutivePasses = 0;
       this.finishTurn(match, player, now);
 
@@ -177,6 +182,66 @@ export class GameEngine {
     } catch (error) {
       return rejected(errorMessage(error));
     }
+  }
+
+  private drawFairInitialRack(match: MatchState, playerId: string): Tile[] {
+    const rack: Tile[] = [];
+
+    // 1. Guaranteed Equals
+    const equalsIndex = match.tileBag.findIndex(t => t.label === "=");
+    if (equalsIndex !== -1) {
+      rack.push(...match.tileBag.splice(equalsIndex, 1));
+    }
+
+    // 2. Guaranteed 3 Digits
+    for (let i = 0; i < 3; i++) {
+      const digitIndex = match.tileBag.findIndex(t => /^[0-9]$/.test(t.label));
+      if (digitIndex !== -1) {
+        rack.push(...match.tileBag.splice(digitIndex, 1));
+      }
+    }
+
+    // 3. Fill remaining
+    const remainingCount = match.config.rackSize - rack.length;
+    rack.push(...drawTiles(match.tileBag, remainingCount));
+
+    // Reset pity timer
+    match.drawsSinceLastEquals[playerId] = 0;
+
+    return shuffle(rack, `${match.id}:${playerId}:initial-rack`);
+  }
+
+  private drawFairTiles(match: MatchState, playerId: string, count: number): Tile[] {
+    const drawn: Tile[] = [];
+    const EQUALS_PITY_THRESHOLD = 8;
+
+    for (let i = 0; i < count; i++) {
+      if (match.tileBag.length === 0) break;
+
+      let currentDraw: Tile;
+      const drawsSinceLast = match.drawsSinceLastEquals[playerId] ?? 0;
+
+      if (drawsSinceLast >= EQUALS_PITY_THRESHOLD) {
+        const equalsIndex = match.tileBag.findIndex(t => t.label === "=");
+        if (equalsIndex !== -1) {
+          currentDraw = match.tileBag.splice(equalsIndex, 1)[0];
+        } else {
+          currentDraw = match.tileBag.splice(0, 1)[0];
+        }
+      } else {
+        currentDraw = match.tileBag.splice(0, 1)[0];
+      }
+
+      if (currentDraw.label === "=") {
+        match.drawsSinceLastEquals[playerId] = 0;
+      } else {
+        match.drawsSinceLastEquals[playerId] = drawsSinceLast + 1;
+      }
+
+      drawn.push(currentDraw);
+    }
+
+    return drawn;
   }
 
   passTurn(match: MatchState, playerId: string, now = Date.now()): EngineResult<string> {

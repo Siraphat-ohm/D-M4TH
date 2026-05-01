@@ -44,16 +44,20 @@ export class RoomRegistry {
     }
 
     const room = this.roomsByCode.get(session.roomCode);
-    room?.connections.delete(connection.id);
-    room?.sessions.delete(connection.id);
-    this.sessionsByConnection.delete(connection.id);
+    if (room) {
+      room.connections.delete(connection.id);
+      room.sessions.delete(connection.id);
+      room.ghostPlacements.delete(session.playerId);
+      this.broadcastPresence(room, connection.id);
 
-    const player = room?.match.players.find((candidate) => candidate.id === session.playerId);
-
-    if (player) {
-      player.connected = false;
-      this.broadcastSnapshot(room);
+      const player = room.match.players.find((candidate) => candidate.id === session.playerId);
+      if (player) {
+        player.connected = false;
+        this.broadcastSnapshot(room);
+      }
     }
+
+    this.sessionsByConnection.delete(connection.id);
   }
 
   getRoom(code: string): MatchState | undefined {
@@ -148,23 +152,21 @@ export class RoomRegistry {
     const session = this.readSession(connection);
     const player = readPlayer(room.match, session.playerId);
     const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
-    
-    // Ghost placements are transient, we just broadcast what the client says they are dragging.
-    // Strict validation happens during play:preview and play:commit via PlayValidator.
-    const placements = message.placements.map(p => {
-      const tile = rackById.get(p.tileId) || { id: p.tileId, label: p.face ?? "?", value: 0 };
+
+    const ghostTiles: BoardTile[] = message.placements.map((p) => {
+      const rackTile = rackById.get(p.tileId);
       return {
-        ...tile,
-        label: p.face ?? tile.label,
+        id: p.tileId,
+        label: p.face ?? rackTile?.label ?? "?",
+        value: rackTile?.value ?? 0,
         x: p.x,
         y: p.y,
         ownerId: player.id
       };
     });
 
-    room.ghostPlacements.set(session.playerId, placements);
-    const ghostPlacements = [...room.ghostPlacements].map(([playerId, placements]) => ({ playerId, placements }));
-    this.broadcast(room, { type: "room:presence", ghostPlacements }, connection.id);
+    room.ghostPlacements.set(session.playerId, ghostTiles);
+    this.broadcastPresence(room, connection.id);
   }
 
   private previewPlay(connection: RoomConnection, message: Extract<ClientMessage, { type: "play:preview" }>): void {
@@ -191,6 +193,7 @@ export class RoomRegistry {
     }
 
     room.ghostPlacements.delete(session.playerId);
+    this.broadcastPresence(room, connection.id);
     this.send(connection, { type: "action:accepted", requestId: message.requestId, action: "play:commit" });
     this.broadcastSnapshot(room);
     this.broadcastEndedIfNeeded(room);
@@ -200,6 +203,12 @@ export class RoomRegistry {
     const room = this.readSessionRoom(connection);
     const session = this.readSession(connection);
     const result = this.engine.swapTiles(room.match, session.playerId, message.tileIds);
+    
+    if (result.ok) {
+      room.ghostPlacements.delete(session.playerId);
+      this.broadcastPresence(room, connection.id);
+    }
+
     this.acceptOrReject(connection, message.requestId, result.ok, result.error, "turn:swap");
     this.broadcastSnapshot(room);
   }
@@ -208,6 +217,12 @@ export class RoomRegistry {
     const room = this.readSessionRoom(connection);
     const session = this.readSession(connection);
     const result = this.engine.passTurn(room.match, session.playerId);
+
+    if (result.ok) {
+      room.ghostPlacements.delete(session.playerId);
+      this.broadcastPresence(room, connection.id);
+    }
+
     this.acceptOrReject(connection, message.requestId, result.ok, result.error, "turn:pass");
     this.broadcastSnapshot(room);
     this.broadcastEndedIfNeeded(room);
@@ -217,6 +232,7 @@ export class RoomRegistry {
     const room = this.readSessionRoom(connection);
     const session = this.readSession(connection);
     room.ghostPlacements.delete(session.playerId);
+    this.broadcastPresence(room, connection.id);
     this.send(connection, { type: "action:accepted", requestId: message.requestId, action: "rack:recall" });
     this.broadcastSnapshot(room);
   }
@@ -243,6 +259,11 @@ export class RoomRegistry {
       } satisfies ServerMessage;
       this.send(connection, message);
     }
+  }
+
+  private broadcastPresence(room: RoomRecord, exceptConnectionId?: string): void {
+    const ghostPlacements = [...room.ghostPlacements].map(([playerId, placements]) => ({ playerId, placements }));
+    this.broadcast(room, { type: "room:presence", ghostPlacements }, exceptConnectionId);
   }
 
   private broadcastEndedIfNeeded(room: RoomRecord): void {

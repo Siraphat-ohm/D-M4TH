@@ -10,14 +10,28 @@ import { displayTileLabel } from "../ui/tile-display";
 
 export interface PhaserGameObject {
   destroy(): void;
+  setVisible(value: boolean): this;
+  setActive(value: boolean): this;
+  setX(x: number): this;
+  setY(y: number): this;
+  alpha: number;
 }
 
 export interface PhaserRectangle extends PhaserGameObject {
-  setStrokeStyle(width: number, color: number, alpha?: number): PhaserRectangle;
+  width: number;
+  height: number;
+  fillColor: number;
+  setFillStyle(color: number, alpha?: number): this;
+  setStrokeStyle(width: number, color: number, alpha?: number): this;
+  setSize(width: number, height: number): this;
 }
 
 export interface PhaserText extends PhaserGameObject {
-  setOrigin(x: number, y?: number): PhaserText;
+  text: string;
+  setOrigin(x: number, y?: number): this;
+  setFontSize(size: string | number): this;
+  setColor(color: string): this;
+  setText(value: string | string[]): this;
 }
 
 export interface BoardScene {
@@ -25,22 +39,25 @@ export interface BoardScene {
     rectangle(x: number, y: number, width: number, height: number, color: number, alpha?: number): PhaserRectangle;
     text(x: number, y: number, text: string, style: Record<string, string | number>): PhaserText;
   };
-  scale: {
-    resize(width: number, height: number): void;
-  };
   children: {
     removeAll(): void;
   };
 }
 
-export interface TileRenderState {
-  tileKey: string;
-  objects: PhaserGameObject[];
+export interface TileObjectGroup {
+  outer: PhaserRectangle;
+  text?: PhaserText;
+  selection?: PhaserRectangle;
 }
 
 export interface BoardRenderCache {
   boardSignature?: string;
-  tiles: TileRenderState[];
+  cellObjects: PhaserGameObject[];
+  tileObjects: Map<string, TileObjectGroup>;
+  pool: {
+    rectangles: PhaserRectangle[];
+    texts: PhaserText[];
+  };
 }
 
 export const NORMAL_CELL_COLOR = 0x171b26;
@@ -52,6 +69,17 @@ export const PREMIUM_COLORS = {
   equation2: 0x8a7a3a,
   equation3: 0x80394d
 };
+
+export function createInitialCache(): BoardRenderCache {
+  return {
+    cellObjects: [],
+    tileObjects: new Map(),
+    pool: {
+      rectangles: [],
+      texts: []
+    }
+  };
+}
 
 export function renderBoard(
   scene: BoardScene,
@@ -70,89 +98,65 @@ export function renderBoard(
   }
 ): void {
   const { boardPixelSize, boardSize, boardTiles, lastPlacements, draft, draftOwnerId, ghostTiles, players, rack } = params;
-  const premiumLayout = createClassicalBoardLayout(boardSize);
-  const premiumCellsByCoordinate = new Map(premiumLayout.map((cell) => [premiumCoordinateKey(cell.x, cell.y), cell]));
   const cellSize = boardPixelSize / boardSize;
   const boardSignature = `${boardSize}:${boardPixelSize}`;
   const activePlayerColor = players.find((player) => player.id === draftOwnerId)?.color;
 
+  // 1. Grid / Background
   if (cache.boardSignature !== boardSignature) {
-    clearBoardCache(scene, cache);
-
+    clearBoardObjects(cache);
+    const premiumLayout = createClassicalBoardLayout(boardSize);
+    
     for (let y = 0; y < boardSize; y += 1) {
       for (let x = 0; x < boardSize; x += 1) {
-        const premium = premiumCellsByCoordinate.get(premiumCoordinateKey(x, y));
-        drawCell(scene, { x, y, cellSize, premium });
+        const premium = premiumLayout.find(p => p.x === x && p.y === y);
+        cache.cellObjects.push(...drawCell(scene, { x, y, cellSize, premium }));
       }
     }
-
     cache.boardSignature = boardSignature;
   }
 
+  // 2. Tiles
   const renderTiles = createRenderTiles({ boardTiles, lastPlacements, ghostTiles, draft, rack, players, draftOwnerId, activePlayerColor });
-  const newTileKeys = new Map<string, RenderTile>();
+  const nextTileObjects = new Map<string, TileObjectGroup>();
 
   for (const tile of renderTiles) {
-    const key = tileKey(tile, params.selectedTileId);
-    newTileKeys.set(key, tile);
-  }
-
-  const newTileEntries: TileRenderState[] = [];
-  const existingKeys = new Map<string, TileRenderState>();
-
-  for (const entry of cache.tiles) {
-    existingKeys.set(entry.tileKey, entry);
-  }
-
-  // Destroy tiles no longer in view
-  for (const entry of cache.tiles) {
-    if (!newTileKeys.has(entry.tileKey)) {
-      destroyObjects(entry.objects);
-    }
-  }
-
-  // Create or reuse tiles
-  for (const [key, tile] of newTileKeys) {
-    const existing = existingKeys.get(key);
+    const isSelected = tile.id === params.selectedTileId;
+    const key = getTileKey(tile, isSelected);
+    const existing = cache.tileObjects.get(key);
 
     if (existing) {
-      newTileEntries.push(existing);
+      nextTileObjects.set(key, existing);
+      cache.tileObjects.delete(key);
     } else {
-      const objects: PhaserGameObject[] = [];
-
-      if (tile.id === params.selectedTileId) {
-        objects.push(...drawSelection(scene, tile, cellSize));
-      }
-
-      objects.push(...drawTile(scene, tile, cellSize));
-      newTileEntries.push({ tileKey: key, objects });
+      nextTileObjects.set(key, drawTile(scene, cache, tile, cellSize, isSelected));
     }
   }
 
-  cache.tiles = newTileEntries;
-}
-
-function clearBoardCache(scene: BoardScene, cache: BoardRenderCache): void {
-  for (const entry of cache.tiles) {
-    destroyObjects(entry.objects);
+  // Recycle remaining old tiles
+  for (const group of cache.tileObjects.values()) {
+    recycleTileGroup(cache, group);
   }
-  cache.tiles = [];
-  scene.children.removeAll();
+
+  cache.tileObjects = nextTileObjects;
 }
 
-function destroyObjects(objects: PhaserGameObject[]): void {
-  for (const obj of objects) {
+function clearBoardObjects(cache: BoardRenderCache): void {
+  for (const obj of cache.cellObjects) {
     obj.destroy();
   }
+  cache.cellObjects = [];
+
+  for (const group of cache.tileObjects.values()) {
+    group.outer.destroy();
+    group.text?.destroy();
+    group.selection?.destroy();
+  }
+  cache.tileObjects.clear();
 }
 
-function tileKey(tile: RenderTile, selectedTileId?: string): string {
-  const selected = tile.id === selectedTileId ? ":sel" : "";
-  return `${tile.x},${tile.y}:${tile.label}:${tile.fillColor}:${tile.borderColor}:${tile.alpha}${selected}`;
-}
-
-function premiumCoordinateKey(x: number, y: number): string {
-  return `${x},${y}`;
+function getTileKey(tile: RenderTile, isSelected: boolean): string {
+  return `${tile.x},${tile.y}:${tile.label}:${tile.fillColor}:${tile.borderColor}:${tile.alpha}:${isSelected}`;
 }
 
 function drawCell(
@@ -163,33 +167,36 @@ function drawCell(
     cellSize: number;
     premium?: ReturnType<typeof createClassicalBoardLayout>[number];
   }
-): void {
+): PhaserGameObject[] {
   const { cellSize, premium, x, y } = params;
   const centerX = x * cellSize + cellSize / 2;
   const centerY = y * cellSize + cellSize / 2;
   const outerSize = Math.max(1, cellSize - 1);
   const innerSize = Math.max(1, cellSize - Math.max(4, cellSize * 0.14));
 
-  scene.add.rectangle(centerX, centerY, outerSize, outerSize, CELL_BORDER_COLOR, 0.9);
-  scene.add.rectangle(centerX, centerY, innerSize, innerSize, cellColor(premium), premium ? 0.96 : 0.82);
+  const objects: PhaserGameObject[] = [];
+  objects.push(scene.add.rectangle(centerX, centerY, outerSize, outerSize, CELL_BORDER_COLOR, 0.9));
+  objects.push(scene.add.rectangle(centerX, centerY, innerSize, innerSize, cellColor(premium), premium ? 0.96 : 0.82));
 
   const label = premiumLabel(premium);
 
   if (premium?.start) {
-    scene.add.text(centerX, centerY - cellSize * 0.14, "★", {
+    objects.push(scene.add.text(centerX, centerY - cellSize * 0.14, "★", {
       fontFamily: '"Silkscreen", monospace',
       fontSize: Math.max(11, cellSize * 0.36),
       color: START_TEXT_COLOR
-    }).setOrigin(0.5);
+    }).setOrigin(0.5));
   }
 
   if (label) {
-    scene.add.text(centerX, centerY + (premium?.start ? cellSize * 0.22 : 0), label, {
+    objects.push(scene.add.text(centerX, centerY + (premium?.start ? cellSize * 0.22 : 0), label, {
       fontFamily: '"Silkscreen", monospace',
       fontSize: Math.max(10, cellSize * 0.27),
       color: "#EDEDED"
-    }).setOrigin(0.5);
+    }).setOrigin(0.5));
   }
+
+  return objects;
 }
 
 function cellColor(premium?: ReturnType<typeof createClassicalBoardLayout>[number]): number {
@@ -206,38 +213,72 @@ function premiumLabel(premium?: ReturnType<typeof createClassicalBoardLayout>[nu
   return "";
 }
 
-function drawSelection(scene: BoardScene, tile: RenderTile, cellSize: number): PhaserGameObject[] {
-  const rect = scene.add.rectangle(
-    tile.x * cellSize + cellSize / 2,
-    tile.y * cellSize + cellSize / 2,
-    cellSize * 0.88,
-    cellSize * 0.88,
-    0x000000,
-    0
-  ).setStrokeStyle(Math.max(2, cellSize * 0.06), colorNumber(tile.borderColor), 1);
-  return [rect];
-}
-
-function drawTile(scene: BoardScene, tile: RenderTile, cellSize: number): PhaserGameObject[] {
+function drawTile(scene: BoardScene, cache: BoardRenderCache, tile: RenderTile, cellSize: number, isSelected: boolean): TileObjectGroup {
   const metrics = createTileRenderMetrics(cellSize);
   const centerX = tile.x * cellSize + cellSize / 2;
+  const centerY = tile.y * cellSize + cellSize / 2;
   const strokeWidth = Math.max(1, cellSize * 0.04);
   const label = displayTileLabel(tile);
 
-  const outer = scene.add.rectangle(centerX, tile.y * cellSize + cellSize / 2, metrics.tileSize, metrics.tileSize, colorNumber(tile.fillColor), tile.alpha).setStrokeStyle(
-    strokeWidth,
-    colorNumber(tile.borderColor),
-    tile.alpha
-  );
+  const outer = getRectangle(scene, cache)
+    .setX(centerX)
+    .setY(centerY)
+    .setSize(metrics.tileSize, metrics.tileSize)
+    .setFillStyle(colorNumber(tile.fillColor), tile.alpha)
+    .setStrokeStyle(strokeWidth, colorNumber(tile.borderColor), tile.alpha)
+    .setVisible(true)
+    .setActive(true);
 
-  if (!label) {
-    return [outer];
+  let selection: PhaserRectangle | undefined;
+  if (isSelected) {
+    selection = getRectangle(scene, cache)
+      .setX(centerX)
+      .setY(centerY)
+      .setSize(cellSize * 0.88, cellSize * 0.88)
+      .setFillStyle(0x000000, 0)
+      .setStrokeStyle(Math.max(2, cellSize * 0.06), colorNumber(tile.borderColor), 1)
+      .setVisible(true)
+      .setActive(true);
   }
 
-  const text = scene.add.text(centerX, tile.y * cellSize + cellSize * 0.48, label, {
-    fontFamily: '"Silkscreen", monospace',
-    fontSize: label.length > 3 ? metrics.longLabelFontSize : metrics.shortLabelFontSize,
-    color: tile.textColor
-  }).setOrigin(0.5);
-  return [outer, text];
+  let text: PhaserText | undefined;
+  if (label) {
+    text = getText(scene, cache)
+      .setX(centerX)
+      .setY(tile.y * cellSize + cellSize * 0.48)
+      .setText(label)
+      .setFontSize(label.length > 3 ? metrics.longLabelFontSize : metrics.shortLabelFontSize)
+      .setColor(tile.textColor)
+      .setVisible(true)
+      .setActive(true);
+  }
+
+  return { outer, text, selection };
+}
+
+function getRectangle(scene: BoardScene, cache: BoardRenderCache): PhaserRectangle {
+  const pooled = cache.pool.rectangles.pop();
+  if (pooled) return pooled;
+  return scene.add.rectangle(0, 0, 1, 1, 0xFFFFFF);
+}
+
+function getText(scene: BoardScene, cache: BoardRenderCache): PhaserText {
+  const pooled = cache.pool.texts.pop();
+  if (pooled) return pooled;
+  return scene.add.text(0, 0, "", { fontFamily: '"Silkscreen", monospace' }).setOrigin(0.5);
+}
+
+function recycleTileGroup(cache: BoardRenderCache, group: TileObjectGroup): void {
+  group.outer.setVisible(false).setActive(false);
+  cache.pool.rectangles.push(group.outer);
+
+  if (group.text) {
+    group.text.setVisible(false).setActive(false);
+    cache.pool.texts.push(group.text);
+  }
+
+  if (group.selection) {
+    group.selection.setVisible(false).setActive(false);
+    cache.pool.rectangles.push(group.selection);
+  }
 }
