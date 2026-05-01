@@ -11,19 +11,22 @@ export function scoreLine(params: {
 }): ScoreBreakdown {
   const { layout, line, placedTileIds, rackSize } = params;
   const equation = validateEquation(line);
-  const baseScore = line.reduce((score, tile) => {
-    const cell = getBoardCell(layout, tile);
-    const pieceMultiplier = placedTileIds.has(tile.id) ? (cell.pieceMultiplier ?? 1) : 1;
-    return score + tile.value * pieceMultiplier;
-  }, 0);
-  const equationMultiplier = line.reduce((multiplier, tile) => {
-    if (!placedTileIds.has(tile.id)) {
-      return multiplier;
-    }
 
+  let baseScore = 0;
+  let equationMultiplier = 1;
+
+  for (const tile of line) {
+    const isNewPlacement = placedTileIds.has(tile.id);
     const cell = getBoardCell(layout, tile);
-    return multiplier * (cell.equationMultiplier ?? 1);
-  }, 1);
+
+    const pieceMultiplier = isNewPlacement ? (cell.pieceMultiplier ?? 1) : 1;
+    baseScore += tile.value * pieceMultiplier;
+
+    if (isNewPlacement) {
+      equationMultiplier *= cell.equationMultiplier ?? 1;
+    }
+  }
+
   const bingoBonus = placedTileIds.size === rackSize ? BINGO_BONUS : 0;
 
   return {

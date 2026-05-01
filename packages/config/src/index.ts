@@ -61,12 +61,15 @@ export function createPartyConfig(input: PartyConfigInput = {}): MatchConfig {
   };
 }
 
+const BAG_SCALE_SMALL_LIMIT = 2;
+const BAG_SCALE_MEDIUM_LIMIT = 4;
+
 export function tileBagScaleForPlayerCount(playerCount: number): number {
-  if (playerCount <= 2) {
+  if (playerCount <= BAG_SCALE_SMALL_LIMIT) {
     return 1;
   }
 
-  if (playerCount <= 4) {
+  if (playerCount <= BAG_SCALE_MEDIUM_LIMIT) {
     return 2;
   }
 

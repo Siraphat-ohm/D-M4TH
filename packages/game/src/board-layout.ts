@@ -3,6 +3,9 @@ import type { BoardCell, BoardTile, Coordinate, Direction } from "./types";
 export const START_COORDINATE: Coordinate = { x: 7, y: 7 };
 const CLASSICAL_LAYOUT_SIZE = 15;
 
+const DOUBLE_MULTIPLIER = 2;
+const TRIPLE_MULTIPLIER = 3;
+
 const TRIPLE_EQUATION_CELLS: readonly Coordinate[] = [
   { x: 0, y: 0 },
   { x: 7, y: 0 },
@@ -79,14 +82,14 @@ const DOUBLE_PIECE_CELLS: readonly Coordinate[] = [
 export function createClassicalBoardLayout(boardSize = CLASSICAL_LAYOUT_SIZE): BoardCell[] {
   const offset = centeredClassicalOffset(boardSize);
   const cells = new Map<string, BoardCell>();
-  addEquationMultipliers(cells, shiftCoordinates(TRIPLE_EQUATION_CELLS, offset), 3);
-  addEquationMultipliers(cells, shiftCoordinates(DOUBLE_EQUATION_CELLS, offset), 2);
-  addPieceMultipliers(cells, shiftCoordinates(TRIPLE_PIECE_CELLS, offset), 3);
-  addPieceMultipliers(cells, shiftCoordinates(DOUBLE_PIECE_CELLS, offset), 2);
+  addEquationMultipliers(cells, shiftCoordinates(TRIPLE_EQUATION_CELLS, offset), TRIPLE_MULTIPLIER);
+  addEquationMultipliers(cells, shiftCoordinates(DOUBLE_EQUATION_CELLS, offset), DOUBLE_MULTIPLIER);
+  addPieceMultipliers(cells, shiftCoordinates(TRIPLE_PIECE_CELLS, offset), TRIPLE_MULTIPLIER);
+  addPieceMultipliers(cells, shiftCoordinates(DOUBLE_PIECE_CELLS, offset), DOUBLE_MULTIPLIER);
 
   const startCell = ensureCell(cells, getStartCoordinate(boardSize));
   startCell.start = true;
-  startCell.pieceMultiplier = 3;
+  startCell.pieceMultiplier = TRIPLE_MULTIPLIER;
 
   return [...cells.values()].sort((a, b) => a.y - b.y || a.x - b.x);
 }
