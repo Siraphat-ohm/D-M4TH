@@ -1,4 +1,5 @@
 import type { BoardTile, Coordinate, Placement, PublicPlayer, Tile } from "@d-m4th/game";
+import { textColorForBackground } from "../ui/format";
 
 export interface BoardBounds {
   left: number;
@@ -23,13 +24,16 @@ export interface TileRenderMetrics {
   tileSize: number;
   shortLabelFontSize: number;
   longLabelFontSize: number;
+  valueFontSize: number;
 }
 
-const TILE_SIZE_RATIO = 0.72;
-const SHORT_LABEL_FONT_RATIO = 0.38;
-const LONG_LABEL_FONT_RATIO = 0.28;
+const TILE_SIZE_RATIO = 0.88;
+const SHORT_LABEL_FONT_RATIO = 0.44;
+const LONG_LABEL_FONT_RATIO = 0.32;
+const VALUE_FONT_RATIO = 0.18;
 const MIN_SHORT_LABEL_FONT_SIZE = 12;
 const MIN_LONG_LABEL_FONT_SIZE = 9;
+const MIN_VALUE_FONT_SIZE = 8;
 const MIN_DRAG_PREVIEW_SIZE = 24;
 
 export function snapClientPointToBoardCell(params: {
@@ -58,7 +62,8 @@ export function createTileRenderMetrics(cellSize: number): TileRenderMetrics {
   return {
     tileSize: cellSize * TILE_SIZE_RATIO,
     shortLabelFontSize: Math.max(MIN_SHORT_LABEL_FONT_SIZE, cellSize * SHORT_LABEL_FONT_RATIO),
-    longLabelFontSize: Math.max(MIN_LONG_LABEL_FONT_SIZE, cellSize * LONG_LABEL_FONT_RATIO)
+    longLabelFontSize: Math.max(MIN_LONG_LABEL_FONT_SIZE, cellSize * LONG_LABEL_FONT_RATIO),
+    valueFontSize: Math.max(MIN_VALUE_FONT_SIZE, cellSize * VALUE_FONT_RATIO)
   };
 }
 
@@ -72,7 +77,6 @@ const TILE_BORDER = "#2A3142";
 
 export function createRenderTiles(params: {
   boardTiles: readonly BoardTile[];
-  lastPlacements: readonly BoardTile[];
   ghostTiles: readonly BoardTile[];
   draft: readonly Placement[];
   rack: readonly Tile[];
@@ -107,15 +111,7 @@ export function createRenderTiles(params: {
   ];
 }
 
-export function textColorForPlayerColor(color: string): string {
-  const normalizedColor = normalizeHexColor(color);
-  const red = Number.parseInt(normalizedColor.slice(1, 3), 16);
-  const green = Number.parseInt(normalizedColor.slice(3, 5), 16);
-  const blue = Number.parseInt(normalizedColor.slice(5, 7), 16);
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-
-  return luminance > 150 ? "#111111" : "#ededed";
-}
+export const textColorForPlayerColor = textColorForBackground;
 
 export function colorNumber(color: string): number {
   return Number.parseInt(normalizeHexColor(color).slice(1), 16);
@@ -124,6 +120,10 @@ export function colorNumber(color: string): number {
 export function normalizeHexColor(color: string): string {
   if (/^#[0-9a-fA-F]{6}$/.test(color)) {
     return color;
+  }
+
+  if (import.meta.env.DEV) {
+    console.warn(`normalizeHexColor: invalid color "${color}", falling back to TILE_FACE`);
   }
 
   return TILE_FACE;

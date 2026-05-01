@@ -1,16 +1,17 @@
-import type { BoardScene, RenderParams } from "./BoardScene";
+import type { RenderParams, BoardScene } from "./BoardScene";
 
 export class BoardGame {
-  private game?: any; // Phaser.Game
+  private game?: import("phaser").Game;
   private scene?: BoardScene;
 
   constructor(private readonly parent: HTMLElement, private readonly initialSize: number) {}
 
   async init(): Promise<void> {
     const Phaser = await import("phaser");
-    const { BoardScene } = await import("./BoardScene");
+    const { createBoardSceneClass } = await import("./BoardScene");
 
-    this.scene = new BoardScene();
+    const SceneClass = await createBoardSceneClass();
+    this.scene = new SceneClass() as BoardScene;
 
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -18,8 +19,11 @@ export class BoardGame {
       width: this.initialSize,
       height: this.initialSize,
       backgroundColor: "#080A0F",
+      pixelArt: true,
+      antialias: false,
+      roundPixels: true,
       scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.NONE,
         width: this.initialSize,
         height: this.initialSize
       },
@@ -36,6 +40,7 @@ export class BoardGame {
   }
 
   destroy(): void {
+    this.scene?.clear();
     this.game?.destroy(true);
     this.game = undefined;
     this.scene = undefined;

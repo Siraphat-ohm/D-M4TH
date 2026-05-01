@@ -1,10 +1,49 @@
 import { describe, expect, test } from "bun:test";
-import { createPartyConfig } from "@d-m4th/config";
+import { createClassicalConfig, createPartyConfig } from "@d-m4th/config";
 import { GameEngine } from "../src/engine";
 import type { MatchState, Player, Tile } from "../src/types";
 import { createTileSet } from "../src/tile-catalog";
 
 describe("game engine", () => {
+  test("normalizes unsafe party config when creating a match", () => {
+    const engine = new GameEngine();
+    const unsafePartyConfig = {
+      ...createPartyConfig({ boardSize: 19, maxPlayers: 4, premiumMapId: "cross" }),
+      boardSize: 14,
+      maxPlayers: 99
+    };
+
+    const match = engine.createMatch({
+      hostName: "Ada",
+      hostColor: "#f97316",
+      config: unsafePartyConfig
+    });
+
+    expect(match.config.mode).toBe("party");
+    expect(match.config.boardSize).toBe(15);
+    expect(match.config.maxPlayers).toBe(6);
+    expect(match.config.premiumMapId).toBe("cross");
+  });
+
+  test("normalizes unsafe classical config when configuring a lobby match", () => {
+    const engine = new GameEngine();
+    const match = engine.createMatch({ hostName: "Ada", hostColor: "#f97316", config: createClassicalConfig() });
+    const unsafeClassicalConfig = {
+      ...createClassicalConfig(),
+      boardSize: 23,
+      maxPlayers: 6,
+      premiumMapId: "cross" as const
+    };
+
+    const result = engine.configureMatch(match, unsafeClassicalConfig);
+
+    expect(result.ok).toBe(true);
+    expect(match.config.mode).toBe("classical");
+    expect(match.config.boardSize).toBe(15);
+    expect(match.config.maxPlayers).toBe(2);
+    expect(match.config.premiumMapId).toBe("scaled-classic");
+  });
+
   test("rejects the first play when it misses the start star", () => {
     const { engine, match, host } = startedMatch();
     host.rack = equationRack();

@@ -22,6 +22,7 @@ interface LobbyLayoutProps {
 
 const EMPTY_RACK: Tile[] = [];
 const EMPTY_DRAFT: Placement[] = [];
+const NOOP = () => {};
 
 export function LobbyLayout(props: LobbyLayoutProps) {
   const {
@@ -66,12 +67,13 @@ export function LobbyLayout(props: LobbyLayoutProps) {
       <section className="setup-preview">
         <BoardCanvas
           previewBoardSize={activeConfig.boardSize}
+          previewPremiumMapId={activeConfig.premiumMapId}
           draft={EMPTY_DRAFT}
           rack={EMPTY_RACK}
           placementDisabled
-          onCellClick={() => {}}
-          onDraftTileDoubleClick={() => {}}
-          onTileDrop={() => {}}
+          onCellClick={NOOP}
+          onDraftTileDoubleClick={NOOP}
+          onTileDrop={NOOP}
           variant="preview"
         />
       </section>

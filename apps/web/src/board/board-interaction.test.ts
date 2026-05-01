@@ -6,6 +6,7 @@ import {
   snapClientPointToBoardCell,
   textColorForPlayerColor
 } from "./board-interaction";
+import { snapBoardPixelsToGrid } from "../ui/BoardCanvas";
 
 describe("board interaction", () => {
   test("snaps client coordinates using the visible board bounds", () => {
@@ -31,7 +32,6 @@ describe("board interaction", () => {
   test("renders draft tiles with their resolved face and flat tile colors", () => {
     const tiles = createRenderTiles({
       boardTiles: [],
-      lastPlacements: [],
       ghostTiles: [],
       draft: [{ tileId: "t1", face: "=", x: 7, y: 7 }],
       rack: [{ id: "t1", label: "BLANK", value: 0 }],
@@ -50,11 +50,20 @@ describe("board interaction", () => {
     expect(textColorForPlayerColor("#fef08a")).toBe("#111111");
   });
 
-  test("keeps rendered and dragged tiles smaller than a board cell", () => {
+  test("sizes board tiles near rack tiles while preserving cell borders", () => {
     const cellSize = 48;
     const metrics = createTileRenderMetrics(cellSize);
 
     expect(metrics.tileSize).toBeLessThan(cellSize);
+    expect(metrics.tileSize).toBeCloseTo(42.24);
+    expect(metrics.shortLabelFontSize).toBeGreaterThan(20);
+    expect(metrics.valueFontSize).toBeGreaterThanOrEqual(8);
     expect(createDragPreviewSize(cellSize)).toBeLessThan(cellSize);
+  });
+
+  test("snaps board pixels so cells land on integer pixels", () => {
+    expect(snapBoardPixelsToGrid(760, 15, { maxPixels: 760 })).toBe(750);
+    expect(snapBoardPixelsToGrid(823, 15, { maxPixels: 823 })).toBe(810);
+    expect(snapBoardPixelsToGrid(990, 15, { maxPixels: 990 })).toBe(990);
   });
 });

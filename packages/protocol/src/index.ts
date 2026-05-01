@@ -1,4 +1,4 @@
-import type { MatchConfig } from "@d-m4th/config";
+import { DEFAULT_PREMIUM_MAP_ID, PREMIUM_MAP_OPTIONS, type MatchConfig, type PremiumMapId } from "@d-m4th/config";
 import type { BoardTile, Placement, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown } from "@d-m4th/game";
 
 export type ClientMessage =
@@ -118,6 +118,7 @@ function readConfig(value: unknown): MatchConfig {
   return {
     mode,
     boardSize: readInteger(value, "boardSize"),
+    premiumMapId: readOptionalPremiumMapId(value, "premiumMapId"),
     minPlayers: readInteger(value, "minPlayers"),
     maxPlayers: readInteger(value, "maxPlayers"),
     rackSize: readInteger(value, "rackSize"),
@@ -126,6 +127,24 @@ function readConfig(value: unknown): MatchConfig {
     incrementMs: readInteger(value, "incrementMs"),
     skillNodesEnabled: readBoolean(value, "skillNodesEnabled")
   };
+}
+
+function readOptionalPremiumMapId(record: Record<string, unknown>, key: string): PremiumMapId {
+  const value = record[key];
+
+  if (value === undefined) {
+    return DEFAULT_PREMIUM_MAP_ID;
+  }
+
+  if (typeof value !== "string" || !isPremiumMapId(value)) {
+    throw new Error(`${key} must be a supported premium map`);
+  }
+
+  return value;
+}
+
+function isPremiumMapId(value: string): value is PremiumMapId {
+  return PREMIUM_MAP_OPTIONS.some((option) => option.id === value);
 }
 
 function readStringArray(value: unknown): string[] {

@@ -18,7 +18,11 @@ export class DraftManager {
     return new DraftManager([]);
   }
 
-  public place(tile: Tile, x: number, y: number): DraftManager {
+  public place(tile: Tile, x: number, y: number, occupiedCells: ReadonlySet<string>): DraftManager {
+    if (occupiedCells.has(`${x},${y}`)) {
+      return this;
+    }
+
     if (tileRequiresFace(tile.label)) {
       return new DraftManager(this.placements, { tile, x, y });
     }
@@ -39,13 +43,17 @@ export class DraftManager {
     return new DraftManager(this.placements, undefined);
   }
 
-  public move(tileId: string, x: number, y: number): DraftManager {
+  public move(tileId: string, x: number, y: number, occupiedCells: ReadonlySet<string>): DraftManager {
     const source = this.placements.find((p) => p.tileId === tileId);
     if (!source) {
       return this;
     }
 
     const target = this.at(x, y);
+
+    if (!target && occupiedCells.has(`${x},${y}`)) {
+      return this;
+    }
 
     const nextPlacements = this.placements.map((placement) => {
       if (placement.tileId === tileId) {

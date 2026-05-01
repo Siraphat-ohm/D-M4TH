@@ -1,18 +1,9 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { formatTime } from "./format";
 
-export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?: number }) {
-  const [, setTick] = useState(0);
-
-  useEffect(() => {
-    if (props.snapshot.status !== "playing") return;
-
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [props.snapshot.status, props.snapshot.turnStartedAt, props.snapshot.currentPlayerId]);
-
-  const now = Date.now();
+export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?: number; now?: number }) {
+  const now = props.now ?? Date.now();
 
   return (
     <div className="player-list">
@@ -44,7 +35,7 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
                 className={showPreview ? "player-delta player-delta--preview" : player.lastPenaltyPoints !== undefined ? "player-delta player-delta--penalty" : "player-delta"}
                 aria-hidden={!scoreDelta}
               >
-                {scoreDelta || "\u00A0"}
+                {scoreDelta || " "}
               </span>
             </div>
           </article>

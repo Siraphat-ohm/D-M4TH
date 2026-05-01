@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { DEFAULT_PREMIUM_MAP_ID, type PremiumMapId } from "@d-m4th/config";
 import type { BoardTile, Placement, PublicSnapshot, Tile } from "@d-m4th/game";
 import { snapClientPointToBoardCell } from "../board/board-interaction";
 import { BoardGame } from "../phaser/BoardGame";
@@ -7,6 +8,7 @@ interface BoardCanvasProps {
   snapshot?: PublicSnapshot;
   ghostPlacements?: Array<{ playerId: string; placements: BoardTile[] }>;
   previewBoardSize?: number;
+  previewPremiumMapId?: PremiumMapId;
   draft: readonly Placement[];
   rack: Tile[];
   currentPlayerId?: string;
@@ -20,8 +22,11 @@ interface BoardCanvasProps {
 
 const DEFAULT_BOARD_SIZE = 15;
 const DOUBLE_TAP_WINDOW_MS = 300;
-const MIN_TOUCH_CELL_SIZE = 44;
 const MIN_BOARD_PIXELS = 420;
+const LARGE_SCREEN_WIDTH = 2400;
+const LARGE_PREVIEW_CAP = 990;
+const DEFAULT_PREVIEW_CAP = 840;
+const PREVIEW_VIEWPORT_HEIGHT_RATIO = 0.76;
 
 type RenderStatus = "loading" | "ready" | "error";
 
@@ -30,12 +35,12 @@ export function BoardCanvas(props: BoardCanvasProps) {
   const boardGameRef = useRef<BoardGame | null>(null);
   const lastTapRef = useRef<{ at: number; x: number; y: number } | undefined>(undefined);
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("loading");
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [boardTargetPixels, setBoardTargetPixels] = useState(() => snapBoardPixelsToGrid(MIN_BOARD_PIXELS, DEFAULT_BOARD_SIZE));
 
   const boardSize = props.snapshot?.config.boardSize ?? props.previewBoardSize ?? DEFAULT_BOARD_SIZE;
-  const minimumBoardPixels = props.variant === "preview" ? MIN_BOARD_PIXELS : boardSize * MIN_TOUCH_CELL_SIZE;
+  const premiumMapId = props.snapshot?.config.premiumMapId ?? props.previewPremiumMapId ?? DEFAULT_PREMIUM_MAP_ID;
 
-  // Initialize Phaser via BoardGame class
+  // Initialize Phaser once per mount
   useEffect(() => {
     let disposed = false;
     const host = hostRef.current;
@@ -43,8 +48,9 @@ export function BoardCanvas(props: BoardCanvasProps) {
 
     async function mount(): Promise<void> {
       setRenderStatus("loading");
-      const initialSize = Math.max(minimumBoardPixels, Math.min(host?.clientWidth ?? 0, host?.clientHeight ?? 0));
-      const game = new BoardGame(host!, initialSize);
+      const el = hostRef.current!;
+      const initialSize = measureBoardTargetPixels(el, props.variant ?? "game", boardSize);
+      const game = new BoardGame(el, initialSize);
       boardGameRef.current = game;
 
       try {
@@ -67,41 +73,51 @@ export function BoardCanvas(props: BoardCanvasProps) {
       boardGameRef.current?.destroy();
       boardGameRef.current = null;
     };
-  }, [minimumBoardPixels]);
+  }, []);
 
-  // Reactive resizing using ResizeObserver
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        setDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height
-        });
-      }
-    });
+    let animationFrame = 0;
+    const updateBoardTarget = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        setBoardTargetPixels(measureBoardTargetPixels(host, props.variant ?? "game", boardSize));
+      });
+    };
+    const observer = new ResizeObserver(updateBoardTarget);
 
     observer.observe(host);
-    return () => observer.disconnect();
-  }, []);
+    if (host.parentElement) {
+      observer.observe(host.parentElement);
+    }
+    window.addEventListener("resize", updateBoardTarget);
+    window.addEventListener("orientationchange", updateBoardTarget);
+    updateBoardTarget();
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+      window.removeEventListener("resize", updateBoardTarget);
+      window.removeEventListener("orientationchange", updateBoardTarget);
+    };
+  }, [boardSize, props.variant]);
 
   // Update Phaser on data or dimension change
   useEffect(() => {
     const game = boardGameRef.current;
     if (!game || renderStatus !== "ready") return;
 
-    const boardPixelSize = Math.floor(Math.min(dimensions.width, dimensions.height));
+    const boardPixelSize = boardTargetPixels;
     if (boardPixelSize <= 0) return;
 
     game.resize(boardPixelSize);
     game.update({
       boardPixelSize,
       boardSize,
+      premiumMapId,
       boardTiles: props.snapshot?.board ?? [],
-      lastPlacements: props.snapshot?.lastPlacements ?? [],
       draft: props.draft,
       ghostTiles:
         props.ghostPlacements
@@ -112,7 +128,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       draftOwnerId: props.currentPlayerId,
       selectedTileId: props.selectedTileId
     });
-  }, [dimensions, props.snapshot, props.draft, props.rack, props.currentPlayerId, props.selectedTileId, props.ghostPlacements, renderStatus, boardSize]);
+  }, [boardTargetPixels, props.snapshot, props.draft, props.rack, props.currentPlayerId, props.selectedTileId, props.ghostPlacements, renderStatus, boardSize, premiumMapId]);
 
   const handlePointerDown = (event: React.PointerEvent) => {
     if (props.placementDisabled || event.button !== 0) return;
@@ -159,8 +175,10 @@ export function BoardCanvas(props: BoardCanvasProps) {
 
   return (
     <div
-      className={`board-host board-host--${props.variant ?? "game"} relative w-full h-full flex-1 overflow-hidden`}
+      className={`board-host board-host--${props.variant ?? "game"}`}
+      data-board-size={boardSize}
       ref={hostRef}
+      style={{ "--board-target-size": `${boardTargetPixels}px` } as CSSProperties}
       onPointerDown={handlePointerDown}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -177,11 +195,64 @@ export function BoardCanvas(props: BoardCanvasProps) {
   );
 }
 
+export function snapBoardPixelsToGrid(
+  targetPixels: number,
+  boardSize: number,
+  options?: {
+    minCellPixels?: number;
+    maxPixels?: number;
+  }
+): number {
+  const safeBoardSize = Math.max(1, Math.floor(boardSize));
+  const maxPixels = Math.max(1, Math.floor(options?.maxPixels ?? targetPixels));
+  const safeTarget = Math.max(1, Math.floor(Math.min(targetPixels, maxPixels)));
+  const minCellPixels = Math.max(1, Math.floor(options?.minCellPixels ?? 1));
+
+  const cellPixels = Math.max(minCellPixels, Math.floor(safeTarget / safeBoardSize));
+  const snapped = cellPixels * safeBoardSize;
+
+  if (snapped <= maxPixels) {
+    return Math.max(safeBoardSize, snapped);
+  }
+
+  const fallbackCellPixels = Math.max(1, Math.floor(maxPixels / safeBoardSize));
+  return Math.max(safeBoardSize, fallbackCellPixels * safeBoardSize);
+}
+
+function measureBoardTargetPixels(host: HTMLDivElement, variant: "game" | "preview", boardSize: number): number {
+  const parent = host.parentElement;
+  const widthBudget = readPositivePixels(parent?.clientWidth ?? 0, host.clientWidth, MIN_BOARD_PIXELS);
+  const heightBudget = readHeightBudget(host, variant);
+  const cap = variant === "preview" ? previewBoardCap() : Number.POSITIVE_INFINITY;
+  const rawTarget = Math.min(widthBudget, heightBudget, cap);
+
+  return snapBoardPixelsToGrid(rawTarget, boardSize, { maxPixels: rawTarget });
+}
+
+function readHeightBudget(host: HTMLDivElement, variant: "game" | "preview"): number {
+  const parentHeight = host.parentElement?.clientHeight ?? 0;
+  const hostHeight = host.clientHeight;
+
+  if (variant === "preview") {
+    return Math.floor(window.innerHeight * PREVIEW_VIEWPORT_HEIGHT_RATIO);
+  }
+
+  return readPositivePixels(parentHeight, hostHeight, MIN_BOARD_PIXELS);
+}
+
+function readPositivePixels(...values: number[]): number {
+  return Math.max(1, Math.floor(values.find((value) => value > 0) ?? MIN_BOARD_PIXELS));
+}
+
+function previewBoardCap(): number {
+  return window.innerWidth >= LARGE_SCREEN_WIDTH ? LARGE_PREVIEW_CAP : DEFAULT_PREVIEW_CAP;
+}
+
 function readBoardContentBounds(host: HTMLDivElement) {
   const bounds = host.getBoundingClientRect();
   return {
-    left: bounds.left + host.clientLeft,
-    top: bounds.top + host.clientTop,
+    left: bounds.left,
+    top: bounds.top,
     width: host.clientWidth,
     height: host.clientHeight
   };

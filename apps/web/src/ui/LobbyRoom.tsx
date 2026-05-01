@@ -1,9 +1,9 @@
 import type { FormEvent } from "react";
-import { createClassicalConfig, createPartyConfig, type MatchConfig } from "@d-m4th/config";
+import { PREMIUM_MAP_OPTIONS, createClassicalConfig, createPartyConfig, type MatchConfig, type PremiumMapId } from "@d-m4th/config";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { ColorPicker } from "./ColorPicker";
-
-type ViewMode = "create" | "join";
+import { normalizeRoomCode } from "./format";
+import type { ViewMode } from "./types";
 
 interface LobbyRoomProps {
   color: string;
@@ -128,11 +128,27 @@ function CreateControls(props: {
         <input
           type="number"
           min={15}
+          max={25}
           step={2}
           value={config.boardSize}
           onChange={(event) => onChange(createPartyConfig({ ...config, boardSize: Number(event.target.value) }))}
         />
       </label>
+      {config.mode === "party" && (
+        <label>
+          Map layout
+          <select
+            value={config.premiumMapId}
+            onChange={(event) => onChange(createPartyConfig({ ...config, premiumMapId: event.target.value as PremiumMapId }))}
+          >
+            {PREMIUM_MAP_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {!props.roomCreated && (
         <button type="submit" className="primary" disabled={props.disabled}>
           Create room
@@ -206,10 +222,6 @@ function LobbyStatusPanel(props: { config: MatchConfig; snapshot?: PublicSnapsho
       </section>
     </aside>
   );
-}
-
-function normalizeRoomCode(value: string): string {
-  return value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
 
 function createWaitingSlots(params: { maxPlayers: number; playerCount: number }): number[] {

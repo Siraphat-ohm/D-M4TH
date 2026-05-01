@@ -1,3 +1,5 @@
+import { textColorForBackground } from "./format";
+
 const COLOR_PICKER_FALLBACK = "#EF476F";
 
 const PRESET_COLORS = [
@@ -25,7 +27,7 @@ export function ColorPicker(props: { value: string; onChange: (color: string) =>
               className={`color-swatch${isSelected ? " selected" : ""}`}
               style={{
                 background: presetColor,
-                color: textColorForSwatch(presetColor)
+                color: textColorForBackground(presetColor)
               }}
               onClick={() => props.onChange(presetColor)}
               aria-label={`Select color ${presetColor}`}
@@ -56,12 +58,4 @@ function normalizeColorValue(value: string): string {
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-f]{6}$/i.test(value);
-}
-
-function textColorForSwatch(hex: string): string {
-  const r = Number.parseInt(hex.slice(1, 3), 16);
-  const g = Number.parseInt(hex.slice(3, 5), 16);
-  const b = Number.parseInt(hex.slice(5, 7), 16);
-  const luminance = (r * 299 + g * 587 + b * 114) / 1000;
-  return luminance > 150 ? "#111111" : "#ededed";
 }

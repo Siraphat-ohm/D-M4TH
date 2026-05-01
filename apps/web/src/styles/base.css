@@ -37,7 +37,6 @@ body,
 body {
   margin: 0;
   background: var(--bg);
-  image-rendering: pixelated;
 }
 
 button,

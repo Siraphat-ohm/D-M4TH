@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createClassicalConfig, type MatchConfig } from "@d-m4th/config";
 import type { BoardTile, PublicSnapshot, Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
@@ -7,9 +7,9 @@ import { useTurnController } from "../turn/use-turn-controller";
 import { LogDialog } from "./Dialogs";
 import { LobbyLayout } from "./LobbyLayout";
 import { MatchLayout } from "./MatchLayout";
-import type { LogEntry, NoticeTone } from "./types";
+import { normalizeRoomCode } from "./format";
+import type { LogEntry, NoticeTone, ViewMode } from "./types";
 
-type ViewMode = "create" | "join";
 const NOTICE_AUTO_DISMISS_MS = 4000;
 const DEFAULT_PLAYER_COLOR = "#EF476F";
 const LOG_HISTORY_LIMIT = 30;
@@ -112,8 +112,11 @@ export function App() {
   const ownColor = snapshot?.players.find((p) => p.id === privateState?.playerId)?.color ?? color;
   const activeColor = snapshot?.players.find((p) => p.id === snapshot.currentPlayerId)?.color ?? ownColor;
 
-  const turn = useTurnController({ client, isMyTurn, rack, rackSize: activeConfig.rackSize });
-  turnHandleRef.current = turn.handleMessage;
+  const turn = useTurnController({ client, isMyTurn, rack, rackSize: activeConfig.rackSize, board: snapshot?.board ?? [] });
+
+  useEffect(() => {
+    turnHandleRef.current = turn.handleMessage;
+  });
 
   // -- Handlers --
   const createRoom = () => {
@@ -200,10 +203,6 @@ function NoticeBanner({ notice, onDismiss }: { notice: NoticeState; onDismiss: (
       </button>
     </div>
   );
-}
-
-function normalizeRoomCode(value: string): string {
-  return value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
 
 function readInitialRoomCode(): string {

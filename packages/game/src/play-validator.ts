@@ -1,4 +1,4 @@
-import { buildContiguousLine, createClassicalBoardLayout, detectDirection } from "./board-layout";
+import { buildContiguousLine, createBoardLayout, detectDirection } from "./board-layout";
 import { scoreLine } from "./scoring";
 import { faceOptionsForTileLabel, tileRequiresFace } from "./tile-catalog";
 import type { BoardTile, MatchState, Placement, Player, ScoreBreakdown } from "./types";
@@ -19,7 +19,7 @@ export function validatePlay(match: MatchState, player: Player, placements: read
   const direction = detectDirection(boardTiles);
   const line = buildContiguousLine({ board: match.board, placements: boardTiles, direction });
   const placedTileIds = new Set(boardTiles.map((tile) => tile.id));
-  const layout = createClassicalBoardLayout(match.config.boardSize);
+  const layout = createBoardLayout(match.config.boardSize, match.config.premiumMapId);
 
   return scoreLine({
     layout,

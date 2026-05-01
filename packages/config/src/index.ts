@@ -1,4 +1,6 @@
 export const CLASSICAL_BOARD_SIZE = 15;
+export const MIN_BOARD_SIZE = 15;
+export const MAX_BOARD_SIZE = 25;
 export const CLASSICAL_RACK_SIZE = 8;
 export const CLASSICAL_TOTAL_TIME_MS = 22 * 60 * 1000;
 export const CLASSICAL_TURN_TIME_MS = 3 * 60 * 1000;
@@ -9,10 +11,18 @@ export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
 
 export type MatchMode = "classical" | "party";
+export const PREMIUM_MAP_OPTIONS = [
+  { id: "scaled-classic", label: "Scaled Classic" },
+  { id: "center-classic", label: "Center Classic" },
+  { id: "cross", label: "Cross" }
+] as const;
+export type PremiumMapId = (typeof PREMIUM_MAP_OPTIONS)[number]["id"];
+export const DEFAULT_PREMIUM_MAP_ID: PremiumMapId = "scaled-classic";
 
 export interface MatchConfig {
   mode: MatchMode;
   boardSize: number;
+  premiumMapId: PremiumMapId;
   minPlayers: number;
   maxPlayers: number;
   rackSize: number;
@@ -26,6 +36,7 @@ export function createClassicalConfig(): MatchConfig {
   return {
     mode: "classical",
     boardSize: CLASSICAL_BOARD_SIZE,
+    premiumMapId: DEFAULT_PREMIUM_MAP_ID,
     minPlayers: MIN_PLAYERS,
     maxPlayers: 2,
     rackSize: CLASSICAL_RACK_SIZE,
@@ -38,6 +49,7 @@ export function createClassicalConfig(): MatchConfig {
 
 export interface PartyConfigInput {
   boardSize?: number;
+  premiumMapId?: PremiumMapId;
   maxPlayers?: number;
   totalTimeMs?: number;
   turnTimeMs?: number;
@@ -51,6 +63,7 @@ export function createPartyConfig(input: PartyConfigInput = {}): MatchConfig {
   return {
     mode: "party",
     boardSize,
+    premiumMapId: normalizePremiumMapId(input.premiumMapId),
     minPlayers: MIN_PLAYERS,
     maxPlayers,
     rackSize: CLASSICAL_RACK_SIZE,
@@ -77,8 +90,16 @@ export function tileBagScaleForPlayerCount(playerCount: number): number {
 }
 
 function normalizeBoardSize(size: number): number {
-  const minimumSize = Math.max(CLASSICAL_BOARD_SIZE, Math.floor(size));
-  return minimumSize % 2 === 1 ? minimumSize : minimumSize + 1;
+  const clamped = Math.max(MIN_BOARD_SIZE, Math.min(MAX_BOARD_SIZE, Math.floor(size)));
+  return clamped % 2 === 1 ? clamped : clamped + 1;
+}
+
+function normalizePremiumMapId(id: PremiumMapId | undefined): PremiumMapId {
+  if (!id) {
+    return DEFAULT_PREMIUM_MAP_ID;
+  }
+
+  return PREMIUM_MAP_OPTIONS.some((option) => option.id === id) ? id : DEFAULT_PREMIUM_MAP_ID;
 }
 
 function clampPlayerCount(playerCount: number): number {

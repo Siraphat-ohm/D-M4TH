@@ -203,7 +203,7 @@ export class RoomRegistry {
     const room = this.readSessionRoom(connection);
     const session = this.readSession(connection);
     const result = this.engine.swapTiles(room.match, session.playerId, message.tileIds);
-    
+
     if (result.ok) {
       room.ghostPlacements.delete(session.playerId);
       this.broadcastPresence(room, connection.id);

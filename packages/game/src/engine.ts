@@ -3,6 +3,7 @@ import {
   MIN_SWAP_BAG_TILES,
   TURN_OVERTIME_PENALTY,
   createClassicalConfig,
+  createPartyConfig,
   type MatchConfig
 } from "@d-m4th/config";
 import { validatePlay } from "./play-validator";
@@ -25,7 +26,7 @@ export interface JoinMatchInput {
 export class GameEngine {
   createMatch(input: CreateMatchInput): MatchState {
     const now = input.now ?? Date.now();
-    const config = input.config ?? createClassicalConfig();
+    const config = normalizeMatchConfig(input.config ?? createClassicalConfig());
     const host = createPlayer({
       id: createId("player"),
       name: input.hostName,
@@ -75,7 +76,7 @@ export class GameEngine {
       return rejected("Cannot configure a match after it starts");
     }
 
-    match.config = config;
+    match.config = normalizeMatchConfig(config);
     for (const player of match.players) {
       player.remainingMs = config.totalTimeMs;
     }
@@ -334,6 +335,30 @@ function createPlayer(input: { id: string; name: string; color: string; totalTim
     rack: [],
     remainingMs: input.totalTimeMs,
     connected: true
+  };
+}
+
+function normalizeMatchConfig(config: MatchConfig): MatchConfig {
+  if (config.mode === "classical") {
+    return {
+      ...createClassicalConfig(),
+      totalTimeMs: config.totalTimeMs,
+      turnTimeMs: config.turnTimeMs,
+      incrementMs: config.incrementMs,
+      skillNodesEnabled: config.skillNodesEnabled
+    };
+  }
+
+  return {
+    ...createPartyConfig({
+      boardSize: config.boardSize,
+      premiumMapId: config.premiumMapId,
+      maxPlayers: config.maxPlayers,
+      totalTimeMs: config.totalTimeMs,
+      turnTimeMs: config.turnTimeMs,
+      incrementMs: config.incrementMs
+    }),
+    skillNodesEnabled: config.skillNodesEnabled
   };
 }
 

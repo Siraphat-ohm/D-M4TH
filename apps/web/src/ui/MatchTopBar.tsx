@@ -5,12 +5,12 @@ import { formatTime } from "./format";
 import { PlayerInfoList } from "./PlayerInfoList";
 
 export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: number }) {
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     if (props.snapshot?.status !== "playing") return;
 
-    const id = setInterval(() => setTick((tick) => tick + 1), 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, [props.snapshot?.status, props.snapshot?.turnStartedAt, props.snapshot?.currentPlayerId]);
 
@@ -18,9 +18,10 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
     return null;
   }
 
+  const now = Date.now();
   const activePlayer = props.snapshot.players.find((player) => player.id === props.snapshot?.currentPlayerId);
   const elapsed = props.snapshot.status === "playing" && activePlayer
-    ? Math.max(0, Date.now() - props.snapshot.turnStartedAt)
+    ? Math.max(0, now - props.snapshot.turnStartedAt)
     : 0;
   const turnRemaining = props.snapshot.status === "playing"
     ? Math.max(0, props.snapshot.config.turnTimeMs - elapsed)
@@ -28,7 +29,7 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
 
   return (
     <>
-      <PlayerInfoList snapshot={props.snapshot} previewScore={props.previewScore} />
+      <PlayerInfoList snapshot={props.snapshot} previewScore={props.previewScore} now={now} />
       <div className="hud-metrics-group">
         <section className="hud-block hud-metric hud-metric--turn">
           <Clock3 size={16} aria-hidden="true" />

@@ -2,8 +2,17 @@ import type { ClientMessage, ServerMessage } from "@d-m4th/protocol";
 
 export type MessageHandler = (message: ServerMessage) => void;
 
+const BASE_RECONNECT_DELAY_MS = 500;
+const MAX_RECONNECT_DELAY_MS = 15_000;
+const MAX_RECONNECT_ATTEMPTS = 20;
+const MAX_BUFFER_SIZE = 200;
+
 export class ProtocolClient {
   private socket?: WebSocket;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private reconnectAttempts = 0;
+  private intentionallyClosed = false;
+  private messageBuffer: ClientMessage[] = [];
 
   constructor(
     private readonly url: string,
@@ -16,24 +25,72 @@ export class ProtocolClient {
       return;
     }
 
-    const socket = new WebSocket(this.url);
-    this.socket = socket;
-
-    socket.addEventListener("open", () => this.onStatus(true));
-    socket.addEventListener("close", () => this.onStatus(false));
-    socket.addEventListener("message", (event) => {
-      this.onMessage(JSON.parse(String(event.data)) as ServerMessage);
-    });
+    this.intentionallyClosed = false;
+    this.openSocket();
   }
 
   send(message: ClientMessage): void {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
+      return;
+    }
+
+    this.messageBuffer.push(message);
+    if (this.messageBuffer.length > MAX_BUFFER_SIZE) {
+      this.messageBuffer.shift();
+    }
+
     this.connect();
-    this.socket?.send(JSON.stringify(message));
   }
 
   close(): void {
+    this.intentionallyClosed = true;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
+    this.messageBuffer = [];
     this.socket?.close();
     this.socket = undefined;
+  }
+
+  private openSocket(): void {
+    const socket = new WebSocket(this.url);
+    this.socket = socket;
+
+    socket.addEventListener("open", () => {
+      this.reconnectAttempts = 0;
+      this.flushBuffer();
+      this.onStatus(true);
+    });
+
+    socket.addEventListener("message", (event) => {
+      this.onMessage(JSON.parse(String(event.data)) as ServerMessage);
+    });
+
+    socket.addEventListener("error", () => {
+      // error event is always followed by close; reconnection handled there
+    });
+
+    socket.addEventListener("close", () => {
+      this.onStatus(false);
+      this.scheduleReconnect();
+    });
+  }
+
+  private scheduleReconnect(): void {
+    if (this.intentionallyClosed) return;
+    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return;
+
+    const jitter = Math.random() * BASE_RECONNECT_DELAY_MS;
+    const delay = Math.min(BASE_RECONNECT_DELAY_MS * 2 ** this.reconnectAttempts + jitter, MAX_RECONNECT_DELAY_MS);
+    this.reconnectAttempts += 1;
+
+    this.reconnectTimer = setTimeout(() => this.openSocket(), delay);
+  }
+
+  private flushBuffer(): void {
+    while (this.messageBuffer.length > 0 && this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(this.messageBuffer.shift()!));
+    }
   }
 }
 
