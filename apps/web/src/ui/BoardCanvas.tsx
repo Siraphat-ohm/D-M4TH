@@ -63,15 +63,14 @@ const DEFAULT_BOARD_SIZE = 15;
 const DOUBLE_TAP_WINDOW_MS = 300;
 const MIN_TOUCH_CELL_SIZE = 44;
 const MIN_BOARD_PIXELS = 420;
-const NORMAL_CELL_COLOR = 0x171d2b;
-const CELL_BORDER_COLOR = 0x2e374f;
-const SELECTED_TILE_BORDER_COLOR = 0x38d4ce;
-const START_TEXT_COLOR = "#f7e6a6";
+const NORMAL_CELL_COLOR = 0x171b26;
+const CELL_BORDER_COLOR = 0x2a3142;
+const START_TEXT_COLOR = "#8C93A3";
 const PREMIUM_COLORS = {
-  piece2: 0xc97846,
-  piece3: 0x2d8b8f,
-  equation2: 0xd6a84a,
-  equation3: 0xa33f4e
+  piece2: 0x8a5a38,
+  piece3: 0x3e7774,
+  equation2: 0x8a7a3a,
+  equation3: 0x80394d
 };
 
 interface TileRenderState {
@@ -97,6 +96,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("loading");
   const boardSize = props.snapshot?.config.boardSize ?? props.previewBoardSize ?? DEFAULT_BOARD_SIZE;
   const minimumBoardPixels = props.variant === "preview" ? MIN_BOARD_PIXELS : calculateMinimumBoardPixels(boardSize);
+  const [boardTargetPixels, setBoardTargetPixels] = useState(minimumBoardPixels);
 
   useEffect(() => {
     let disposed = false;
@@ -118,13 +118,13 @@ export function BoardCanvas(props: BoardCanvasProps) {
         }
 
         const scene = createScene(runtime);
-        const boardPixelSize = readBoardPixelSize(host);
+        const boardPixelSize = readBoardPixelSize(host, minimumBoardPixels);
         gameRef.current = new runtime.Game({
           type: runtime.AUTO,
           parent: host,
           width: boardPixelSize,
           height: boardPixelSize,
-          backgroundColor: "#0a0f1c",
+          backgroundColor: "#080A0F",
           scale: {
             mode: runtime.Scale.RESIZE,
             width: boardPixelSize,
@@ -151,7 +151,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       gameRef.current = undefined;
       renderCacheRef.current = { tiles: [] };
     };
-  }, []);
+  }, [minimumBoardPixels]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -160,10 +160,58 @@ export function BoardCanvas(props: BoardCanvasProps) {
       return;
     }
 
-    const observer = new ResizeObserver(() => setRenderSignal((current) => current + 1));
+    const updateBoardTarget = () => {
+      const next = measureBoardTargetPixels(host, props.variant, minimumBoardPixels);
+      setBoardTargetPixels((current) => (current === next ? current : next));
+      setRenderSignal((current) => current + 1);
+    };
+
+    updateBoardTarget();
+    const observer = new ResizeObserver(updateBoardTarget);
     observer.observe(host);
-    return () => observer.disconnect();
-  }, []);
+    host.parentElement && observer.observe(host.parentElement);
+    const boardContainer = host.closest(".board-scroll-container");
+    const boardStage = host.closest(".board-stage");
+    const matchMain = host.closest(".match-main");
+    const playSurface = host.closest(".play-surface");
+    const topBar = document.querySelector<HTMLElement>(".match-topbar");
+    const controlStrip = document.querySelector<HTMLElement>(".control-strip");
+    const matchNotice = document.querySelector<HTMLElement>(".match-notice");
+
+    if (boardContainer instanceof HTMLElement) {
+      observer.observe(boardContainer);
+    }
+
+    if (boardStage instanceof HTMLElement) {
+      observer.observe(boardStage);
+    }
+
+    if (matchMain instanceof HTMLElement) {
+      observer.observe(matchMain);
+    }
+
+    if (playSurface instanceof HTMLElement) {
+      observer.observe(playSurface);
+    }
+
+    if (topBar) {
+      observer.observe(topBar);
+    }
+
+    if (controlStrip) {
+      observer.observe(controlStrip);
+    }
+
+    if (matchNotice) {
+      observer.observe(matchNotice);
+    }
+
+    window.addEventListener("resize", updateBoardTarget);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateBoardTarget);
+    };
+  }, [minimumBoardPixels, props.variant]);
 
   useEffect(() => {
     const scene = gameRef.current?.scene.getScene(BOARD_SCENE_KEY);
@@ -173,7 +221,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       return;
     }
 
-    const boardPixelSize = readBoardPixelSize(host);
+    const boardPixelSize = readBoardPixelSize(host, boardTargetPixels);
 
     if (boardPixelSize === 0) {
       return;
@@ -195,14 +243,19 @@ export function BoardCanvas(props: BoardCanvasProps) {
       draftOwnerId: props.currentPlayerId,
       selectedTileId: props.selectedTileId
     });
-  }, [boardSize, props.snapshot, props.draft, props.rack, props.currentPlayerId, props.selectedTileId, renderSignal]);
+  }, [boardSize, boardTargetPixels, props.snapshot, props.draft, props.rack, props.currentPlayerId, props.selectedTileId, renderSignal]);
 
   return (
     <div
       className={`board-host board-host--${props.variant ?? "game"} relative`}
       data-board-size={boardSize}
       ref={hostRef}
-      style={{ "--board-min-size": `${minimumBoardPixels}px` } as CSSProperties}
+      style={
+        {
+          "--board-min-size": `${minimumBoardPixels}px`,
+          "--board-target-size": `${boardTargetPixels}px`
+        } as CSSProperties
+      }
       onPointerDown={(event) => {
         if (props.placementDisabled || event.button !== 0) {
           return;
@@ -290,6 +343,7 @@ function renderBoard(
   const premiumCellsByCoordinate = new Map(premiumLayout.map((cell) => [premiumCoordinateKey(cell.x, cell.y), cell]));
   const cellSize = boardPixelSize / boardSize;
   const boardSignature = `${boardSize}:${boardPixelSize}`;
+  const activePlayerColor = players.find((player) => player.id === draftOwnerId)?.color;
 
   if (cache.boardSignature !== boardSignature) {
     for (const entry of cache.tiles) {
@@ -311,7 +365,7 @@ function renderBoard(
     cache.boardSignature = boardSignature;
   }
 
-  const renderTiles = createRenderTiles({ boardTiles, lastPlacements, ghostTiles, draft, rack, players, draftOwnerId });
+  const renderTiles = createRenderTiles({ boardTiles, lastPlacements, ghostTiles, draft, rack, players, draftOwnerId, activePlayerColor });
   const newTileKeys = new Map<string, RenderTile>();
 
   for (const tile of renderTiles) {
@@ -357,7 +411,7 @@ function renderBoard(
 
 function tileKey(tile: RenderTile, selectedTileId?: string): string {
   const selected = tile.id === selectedTileId ? ":sel" : "";
-  return `${tile.x},${tile.y}:${tile.label}:${tile.fillColor}:${tile.alpha}${selected}`;
+  return `${tile.x},${tile.y}:${tile.label}:${tile.fillColor}:${tile.borderColor}:${tile.alpha}${selected}`;
 }
 
 function isRepeatedTap(
@@ -399,7 +453,7 @@ function drawCell(
   if (premium?.start) {
     scene.add.text(centerX, centerY - cellSize * 0.14, "★", {
       fontFamily: '"Silkscreen", monospace',
-      fontSize: Math.max(10, cellSize * 0.32),
+      fontSize: Math.max(11, cellSize * 0.36),
       color: START_TEXT_COLOR
     }).setOrigin(0.5);
   }
@@ -407,8 +461,8 @@ function drawCell(
   if (label) {
     scene.add.text(centerX, centerY + (premium?.start ? cellSize * 0.22 : 0), label, {
       fontFamily: '"Silkscreen", monospace',
-      fontSize: Math.max(9, cellSize * 0.22),
-      color: "#101827"
+      fontSize: Math.max(10, cellSize * 0.27),
+      color: "#EDEDED"
     }).setOrigin(0.5);
   }
 }
@@ -453,26 +507,24 @@ function drawSelection(scene: BoardScene, tile: RenderTile, cellSize: number): P
     cellSize * 0.88,
     0x000000,
     0
-  ).setStrokeStyle(Math.max(2, cellSize * 0.06), SELECTED_TILE_BORDER_COLOR, 1);
+  ).setStrokeStyle(Math.max(2, cellSize * 0.06), colorNumber(tile.borderColor), 1);
   return [rect];
 }
 
 function drawTile(scene: BoardScene, tile: RenderTile, cellSize: number): PhaserGameObject[] {
   const metrics = createTileRenderMetrics(cellSize);
   const centerX = tile.x * cellSize + cellSize / 2;
-  const centerY = tile.y * cellSize + cellSize / 2;
   const strokeWidth = Math.max(1, cellSize * 0.04);
   const label = displayTileLabel(tile);
 
-  const outer = scene.add.rectangle(centerX, centerY, metrics.tileSize, metrics.tileSize, colorNumber(tile.fillColor), tile.alpha).setStrokeStyle(
+  const outer = scene.add.rectangle(centerX, tile.y * cellSize + cellSize / 2, metrics.tileSize, metrics.tileSize, colorNumber(tile.fillColor), tile.alpha).setStrokeStyle(
     strokeWidth,
-    colorNumber(tile.textColor),
+    colorNumber(tile.borderColor),
     tile.alpha
   );
-  const inner = scene.add.rectangle(centerX, centerY, metrics.tileSize * 0.82, metrics.tileSize * 0.82, colorNumber(tile.fillColor), tile.alpha * 0.82);
 
   if (!label) {
-    return [outer, inner];
+    return [outer];
   }
 
   const text = scene.add.text(centerX, tile.y * cellSize + cellSize * 0.48, label, {
@@ -480,7 +532,7 @@ function drawTile(scene: BoardScene, tile: RenderTile, cellSize: number): Phaser
     fontSize: label.length > 3 ? metrics.longLabelFontSize : metrics.shortLabelFontSize,
     color: tile.textColor
   }).setOrigin(0.5);
-  return [outer, inner, text];
+  return [outer, text];
 }
 
 function calculateMinimumBoardPixels(boardSize: number): number {
@@ -514,6 +566,42 @@ function readBoardContentBounds(host: HTMLDivElement) {
   };
 }
 
-function readBoardPixelSize(host: HTMLDivElement): number {
-  return Math.floor(Math.min(host.clientWidth, host.clientHeight));
+function readBoardPixelSize(host: HTMLDivElement, fallbackPixels: number): number {
+  const next = Math.floor(Math.min(host.clientWidth, host.clientHeight));
+  return next > 0 ? next : Math.max(1, Math.floor(fallbackPixels));
+}
+
+function measureBoardTargetPixels(host: HTMLDivElement, variant: BoardCanvasProps["variant"], minimumBoardPixels: number): number {
+  const boardContainer = host.closest(".board-scroll-container");
+  const containerRect = boardContainer instanceof HTMLElement ? boardContainer.getBoundingClientRect() : undefined;
+  const widthBudget = Math.floor(containerRect?.width || host.parentElement?.clientWidth || host.clientWidth || minimumBoardPixels);
+
+  if (variant === "preview") {
+    const previewCap = Math.min(widthBudget, Math.floor(window.innerHeight * 0.72), 760);
+    return Math.max(Math.min(minimumBoardPixels, widthBudget), Math.max(320, previewCap));
+  }
+
+  const measuredHeightBudget = Math.floor(containerRect?.height || 0);
+
+  if (measuredHeightBudget > 0 && widthBudget > 0) {
+    return Math.max(1, Math.floor(Math.min(widthBudget, measuredHeightBudget, 1080)));
+  }
+
+  const topBarHeight = document.querySelector<HTMLElement>(".match-topbar")?.getBoundingClientRect().height ?? 0;
+  const noticeHeight = document.querySelector<HTMLElement>(".match-notice")?.getBoundingClientRect().height ?? 0;
+  const controlStripHeight = document.querySelector<HTMLElement>(".control-strip")?.getBoundingClientRect().height ?? 0;
+  const shell = host.closest(".app-shell");
+  const shellStyle = shell ? getComputedStyle(shell) : undefined;
+  const verticalShellPadding = shellStyle
+    ? Number.parseFloat(shellStyle.paddingTop || "0") + Number.parseFloat(shellStyle.paddingBottom || "0")
+    : 0;
+  const shellRowGap = shellStyle ? Number.parseFloat(shellStyle.rowGap || shellStyle.gap || "0") : 0;
+  const playSurface = host.closest(".play-surface");
+  const playSurfaceStyle = playSurface instanceof HTMLElement ? getComputedStyle(playSurface) : undefined;
+  const playSurfaceGap = playSurfaceStyle ? Number.parseFloat(playSurfaceStyle.rowGap || playSurfaceStyle.gap || "0") : 0;
+  const reservedHeight = topBarHeight + noticeHeight + controlStripHeight + verticalShellPadding + shellRowGap + playSurfaceGap + 2;
+  const heightBudget = window.innerHeight - reservedHeight;
+  const target = Math.floor(Math.min(widthBudget, heightBudget, 1080));
+
+  return Math.max(1, target);
 }

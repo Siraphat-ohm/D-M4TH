@@ -1,3 +1,4 @@
+import type { FormEvent } from "react";
 import { createClassicalConfig, createPartyConfig, type MatchConfig } from "@d-m4th/config";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { ColorPicker } from "./ColorPicker";
@@ -23,19 +24,42 @@ interface LobbyRoomProps {
 }
 
 export function LobbyRoom(props: LobbyRoomProps) {
+  const normalizedRoomCode = normalizeRoomCode(props.roomCode);
+  const canCreateRoom = !props.nameRequired && !props.snapshot;
+  const canJoinRoom = !props.nameRequired && normalizedRoomCode.length === 6;
+
+  function submitLobbyAction(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+
+    if (props.snapshot) {
+      return;
+    }
+
+    if (props.viewMode === "create") {
+      if (canCreateRoom) {
+        props.onCreateRoom();
+      }
+      return;
+    }
+
+    if (canJoinRoom) {
+      props.onJoinRoom();
+    }
+  }
+
   return (
     <>
       <section className="lobby-setup-panel">
         <div className="sidebar-header">
           <h1>D-M4TH</h1>
         </div>
-        <div className="panel">
+        <form className="panel" onSubmit={submitLobbyAction}>
           {!props.snapshot && (
             <div className="tabs">
-              <button className={props.viewMode === "create" ? "active" : ""} onClick={() => props.onViewModeChange("create")}>
+              <button type="button" className={props.viewMode === "create" ? "active" : ""} onClick={() => props.onViewModeChange("create")}>
                 Create
               </button>
-              <button className={props.viewMode === "join" ? "active" : ""} onClick={() => props.onViewModeChange("join")}>
+              <button type="button" className={props.viewMode === "join" ? "active" : ""} onClick={() => props.onViewModeChange("join")}>
                 Join
               </button>
             </div>
@@ -51,20 +75,18 @@ export function LobbyRoom(props: LobbyRoomProps) {
           {props.viewMode === "create" || props.snapshot ? (
             <CreateControls
               config={props.config}
-              disabled={props.nameRequired}
+              disabled={!canCreateRoom}
               roomCreated={props.snapshot !== undefined}
               onChange={props.onConfigChange}
-              onSubmit={props.onCreateRoom}
             />
           ) : (
             <JoinControls
-              disabled={props.nameRequired}
-              roomCode={props.roomCode}
+              disabled={!canJoinRoom}
+              roomCode={normalizedRoomCode}
               onChange={props.onRoomCodeChange}
-              onSubmit={props.onJoinRoom}
             />
           )}
-        </div>
+        </form>
       </section>
       <LobbyStatusPanel config={props.config} snapshot={props.snapshot} onStart={props.onStartMatch} />
     </>
@@ -76,7 +98,6 @@ function CreateControls(props: {
   disabled: boolean;
   roomCreated: boolean;
   onChange: (config: MatchConfig) => void;
-  onSubmit: () => void;
 }) {
   const { config, onChange } = props;
 
@@ -113,7 +134,7 @@ function CreateControls(props: {
         />
       </label>
       {!props.roomCreated && (
-        <button className="primary" onClick={props.onSubmit} disabled={props.disabled}>
+        <button type="submit" className="primary" disabled={props.disabled}>
           Create room
         </button>
       )}
@@ -121,14 +142,21 @@ function CreateControls(props: {
   );
 }
 
-function JoinControls(props: { disabled: boolean; roomCode: string; onChange: (roomCode: string) => void; onSubmit: () => void }) {
+function JoinControls(props: { disabled: boolean; roomCode: string; onChange: (roomCode: string) => void }) {
   return (
     <>
       <label>
         Room code
-        <input value={props.roomCode} maxLength={6} onChange={(event) => props.onChange(event.target.value.toUpperCase())} />
+        <input
+          value={props.roomCode}
+          maxLength={6}
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => props.onChange(normalizeRoomCode(event.target.value))}
+        />
       </label>
-      <button className="primary" onClick={props.onSubmit} disabled={props.disabled}>
+      <button type="submit" className="primary" disabled={props.disabled}>
         Join room
       </button>
     </>
@@ -148,7 +176,7 @@ function LobbyStatusPanel(props: { config: MatchConfig; snapshot?: PublicSnapsho
           <strong>{snapshot?.code ?? "------"}</strong>
         </div>
         {!snapshot && <p className="lobby-empty-state">Create room first</p>}
-        <button className="primary" onClick={props.onStart} disabled={!canStart}>
+        <button type="button" className="primary" onClick={props.onStart} disabled={!canStart}>
           Start
         </button>
       </section>
@@ -178,6 +206,10 @@ function LobbyStatusPanel(props: { config: MatchConfig; snapshot?: PublicSnapsho
       </section>
     </aside>
   );
+}
+
+function normalizeRoomCode(value: string): string {
+  return value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
 
 function createWaitingSlots(params: { maxPlayers: number; playerCount: number }): number[] {

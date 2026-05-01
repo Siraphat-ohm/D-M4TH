@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { formatTime } from "./format";
 
@@ -21,26 +21,33 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
         const showPreview = isActive && props.previewScore !== undefined;
         const elapsed = isActive ? Math.max(0, now - props.snapshot.turnStartedAt) : 0;
         const fullRemaining = props.snapshot.status === "playing" ? Math.max(0, player.remainingMs - elapsed) : player.remainingMs;
-        const turnRemaining = isActive && props.snapshot.status === "playing"
-          ? Math.max(0, props.snapshot.config.turnTimeMs - elapsed)
-          : undefined;
+        const scoreDelta = showPreview
+          ? `+${props.previewScore}`
+          : player.lastPenaltyPoints !== undefined
+            ? `-${player.lastPenaltyPoints}`
+            : "";
 
         return (
-          <div className={isActive ? "player-info-row current" : "player-info-row"} key={player.id} style={isActive ? { borderColor: player.color } : undefined}>
+          <article
+            className={isActive ? "player-info-row current" : "player-info-row"}
+            key={player.id}
+            style={{ "--player-accent": player.color } as CSSProperties}
+          >
             <div className="player-info-line player-info-line--top">
               <span className="swatch" style={{ background: player.color }} />
               <span className="player-name">{player.name}</span>
-              <strong className={showPreview ? "player-score preview" : "player-score"}>
-                {player.score} pts
-                {showPreview && <span>+{props.previewScore}</span>}
-              </strong>
-              {player.lastPenaltyPoints !== undefined && <span>Penalty -{player.lastPenaltyPoints}</span>}
+              <strong className="player-score">{player.score} pts</strong>
             </div>
             <div className="player-info-line player-info-line--bottom">
-              <span>Turn {turnRemaining === undefined ? "--" : formatTime(turnRemaining)}</span>
-              <span>Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
+              <span className="player-clock">Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
+              <span
+                className={showPreview ? "player-delta player-delta--preview" : player.lastPenaltyPoints !== undefined ? "player-delta player-delta--penalty" : "player-delta"}
+                aria-hidden={!scoreDelta}
+              >
+                {scoreDelta || "\u00A0"}
+              </span>
             </div>
-          </div>
+          </article>
         );
       })}
     </div>

@@ -28,7 +28,7 @@ describe("board interaction", () => {
     expect(coordinate).toBeUndefined();
   });
 
-  test("renders draft tiles with their real face and player color", () => {
+  test("renders draft tiles with their resolved face and flat tile colors", () => {
     const tiles = createRenderTiles({
       boardTiles: [],
       lastPlacements: [],
@@ -38,15 +38,16 @@ describe("board interaction", () => {
       players: [
         { id: "p1", name: "Ada", color: "#f97316", score: 0, rackCount: 8, remainingMs: 1000, connected: true }
       ],
-      draftOwnerId: "p1"
+      draftOwnerId: "p1",
+      activePlayerColor: "#f97316"
     });
 
-    expect(tiles[0]).toMatchObject({ label: "=", value: 0, fillColor: "#f97316", ownerId: "p1" });
+    expect(tiles[0]).toMatchObject({ label: "=", value: 0, fillColor: "#F2ECDD", borderColor: "#f97316", ownerId: "p1" });
   });
 
   test("chooses readable text color from player color", () => {
-    expect(textColorForPlayerColor("#111111")).toBe("#f8fafc");
-    expect(textColorForPlayerColor("#fef08a")).toBe("#111827");
+    expect(textColorForPlayerColor("#111111")).toBe("#ededed");
+    expect(textColorForPlayerColor("#fef08a")).toBe("#111111");
   });
 
   test("keeps rendered and dragged tiles smaller than a board cell", () => {

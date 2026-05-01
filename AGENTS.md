@@ -59,13 +59,21 @@ rtk bun test apps/web/src/ui/tile-display.test.ts apps/web/src/board/board-inter
 
 ## Current Direction
 
-Flat gameplay UI redesign is in progress.
+Match gameplay UI is using the **Monochrome + Player Accent** direction.
 Use PLAN.md as the audit and phase reference.
 Current decisions:
 
 - No rounded UI, glow, decorative shadows, or tile shadows.
-- Functional colors stay.
+- Dark monochrome surfaces are the default: background, panels, empty board cells, log panel, rack container, and secondary buttons stay neutral.
+- Player colors are the only strong accents.
+- Active player color drives the active player card border, turn timer value, PLAY button, selected rack tile, and pending board tile border.
+- Player palette: `#EF476F`, `#8B5CF6`, `#06D6A0`, `#FFD166`, `#118AB2`, `#F97316`.
+- Bonus cells use muted colors: `2P #8A5A38`, `3P #3E7774`, `2E #8A7A3A`, `3E #80394D`.
+- Rack tiles and placed board tiles use off-white faces with dark text.
 - Rack stays 8 slots with empty placeholders.
 - Draft board tiles return to rack on double click / double tap.
-- PlayerInfo shows name, score, turn timer, full timer, and penalty when present.
+- Top player bar shows compact player cards with name, score, and mini full timer.
 - Preview score highlights on active player score, not in action bar.
+- Gameplay accepted-action notices do not render as in-play banners; actions go to log.
+- Match log is a React side panel and can collapse. `View All` opens the full log dialog.
+- `lucide-react` is the current web icon dependency.

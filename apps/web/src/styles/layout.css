@@ -1,6 +1,16 @@
 .puzzle-theme-root {
   min-height: 100dvh;
   background: var(--bg);
+  --match-gap: clamp(6px, 0.85vw, 14px);
+  --topbar-card-height: clamp(46px, 5.1vh, 58px);
+  --rack-tile-size: clamp(38px, 4.55vmin, 50px);
+  --rack-gap: 6px;
+  --rack-shell-padding: 8px;
+  --rack-shell-width: calc((var(--rack-tile-size) * 8) + (var(--rack-gap) * 7) + (var(--rack-shell-padding) * 2));
+  --rack-strip-height: calc(var(--rack-tile-size) + (var(--rack-shell-padding) * 2));
+  --floating-log-width: clamp(230px, 17vw, 300px);
+  --actions-width: clamp(220px, 15vw, 260px);
+  --match-max-width: 1880px;
 }
 
 .puzzle-phaser-stage {
@@ -11,6 +21,7 @@
   display: grid;
   width: 100%;
   min-height: 100dvh;
+  min-width: 0;
 }
 
 .app-shell--lobby {
@@ -22,17 +33,13 @@
 }
 
 .app-shell--playing {
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-right: 1px solid var(--line);
-  padding: 16px;
-  background: var(--panel);
-  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--match-gap);
+  padding: var(--match-gap);
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 .lobby-setup-panel,
@@ -62,7 +69,12 @@
 .notice,
 .player-info-line,
 .action-bar,
-.action-group {
+.action-group,
+.match-log-header,
+.match-log-title,
+.match-log-actions,
+.match-log-collapse,
+.match-log-view-all {
   display: flex;
   align-items: center;
 }
@@ -72,7 +84,8 @@
 .dialog-header,
 .tabs,
 .notice,
-.action-bar {
+.action-bar,
+.match-log-header {
   justify-content: space-between;
 }
 
@@ -87,49 +100,79 @@
 
 .play-surface {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--match-gap);
   min-width: 0;
+  min-height: 0;
   width: 100%;
-  max-width: 900px;
+  max-width: var(--match-max-width);
   margin: 0 auto;
-  align-content: start;
   justify-items: center;
 }
 
-.sidebar-toggle {
-  display: none;
-  width: 36px;
-  min-height: 36px;
-  padding: 0;
+.match-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(150px, 13vw, 190px) clamp(130px, 11vw, 170px);
+  gap: var(--match-gap);
+  min-width: 0;
+  width: min(100%, var(--match-max-width));
+  margin: 0 auto;
+  align-items: stretch;
 }
 
-.sidebar.collapsed {
-  display: none;
+.board-stage,
+.match-main {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
 }
 
-.floating-log-button {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 12;
-  min-width: 112px;
+.match-notice {
+  min-width: 0;
 }
 
-@media (max-width: 820px) {
+.hud-metric--turn,
+.hud-metric--bag {
+  width: 100%;
+  max-width: var(--actions-width);
+}
+
+@media (max-width: 1280px) {
+  .puzzle-theme-root {
+    --actions-width: clamp(216px, 19vw, 250px);
+  }
+
+  .match-topbar {
+    grid-template-columns: minmax(0, 1fr) clamp(140px, 17vw, 180px) clamp(126px, 15vw, 160px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .match-topbar {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.65fr) minmax(126px, 0.55fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .control-strip {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+@media (max-width: 640px) {
   .app-shell,
   .app-shell--lobby,
   .app-shell--playing {
     grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 10px;
-  }
-
-  .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    padding: 12px;
+    gap: 10px;
+    padding: 8px;
   }
 
   .lobby-setup-panel,
@@ -144,17 +187,26 @@
     padding: 10px;
   }
 
-  .sidebar-toggle {
-    display: inline-grid;
-    place-items: center;
-  }
-
   .play-surface {
-    padding: 10px;
+    gap: 8px;
   }
 
-  .floating-log-button {
-    right: 10px;
-    bottom: 10px;
+  .match-topbar {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+}
+
+@media (max-height: 820px) {
+  .puzzle-theme-root {
+    --match-gap: 8px;
+    --topbar-card-height: clamp(44px, 5vh, 54px);
+    --rack-tile-size: clamp(36px, 4.35vmin, 46px);
+    --rack-shell-padding: 7px;
+  }
+
+  .app-shell--playing {
+    gap: 8px;
+    padding: 8px;
   }
 }

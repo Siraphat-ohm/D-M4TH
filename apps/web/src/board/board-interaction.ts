@@ -14,6 +14,7 @@ export interface ClientPoint {
 
 export interface RenderTile extends BoardTile {
   fillColor: string;
+  borderColor: string;
   textColor: string;
   alpha: number;
 }
@@ -25,10 +26,10 @@ export interface TileRenderMetrics {
 }
 
 const TILE_SIZE_RATIO = 0.72;
-const SHORT_LABEL_FONT_RATIO = 0.34;
-const LONG_LABEL_FONT_RATIO = 0.22;
-const MIN_SHORT_LABEL_FONT_SIZE = 11;
-const MIN_LONG_LABEL_FONT_SIZE = 8;
+const SHORT_LABEL_FONT_RATIO = 0.38;
+const LONG_LABEL_FONT_RATIO = 0.28;
+const MIN_SHORT_LABEL_FONT_SIZE = 12;
+const MIN_LONG_LABEL_FONT_SIZE = 9;
 const MIN_DRAG_PREVIEW_SIZE = 24;
 
 export function snapClientPointToBoardCell(params: {
@@ -65,8 +66,9 @@ export function createDragPreviewSize(cellSize: number): number {
   return Math.max(MIN_DRAG_PREVIEW_SIZE, Math.floor(cellSize * TILE_SIZE_RATIO));
 }
 
-const WHITE = "#ffffff";
-const BLACK = "#111827";
+const TILE_FACE = "#F2ECDD";
+const TILE_TEXT = "#111111";
+const TILE_BORDER = "#2A3142";
 
 export function createRenderTiles(params: {
   boardTiles: readonly BoardTile[];
@@ -76,13 +78,13 @@ export function createRenderTiles(params: {
   rack: readonly Tile[];
   players: readonly PublicPlayer[];
   draftOwnerId?: string;
+  activePlayerColor?: string;
 }): RenderTile[] {
-  const playerColors = new Map(params.players.map((player) => [player.id, player.color]));
   const rackTiles = new Map(params.rack.map((tile) => [tile.id, tile]));
-  const lastPlacementKeys = new Set(params.lastPlacements.map((tile) => `${tile.x},${tile.y}`));
+  const draftBorderColor = normalizeHexColor(params.activePlayerColor ?? TILE_BORDER);
 
   return [
-    ...params.ghostTiles.map((tile) => createStaticRenderTile(tile, 0.55)),
+    ...params.ghostTiles.map((tile) => createStaticRenderTile(tile, TILE_BORDER, 0.55)),
     ...params.draft.flatMap((placement) => {
       const tile = rackTiles.get(placement.tileId);
 
@@ -90,26 +92,18 @@ export function createRenderTiles(params: {
         return [];
       }
 
-      return createColoredRenderTile(
+      return createStaticRenderTile(
         {
           ...tile,
           ...placement,
           label: placement.face ?? tile.label,
           ownerId: params.draftOwnerId
         },
-        playerColors,
-        0.88
+        draftBorderColor,
+        0.92
       );
     }),
-    ...params.boardTiles.map((tile) => {
-      const isLastPlacement = lastPlacementKeys.has(`${tile.x},${tile.y}`);
-
-      if (isLastPlacement) {
-        return createColoredRenderTile(tile, playerColors, 1);
-      }
-
-      return createStaticRenderTile(tile, 1);
-    })
+    ...params.boardTiles.map((tile) => createStaticRenderTile(tile, TILE_BORDER, 1))
   ];
 }
 
@@ -120,7 +114,7 @@ export function textColorForPlayerColor(color: string): string {
   const blue = Number.parseInt(normalizedColor.slice(5, 7), 16);
   const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
 
-  return luminance > 150 ? "#111827" : "#f8fafc";
+  return luminance > 150 ? "#111111" : "#ededed";
 }
 
 export function colorNumber(color: string): number {
@@ -132,25 +126,15 @@ export function normalizeHexColor(color: string): string {
     return color;
   }
 
-  return "#f7f0d5";
+  return TILE_FACE;
 }
 
-function createStaticRenderTile(tile: BoardTile, alpha: number): RenderTile {
+function createStaticRenderTile(tile: BoardTile, borderColor: string, alpha: number): RenderTile {
   return {
     ...tile,
-    fillColor: WHITE,
-    textColor: BLACK,
-    alpha
-  };
-}
-
-function createColoredRenderTile(tile: BoardTile, playerColors: ReadonlyMap<string, string>, alpha: number): RenderTile {
-  const fillColor = normalizeHexColor(playerColors.get(tile.ownerId) ?? "#f7f0d5");
-
-  return {
-    ...tile,
-    fillColor,
-    textColor: textColorForPlayerColor(fillColor),
+    fillColor: TILE_FACE,
+    borderColor,
+    textColor: TILE_TEXT,
     alpha
   };
 }

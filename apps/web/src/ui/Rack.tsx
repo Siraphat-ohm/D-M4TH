@@ -1,6 +1,6 @@
 import type { DragEvent } from "react";
 import type { Tile } from "@d-m4th/game";
-import { createDragPreviewSize, textColorForPlayerColor } from "../board/board-interaction";
+import { createDragPreviewSize } from "../board/board-interaction";
 import { displayTileLabel } from "./tile-display";
 
 interface RackProps {
@@ -12,8 +12,6 @@ interface RackProps {
 }
 
 export function Rack(props: RackProps) {
-  const textColor = textColorForPlayerColor(props.playerColor);
-
   return (
     <div className="rack">
       {props.rackSlots.map((tile, index) => {
@@ -26,7 +24,7 @@ export function Rack(props: RackProps) {
             className={props.selectedTileIds.has(tile.id) ? "tile selected" : "tile"}
             draggable={props.canDrag}
             key={tile.id}
-            style={{ background: props.playerColor, color: textColor }}
+            style={{ "--tile-accent": props.playerColor } as React.CSSProperties}
             onClick={() => props.onSelect(tile)}
             onDragStart={(event) => {
               if (!props.canDrag) {
@@ -39,8 +37,7 @@ export function Rack(props: RackProps) {
               setTileDragImage({
                 event,
                 label: displayTileLabel(tile),
-                playerColor: props.playerColor,
-                textColor
+                tileBorderColor: props.playerColor
               });
             }}
           >
@@ -56,8 +53,7 @@ export function Rack(props: RackProps) {
 function setTileDragImage(params: {
   event: DragEvent<HTMLButtonElement>;
   label: string;
-  playerColor: string;
-  textColor: string;
+  tileBorderColor: string;
 }): void {
   const size = createDragPreviewSize(readBoardCellSize());
   const preview = document.createElement("div");
@@ -69,10 +65,10 @@ function setTileDragImage(params: {
   preview.style.height = `${size}px`;
   preview.style.display = "grid";
   preview.style.placeItems = "center";
-  preview.style.border = "3px solid #f7e6a6";
+  preview.style.border = `3px solid ${params.tileBorderColor}`;
   preview.style.borderRadius = "0";
-  preview.style.background = params.playerColor;
-  preview.style.color = params.textColor;
+  preview.style.background = "#F2ECDD";
+  preview.style.color = "#111111";
   preview.style.font = `400 ${Math.max(12, Math.floor(size * 0.34))}px "Silkscreen", monospace`;
   document.body.append(preview);
   params.event.dataTransfer.effectAllowed = "move";

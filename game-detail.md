@@ -34,7 +34,7 @@ Unary Operations: Only unary minus preceding a non-zero number is permitted (e.g
 
 Digit Concatenation: A maximum of 3 single-digit tiles can be concatenated to form a larger number (e.g., $1, 2, 3$ becomes $123$).
 
-Zero-Padding Restricton: Leading zeros are strictly invalid (e.g., $012 = 11 + 1$ is rejected).
+Zero-Padding Restriction: Leading zeros are strictly invalid (e.g., $012 = 11 + 1$ is rejected).
 
 Chained Equalities: Multiple equals signs are allowed in a single contiguous sequence (e.g., $3 = 3 = 3$ or $3 + 4 = 7 + 0 = -6 + 13$).
 
@@ -42,7 +42,7 @@ Chained Equalities: Multiple equals signs are allowed in a single contiguous seq
 
 Base score is derived from tile values multiplied by piece multipliers, then the total equation score is multiplied by equation multipliers.
 
-scoring with one direction horizental / vertical not cross
+Scoring uses one contiguous equation direction: horizontal or vertical, not cross scoring.
 
 Bingo Bonus: Successfully playing all 8 tiles from the rack in a single turn yields a +40 extra point bonus.
 
@@ -100,20 +100,55 @@ Party Stalemate: Game ends if there are consecutive passes equal to the number o
 
 # UX/UI
 
-- this game have lobby invite by link or room code . The lobby ui can select mode ( classical , party ) and each player can select own color from color picker
+## Current Match UI Direction
 
-- on the match game HUD show ( player name, score, time )
+The current gameplay theme is **Monochrome + Player Accent**:
 
-- have a rack that contain player tile. I have action bar ( Play, Pass/Swap, Recall ) . default show pass when player select tiles show swap option
+- Background, panels, empty board cells, rack container, log panel, dialogs, and secondary buttons use neutral dark colors.
+- Player colors are the only strong accents.
+- Active player color drives the active player card border, turn timer value, PLAY button, selected rack tile, and pending board tile border.
+- Player palette: `#EF476F`, `#8B5CF6`, `#06D6A0`, `#FFD166`, `#118AB2`, `#F97316`.
+- Bonus cells use muted colors so they do not compete with player colors: `2P #8A5A38`, `3P #3E7774`, `2E #8A7A3A`, `3E #80394D`.
+- Rack tiles and placed board tiles use off-white faces with dark text.
+- UI stays flat and crisp: no neon glow, heavy gradients, decorative shadows, rounded card styling, or tile shadows.
 
-- this game run on web must support mobile , ipad
+## Lobby
 
-- for placement support snap to grid + drag && drop ( for mobile, ipad main support snap to grid )
+- Players can create or join a room by invite link or room code.
+- Lobby can select mode: Classical or Party.
+- Each player selects their own color from the fixed player palette or custom color input.
+- Setup/lobby board preview is display-only and must not create game state.
 
-- when player have BINGO show animiation ( implement later )
+## Match Screen
 
-- show live placement tile on the board while another player not Play
+- Top match bar shows compact player cards with name, score, and mini full timer.
+- TURN timer is centered and uses the active player color for the numeric value.
+- TILES LEFT remains neutral.
+- Match screen has no gameplay brand card; board, players, log, rack, and actions are the focus.
+- Match log is a right-side React panel with `Hide/Show` collapse and `View All` full dialog.
+- Accepted gameplay actions are written to the log and do not show as in-play notice banners.
+- Rack always has 8 slots with empty placeholders.
+- Action bar has PLAY, SWAP, PASS, and RECALL. PLAY uses active player color; SWAP/PASS/RECALL stay neutral.
+- Preview score appears on the active player's score after a valid equation preview.
 
-- Preview score after equation correct
+## Board Interaction
 
-- art styles pixel art ( currently focus on MVP first )
+- Phaser owns board canvas rendering only.
+- React owns lobby, player cards, rack, action buttons, dialogs, logs, and all non-board UI.
+- Draft placements are client-side and managed by turn controller state.
+- Placement supports snap-to-grid. Desktop supports drag/drop and click placement. Mobile/iPad primarily support tap rack tile, then tap board cell.
+- Draft board tiles return to rack on double click / double tap.
+- Live opponent placements appear as ghost placements until submitted.
+- Pending tiles on the board use off-white faces, dark text, and active player color border.
+
+## Responsive Support
+
+- Web UI must support desktop, laptop, iPad/tablet, and mobile.
+- Board sizing uses viewport budgeting and Phaser resize handling.
+- Rack tile size is capped so rack tiles remain readable without overpowering the board.
+- Browser QA is required for gameplay layout changes at wide desktop, short laptop, tablet, and phone sizes.
+
+## Later Polish
+
+- BINGO animation is planned for later.
+- Turn-change and scoring feedback can be improved later, but must stay low-noise and avoid glow-heavy effects.

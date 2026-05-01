@@ -20,7 +20,7 @@
 }
 
 .color-swatch.selected {
-  border-color: var(--gold);
+  border-color: var(--active-player-color);
 }
 
 .color-custom-row {
@@ -38,7 +38,7 @@
   width: 36px;
   min-height: 32px;
   border: 1px solid var(--panel-border);
-  background: #0d1322;
+  background: var(--panel);
 }
 
 .color-custom-input::-webkit-color-swatch-wrapper {

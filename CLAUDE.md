@@ -54,13 +54,20 @@ Full rules in `game-detail.md`.
 
 ## Current UI Decisions
 
-- Flat UI: no rounded corners, glow, decorative shadows, or tile shadows.
-- Functional colors stay for player identity, premium cells, and action state.
+- Current theme is **Monochrome + Player Accent**: dark neutral surfaces, crisp flat borders, no neon glow, no heavy gradients, no decorative shadows, and no tile shadows.
+- Player colors are the only strong accents. Active player color drives the active player card border, turn timer value, PLAY button, selected rack tile, and pending board tile border.
+- Player palette: `#EF476F`, `#8B5CF6`, `#06D6A0`, `#FFD166`, `#118AB2`, `#F97316`.
+- Bonus cells are muted so they do not compete with player identity: `2P #8A5A38`, `3P #3E7774`, `2E #8A7A3A`, `3E #80394D`.
+- Rack and placed board tiles use off-white faces with dark text.
 - Rack stays 8 slots with empty placeholders.
 - Draft board tiles return to rack on double click / double tap.
-- PlayerInfo replaces the old HUD list and shows name, score, turn timer, full timer, and penalty when present.
+- Top match bar shows compact player cards with name, score, and mini full timer, plus a centered turn timer and neutral tiles-left card.
 - Preview score highlights on the active player's score, not in the action bar.
-- Log opens from a fixed bottom-right button during match.
+- Gameplay accepted-action notices do not render as in-play banners; actions go to the match log.
+- Match log is a right-side React panel with `Hide/Show` collapse and `View All` full dialog.
+- The match screen has no gameplay brand card; the board, player state, log, rack, and actions are the focus.
+- Board sizing uses the Phaser resize path plus CSS/ResizeObserver budgeting. The Phaser canvas remains board-only.
+- Rack tile size is capped so rack tiles stay readable without overpowering the board.
 - Create/lobby screen is two columns: setup panel left, read-only board preview right.
 
 ## Current Work
@@ -91,6 +98,8 @@ apps/web/src/
   ui/App.tsx            # Shell, protocol wiring, high-level layout
   ui/BoardCanvas.tsx    # Phaser board adapter and board preview
   ui/Rack.tsx           # Rack tiles and drag preview
+  ui/MatchTopBar.tsx    # Match player cards, turn timer, tiles-left
+  ui/MatchLogPanel.tsx  # Collapsible in-match log side panel
   ui/PlayerInfoList.tsx # Player rows, timers, score preview
   ui/Dialogs.tsx        # Face selection and match log dialogs
   ui/ColorPicker.tsx    # Player color picker

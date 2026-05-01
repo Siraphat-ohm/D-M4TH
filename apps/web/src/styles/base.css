@@ -1,16 +1,20 @@
 :root {
-  --bg: #0b1020;
-  --panel: #11172a;
-  --panel-strong: #0f1526;
-  --panel-border: #32405f;
-  --text: #e7ebf5;
-  --muted: #9aa6c2;
-  --line: #24314d;
-  --orange: #d76a2d;
-  --gold: #e8b931;
-  --mint: #2dd49a;
-  --cyan: #38d4ce;
-  --rose: #d43860;
+  --bg: #080a0f;
+  --panel: #11141c;
+  --panel-strong: #171b26;
+  --panel-border: #2a3142;
+  --text: #ededed;
+  --muted: #8c93a3;
+  --line: #2a3142;
+  --cell: #171b26;
+  --tile-face: #f2ecdd;
+  --tile-text: #111111;
+  --bonus-2p: #8a5a38;
+  --bonus-3p: #3e7774;
+  --bonus-2e: #8a7a3a;
+  --bonus-3e: #80394d;
+  --active-player-color: #ef476f;
+  --button-accent: var(--active-player-color);
   color: var(--text);
   background: var(--bg);
   font-family: "Silkscreen", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -48,35 +52,39 @@ button {
   border: 1px solid var(--panel-border);
   border-radius: 0;
   color: var(--text);
-  background: #151d33;
+  background: var(--panel-strong);
   padding: 0 12px;
   cursor: pointer;
   text-transform: uppercase;
 }
 
+button svg {
+  flex-shrink: 0;
+}
+
 button:hover:not(:disabled),
 input:focus,
 select:focus {
-  border-color: var(--gold);
+  border-color: var(--active-player-color);
   outline: none;
 }
 
 button:disabled {
   border-color: var(--panel-border);
-  color: #67748f;
-  background: #121828;
+  color: #5f6675;
+  background: var(--panel);
   cursor: not-allowed;
 }
 
 .primary {
-  border-color: var(--gold);
-  background: var(--orange);
-  color: #111827;
+  border-color: var(--button-accent);
+  background: var(--button-accent);
+  color: var(--tile-text);
 }
 
 h1 {
   margin: 0;
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 400;
-  color: var(--gold);
+  color: var(--text);
 }
