@@ -65,8 +65,12 @@ export function createDragPreviewSize(cellSize: number): number {
   return Math.max(MIN_DRAG_PREVIEW_SIZE, Math.floor(cellSize * TILE_SIZE_RATIO));
 }
 
+const WHITE = "#ffffff";
+const BLACK = "#111827";
+
 export function createRenderTiles(params: {
   boardTiles: readonly BoardTile[];
+  lastPlacements: readonly BoardTile[];
   ghostTiles: readonly BoardTile[];
   draft: readonly Placement[];
   rack: readonly Tile[];
@@ -75,9 +79,10 @@ export function createRenderTiles(params: {
 }): RenderTile[] {
   const playerColors = new Map(params.players.map((player) => [player.id, player.color]));
   const rackTiles = new Map(params.rack.map((tile) => [tile.id, tile]));
+  const lastPlacementKeys = new Set(params.lastPlacements.map((tile) => `${tile.x},${tile.y}`));
 
   return [
-    ...params.ghostTiles.map((tile) => createRenderTile(tile, playerColors, 0.55)),
+    ...params.ghostTiles.map((tile) => createStaticRenderTile(tile, 0.55)),
     ...params.draft.flatMap((placement) => {
       const tile = rackTiles.get(placement.tileId);
 
@@ -85,7 +90,7 @@ export function createRenderTiles(params: {
         return [];
       }
 
-      return createRenderTile(
+      return createColoredRenderTile(
         {
           ...tile,
           ...placement,
@@ -96,7 +101,15 @@ export function createRenderTiles(params: {
         0.88
       );
     }),
-    ...params.boardTiles.map((tile) => createRenderTile(tile, playerColors, 1))
+    ...params.boardTiles.map((tile) => {
+      const isLastPlacement = lastPlacementKeys.has(`${tile.x},${tile.y}`);
+
+      if (isLastPlacement) {
+        return createColoredRenderTile(tile, playerColors, 1);
+      }
+
+      return createStaticRenderTile(tile, 1);
+    })
   ];
 }
 
@@ -122,7 +135,16 @@ export function normalizeHexColor(color: string): string {
   return "#f7f0d5";
 }
 
-function createRenderTile(tile: BoardTile, playerColors: ReadonlyMap<string, string>, alpha: number): RenderTile {
+function createStaticRenderTile(tile: BoardTile, alpha: number): RenderTile {
+  return {
+    ...tile,
+    fillColor: WHITE,
+    textColor: BLACK,
+    alpha
+  };
+}
+
+function createColoredRenderTile(tile: BoardTile, playerColors: ReadonlyMap<string, string>, alpha: number): RenderTile {
   const fillColor = normalizeHexColor(playerColors.get(tile.ownerId) ?? "#f7f0d5");
 
   return {

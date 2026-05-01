@@ -184,6 +184,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       boardPixelSize,
       boardSize,
       boardTiles: props.snapshot?.board ?? [],
+      lastPlacements: props.snapshot?.lastPlacements ?? [],
       draft: props.draft,
       ghostTiles:
         props.snapshot?.ghostPlacements
@@ -275,6 +276,7 @@ function renderBoard(
     boardPixelSize: number;
     boardSize: number;
     boardTiles: BoardTile[];
+    lastPlacements: BoardTile[];
     draft: Placement[];
     ghostTiles: BoardTile[];
     players: PublicSnapshot["players"];
@@ -283,7 +285,7 @@ function renderBoard(
     selectedTileId?: string;
   }
 ): void {
-  const { boardPixelSize, boardSize, boardTiles, draft, draftOwnerId, ghostTiles, players, rack } = params;
+  const { boardPixelSize, boardSize, boardTiles, lastPlacements, draft, draftOwnerId, ghostTiles, players, rack } = params;
   const premiumLayout = createClassicalBoardLayout(boardSize);
   const premiumCellsByCoordinate = new Map(premiumLayout.map((cell) => [premiumCoordinateKey(cell.x, cell.y), cell]));
   const cellSize = boardPixelSize / boardSize;
@@ -309,7 +311,7 @@ function renderBoard(
     cache.boardSignature = boardSignature;
   }
 
-  const renderTiles = createRenderTiles({ boardTiles, ghostTiles, draft, rack, players, draftOwnerId });
+  const renderTiles = createRenderTiles({ boardTiles, lastPlacements, ghostTiles, draft, rack, players, draftOwnerId });
   const newTileKeys = new Map<string, RenderTile>();
 
   for (const tile of renderTiles) {

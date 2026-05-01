@@ -31,6 +31,7 @@ describe("board interaction", () => {
   test("renders draft tiles with their real face and player color", () => {
     const tiles = createRenderTiles({
       boardTiles: [],
+      lastPlacements: [],
       ghostTiles: [],
       draft: [{ tileId: "t1", face: "=", x: 7, y: 7 }],
       rack: [{ id: "t1", label: "BLANK", value: 0 }],
