@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { findDraftPlacementAt, moveOrSwapDraftPlacement, toggleSelection, upsertDraftPlacement } from "./turn-controls";
+import { findDraftPlacementAt, moveOrSwapDraftPlacement, removeDraftPlacement, toggleSelection, upsertDraftPlacement } from "./turn-controls";
 
 describe("turn controls", () => {
   test("moves a draft tile to an empty grid cell", () => {
@@ -36,6 +36,15 @@ describe("turn controls", () => {
     const draft = upsertDraftPlacement([{ tileId: "a", x: 1, y: 1 }], { tileId: "a", x: 3, y: 4 });
 
     expect(draft).toEqual([{ tileId: "a", x: 3, y: 4 }]);
+  });
+
+  test("removes a draft placement by tile id", () => {
+    const draft = removeDraftPlacement([
+      { tileId: "a", x: 1, y: 1 },
+      { tileId: "b", x: 2, y: 2 }
+    ], "a");
+
+    expect(draft).toEqual([{ tileId: "b", x: 2, y: 2 }]);
   });
 
   test("toggles rack swap selection", () => {
