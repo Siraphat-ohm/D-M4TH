@@ -1,0 +1,52 @@
+.color-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.color-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 0;
+  padding: 0;
+  text-transform: none;
+}
+
+.color-swatch.selected {
+  border-color: var(--gold);
+}
+
+.color-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-custom-row span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.color-custom-input {
+  width: 36px;
+  min-height: 32px;
+  border: 1px solid var(--panel-border);
+  background: #0d1322;
+}
+
+.color-custom-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-custom-input::-webkit-color-swatch,
+.color-custom-input::-moz-color-swatch {
+  border: none;
+  border-radius: 0;
+}

@@ -1,0 +1,129 @@
+.puzzle-theme-root {
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+.puzzle-phaser-stage {
+  display: none;
+}
+
+.app-shell {
+  display: grid;
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.app-shell--lobby {
+  grid-template-columns: 420px minmax(420px, 1fr);
+  align-items: start;
+  justify-content: start;
+}
+
+.app-shell--playing {
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  background: var(--panel);
+  min-width: 0;
+}
+
+.sidebar-header,
+.room-code,
+.dialog-header,
+.tabs,
+.notice,
+.player-info-line,
+.action-bar,
+.action-group {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-header,
+.room-code,
+.dialog-header,
+.tabs,
+.notice,
+.action-bar {
+  justify-content: space-between;
+}
+
+.setup-preview {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  padding: 16px;
+  min-width: 0;
+}
+
+.play-surface {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px;
+  min-width: 0;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  align-content: start;
+  justify-items: center;
+}
+
+.sidebar-toggle {
+  display: none;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+
+.sidebar.collapsed {
+  display: none;
+}
+
+.floating-log-button {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 12;
+  min-width: 112px;
+}
+
+@media (max-width: 820px) {
+  .app-shell,
+  .app-shell--lobby,
+  .app-shell--playing {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 12px;
+  }
+
+  .setup-preview {
+    padding: 10px;
+  }
+
+  .sidebar-toggle {
+    display: inline-grid;
+    place-items: center;
+  }
+
+  .play-surface {
+    padding: 10px;
+  }
+
+  .floating-log-button {
+    right: 10px;
+    bottom: 10px;
+  }
+}

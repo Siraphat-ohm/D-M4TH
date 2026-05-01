@@ -1,0 +1,81 @@
+:root {
+  --bg: #0b1020;
+  --panel: #11172a;
+  --panel-strong: #0f1526;
+  --panel-border: #32405f;
+  --text: #e7ebf5;
+  --muted: #9aa6c2;
+  --line: #24314d;
+  --orange: #d76a2d;
+  --gold: #e8b931;
+  --mint: #2dd49a;
+  --cyan: #38d4ce;
+  --rose: #d43860;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Silkscreen", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 17px;
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  image-rendering: pixelated;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  font-weight: 400;
+}
+
+button {
+  min-height: 40px;
+  border: 1px solid var(--panel-border);
+  border-radius: 0;
+  color: var(--text);
+  background: #151d33;
+  padding: 0 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled),
+input:focus,
+select:focus {
+  border-color: var(--gold);
+  outline: none;
+}
+
+button:disabled {
+  color: #67748f;
+  background: #121828;
+  cursor: not-allowed;
+}
+
+.primary {
+  border-color: var(--gold);
+  background: var(--orange);
+  color: #111827;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 400;
+  color: var(--gold);
+}

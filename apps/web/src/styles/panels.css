@@ -1,0 +1,149 @@
+.panel,
+.player-list,
+.rack-panel,
+.action-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 0;
+  padding: 12px;
+  background: var(--panel-strong);
+}
+
+.compact {
+  gap: 8px;
+}
+
+.tabs {
+  gap: 8px;
+}
+
+.tabs button {
+  flex: 1;
+}
+
+.tabs .active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--panel-border);
+  border-radius: 0;
+  color: var(--text);
+  background: #0d1322;
+  padding: 0 10px;
+}
+
+input[type="color"] {
+  padding: 4px;
+}
+
+.room-code span {
+  font-size: 1.5rem;
+  color: var(--gold);
+}
+
+.notice {
+  gap: 12px;
+  margin: 0;
+  border: 1px solid var(--panel-border);
+  padding: 10px 12px;
+  background: #12192c;
+}
+
+.notice span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.notice.success {
+  color: #b8f5d0;
+}
+
+.notice.info {
+  color: #d7f7f5;
+}
+
+.notice.danger {
+  color: #ffc2d3;
+}
+
+.notice button {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.config-hint {
+  margin: 0;
+  color: var(--muted);
+}
+
+.player-list {
+  gap: 8px;
+}
+
+.player-info-row {
+  display: grid;
+  gap: 6px;
+  border: 1px solid transparent;
+  padding: 10px;
+}
+
+.player-info-row.current {
+  border-color: currentColor;
+}
+
+.player-info-line {
+  gap: 8px;
+  min-width: 0;
+}
+
+.player-info-line--top {
+  color: var(--text);
+}
+
+.player-info-line--bottom {
+  color: var(--muted);
+  justify-content: space-between;
+}
+
+.player-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-score.preview {
+  color: var(--mint);
+}
+
+.player-score.preview span {
+  border: 1px solid var(--mint);
+  padding: 1px 5px;
+  background: #0d231b;
+  color: var(--mint);
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #d8deeb;
+  flex-shrink: 0;
+}
