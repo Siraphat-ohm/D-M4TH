@@ -2,7 +2,12 @@ import { type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { formatTime } from "./format";
 
-export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?: number; penaltyDeltas?: Record<string, number>; now?: number }) {
+export function PlayerInfoList(props: {
+  snapshot: PublicSnapshot;
+  previewScore?: number;
+  penaltyDeltas?: Record<string, number>;
+  now?: number;
+}) {
   const now = props.now ?? Date.now();
 
   return (
@@ -16,7 +21,7 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
         const scoreDelta = showPreview
           ? `+${props.previewScore}`
           : penaltyPoints !== undefined
-            ? `-${penaltyPoints} penalty`
+            ? `-${penaltyPoints}`
             : "";
         const deltaClassName = showPreview ? "player-delta preview" : penaltyPoints !== undefined ? "player-delta penalty" : "player-delta";
 
@@ -34,7 +39,7 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
                   <span className="player-status">PLAYING</span>
                 )}
               </span>
-              <span className="player-time">Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
+              <span className="player-time">{props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
             </div>
             <div className="player-score-block">
               <strong className={showPreview ? "player-score preview" : "player-score"}>{player.score} pts</strong>

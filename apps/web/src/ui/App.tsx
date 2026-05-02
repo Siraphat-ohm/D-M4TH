@@ -405,7 +405,7 @@ export function App() {
   return (
     <div
       className="puzzle-theme-root"
-      style={{ ...STATIC_LAYOUT_VARS, "--active-player-color": activeColor, "--button-accent": activeColor } as CSSProperties}
+      style={STATIC_LAYOUT_VARS}
     >
       <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
         <Switch>

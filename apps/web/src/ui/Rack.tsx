@@ -1,4 +1,5 @@
 import type { DragEvent } from "react";
+import { ShoppingBag } from "lucide-react";
 import type { Tile } from "@d-m4th/game";
 import { createDragPreviewSize } from "../board/board-interaction";
 import { displayTileLabel } from "./tile-display";
@@ -7,13 +8,20 @@ interface RackProps {
   rackSlots: Array<Tile | undefined>;
   selectedTileIds: ReadonlySet<string>;
   playerColor: string;
-  canDrag: boolean;
+  canDragToBoard: boolean;
+  canInteractWithRack: boolean;
+  tileBagCount: number;
   onSelect: (tile: Tile) => void;
 }
 
 export function Rack(props: RackProps) {
   return (
-    <div className="rack">
+    <div className="rack-shell">
+      <span className="rack-meta" aria-label={`${props.tileBagCount} tiles left`}>
+        <ShoppingBag size={15} aria-hidden="true" />
+        <strong>{props.tileBagCount}</strong>
+      </span>
+      <div className="rack">
       {props.rackSlots.map((tile, index) => {
         if (!tile) {
           return <div className="tile-placeholder" key={`empty-${index}`} aria-hidden="true" />;
@@ -22,12 +30,15 @@ export function Rack(props: RackProps) {
         return (
           <button
             className={props.selectedTileIds.has(tile.id) ? "tile selected" : "tile"}
-            draggable={props.canDrag}
+            draggable={props.canDragToBoard}
             key={tile.id}
             style={{ "--tile-accent": props.playerColor } as React.CSSProperties}
-            onClick={() => props.onSelect(tile)}
+            onClick={() => {
+              if (!props.canInteractWithRack) return;
+              props.onSelect(tile);
+            }}
             onDragStart={(event) => {
-              if (!props.canDrag) {
+              if (!props.canDragToBoard) {
                 event.preventDefault();
                 return;
               }
@@ -46,6 +57,7 @@ export function Rack(props: RackProps) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

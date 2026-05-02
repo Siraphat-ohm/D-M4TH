@@ -93,6 +93,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
           </label>
           {props.viewMode === "create" || props.snapshot ? (
             <CreateControls
+              color={props.color}
               config={props.config}
               disabled={!canCreateRoom}
               roomCreated={props.snapshot !== undefined}
@@ -101,6 +102,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
             />
           ) : (
             <JoinControls
+              color={props.color}
               disabled={!canJoinRoom}
               roomCode={normalizedRoomCode}
               onChange={props.onRoomCodeChange}
@@ -110,6 +112,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
         </form>
       </section>
       <LobbyStatusPanel
+        color={props.color}
         config={props.config}
         snapshot={props.snapshot}
         onStart={props.onStartMatch}
@@ -120,6 +123,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
 }
 
 function CreateControls(props: {
+  color: string;
   config: MatchConfig;
   disabled: boolean;
   roomCreated: boolean;
@@ -189,7 +193,7 @@ function CreateControls(props: {
         </label>
       )}
       {!props.roomCreated && (
-        <button type="submit" className="primary" disabled={props.disabled}>
+        <button type="submit" className="primary" disabled={props.disabled} style={{ "--button-accent": props.color } as React.CSSProperties}>
           Create room
         </button>
       )}
@@ -197,7 +201,7 @@ function CreateControls(props: {
   );
 }
 
-function JoinControls(props: { disabled: boolean; roomCode: string; onChange: (roomCode: string) => void; actionsDisabled: boolean }) {
+function JoinControls(props: { color: string; disabled: boolean; roomCode: string; onChange: (roomCode: string) => void; actionsDisabled: boolean }) {
   return (
     <>
       <label>
@@ -214,14 +218,14 @@ function JoinControls(props: { disabled: boolean; roomCode: string; onChange: (r
           onChange={(event) => props.onChange(normalizeRoomCode(event.target.value))}
         />
       </label>
-      <button type="submit" className="primary" disabled={props.disabled}>
+      <button type="submit" className="primary" disabled={props.disabled} style={{ "--button-accent": props.color } as React.CSSProperties}>
         Join room
       </button>
     </>
   );
 }
 
-function LobbyStatusPanel(props: { config: MatchConfig; snapshot?: PublicSnapshot; onStart: () => void; actionsDisabled: boolean }) {
+function LobbyStatusPanel(props: { color: string; config: MatchConfig; snapshot?: PublicSnapshot; onStart: () => void; actionsDisabled: boolean }) {
   const snapshot = props.snapshot;
   const canStart = !props.actionsDisabled && snapshot !== undefined && snapshot.players.length >= snapshot.config.minPlayers;
   const maxPlayers = snapshot?.config.maxPlayers ?? props.config.maxPlayers;
@@ -234,7 +238,7 @@ function LobbyStatusPanel(props: { config: MatchConfig; snapshot?: PublicSnapsho
           <strong>{snapshot?.code ?? "------"}</strong>
         </div>
         {!snapshot && <p className="lobby-empty-state">Create room first</p>}
-        <button type="button" className="primary" onClick={props.onStart} disabled={!canStart}>
+        <button type="button" className="primary" onClick={props.onStart} disabled={!canStart} style={{ "--button-accent": props.color } as React.CSSProperties}>
           Start
         </button>
       </section>

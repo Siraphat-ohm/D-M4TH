@@ -85,16 +85,21 @@ export function createRenderTiles(params: {
   activePlayerColor?: string;
 }): RenderTile[] {
   const rackTiles = new Map(params.rack.map((tile) => [tile.id, tile]));
-  const draftBorderColor = normalizeHexColor(params.activePlayerColor ?? TILE_BORDER);
+  const playerColorMap = new Map(params.players.map((p) => [p.id, p.color]));
 
   return [
-    ...params.ghostTiles.map((tile) => createStaticRenderTile(tile, TILE_BORDER, 0.55)),
+    ...params.ghostTiles.map((tile) => {
+      const ownerColor = tile.ownerId ? playerColorMap.get(tile.ownerId) : undefined;
+      return createStaticRenderTile(tile, normalizeHexColor(ownerColor ?? TILE_BORDER), 0.55);
+    }),
     ...params.draft.flatMap((placement) => {
       const tile = rackTiles.get(placement.tileId);
 
       if (!tile || !params.draftOwnerId) {
         return [];
       }
+
+      const ownerColor = playerColorMap.get(params.draftOwnerId);
 
       return createStaticRenderTile(
         {
@@ -103,11 +108,14 @@ export function createRenderTiles(params: {
           label: placement.face ?? tile.label,
           ownerId: params.draftOwnerId
         },
-        draftBorderColor,
+        normalizeHexColor(ownerColor ?? TILE_BORDER),
         0.92
       );
     }),
-    ...params.boardTiles.map((tile) => createStaticRenderTile(tile, TILE_BORDER, 1))
+    ...params.boardTiles.map((tile) => {
+      const ownerColor = tile.ownerId ? playerColorMap.get(tile.ownerId) : undefined;
+      return createStaticRenderTile(tile, normalizeHexColor(ownerColor ?? TILE_BORDER), 1);
+    })
   ];
 }
 

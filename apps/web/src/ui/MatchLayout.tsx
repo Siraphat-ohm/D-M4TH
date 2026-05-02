@@ -5,6 +5,7 @@ import { BoardCanvas } from "./BoardCanvas";
 import { FaceSelectionDialog } from "./Dialogs";
 import { MatchTopBar } from "./MatchTopBar";
 import { Rack } from "./Rack";
+import { resolvePlayerAccent } from "./player-colors";
 import { useAppStore } from "../store/app-store";
 import { useTurn } from "../turn/TurnContext";
 
@@ -32,8 +33,8 @@ export function MatchLayout(props: { onLeaveMatch: () => void }) {
   if (!snapshot) return null;
 
   const rack = privateState?.rack ?? [];
-  const activePlayer = snapshot.players.find((p) => p.id === snapshot.currentPlayerId);
-  const activeColor = activePlayer?.color ?? ownColor;
+  const localPlayerColor = resolvePlayerAccent(snapshot.players, privateState?.playerId, ownColor);
+  const activeTurnColor = resolvePlayerAccent(snapshot.players, snapshot.currentPlayerId, "var(--panel-border)");
   const isMyTurn = snapshot.currentPlayerId === privateState?.playerId;
   const actionsFrozen = turn.actionsFrozen;
 
@@ -67,8 +68,10 @@ export function MatchLayout(props: { onLeaveMatch: () => void }) {
           <Rack
             rackSlots={turn.rackSlots}
             selectedTileIds={turn.selectedRackTileIds}
-            playerColor={ownColor}
-            canDrag={turn.turnMode === "play" && !actionsFrozen}
+            playerColor={localPlayerColor}
+            canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen}
+            canInteractWithRack={!actionsFrozen}
+            tileBagCount={snapshot.tileBagCount}
             onSelect={turn.handleRackSelect}
           />
         </section>
@@ -77,7 +80,7 @@ export function MatchLayout(props: { onLeaveMatch: () => void }) {
           <div className="action-bar">
             <button
               className="primary"
-              style={{ "--button-accent": isMyTurn ? activeColor : "var(--panel-border)" } as CSSProperties}
+              style={{ "--button-accent": isMyTurn ? activeTurnColor : "var(--panel-border)" } as CSSProperties}
               onClick={turn.commitPlay}
               disabled={actionsFrozen || !isMyTurn || turn.draft.length === 0}
             >
