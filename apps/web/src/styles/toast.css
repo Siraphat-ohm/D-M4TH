@@ -1,0 +1,85 @@
+.notice {
+  gap: 12px;
+  margin: 0;
+  border: 1px solid var(--panel-border);
+  padding: 10px 12px;
+  background: var(--panel);
+}
+
+.notice span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.notice.success {
+  color: var(--text);
+}
+
+.notice.info {
+  color: var(--text);
+}
+
+.notice.danger {
+  color: var(--text);
+}
+
+.notice button {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.notice-toast-stack {
+  position: fixed;
+  top: clamp(10px, 1.4dvh, 18px);
+  right: clamp(10px, 1.4vw, 18px);
+  z-index: 28;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  width: min(340px, calc(100vw - 20px));
+  pointer-events: none;
+}
+
+.notice-toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--panel-border);
+  background: rgb(17 20 28 / 92%);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.notice-toast--interactive {
+  pointer-events: auto;
+}
+
+.notice-toast span {
+  min-width: 0;
+}
+
+.notice-toast button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.64rem;
+}
+
+.notice-toast--success {
+  border-color: var(--panel-border);
+}
+
+.notice-toast--danger {
+  border-color: #80394d;
+}
+
+.notice-toast--info {
+  border-color: var(--panel-border);
+}

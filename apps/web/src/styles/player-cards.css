@@ -1,0 +1,224 @@
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--match-gap);
+  align-items: center;
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  padding: 6px 12px;
+  min-width: 160px;
+  max-width: 240px;
+  height: var(--topbar-card-height);
+  flex: 1 1 auto;
+}
+
+.player-card.active {
+  border-color: var(--player-accent, var(--panel-border));
+  border-width: 2px;
+  background: color-mix(in srgb, var(--player-accent, var(--panel-border)) 10%, var(--panel-strong));
+}
+
+.player-card.inactive {
+  opacity: 0.7;
+}
+
+.player-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border);
+}
+
+.player-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+
+.player-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-status {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--player-accent, var(--panel-border));
+  background: color-mix(in srgb, var(--player-accent, var(--panel-border)) 20%, transparent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.player-time {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.player-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+}
+
+.player-score {
+  font-size: 0.95rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.player-score.preview {
+  color: var(--player-accent, var(--panel-border));
+}
+
+.player-delta {
+  font-size: 0.65rem;
+  height: 0.65rem;
+  line-height: 1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.player-delta.preview {
+  color: var(--player-accent, var(--panel-border));
+}
+
+.player-delta.penalty {
+  color: #c88491;
+}
+
+/* Overrides from pixel pass and final redefinition */
+
+.player-card {
+  font-family: var(--font-pixel);
+}
+
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--match-gap);
+  align-items: center;
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  padding: 6px 12px;
+  min-width: 160px;
+  max-width: 240px;
+  height: var(--topbar-card-height);
+  flex: 1 1 auto;
+  box-shadow: none;
+}
+
+.player-card.active {
+  border-color: var(--player-accent, var(--panel-border));
+  border-width: 1px;
+  background: var(--panel-strong);
+  box-shadow: inset 3px 0 0 var(--player-accent, var(--panel-border));
+}
+
+.player-card.inactive {
+  opacity: 0.72;
+}
+
+.player-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border);
+}
+
+.player-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.player-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-status {
+  font-size: 0.56rem;
+  font-weight: 400;
+  color: var(--player-accent, var(--panel-border));
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--player-accent, var(--panel-border)) 50%, transparent);
+  padding: 1px 5px;
+  border-radius: 0;
+  letter-spacing: 0.05em;
+}
+
+.player-time {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.player-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.player-score {
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.player-score.preview {
+  color: var(--player-accent, var(--panel-border));
+}
+
+.player-delta {
+  font-size: 0.6rem;
+  min-height: 0.6rem;
+  line-height: 1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.player-delta.preview {
+  color: var(--player-accent, var(--panel-border));
+}
+
+.player-delta.penalty {
+  color: #c88491;
+  font-weight: 400;
+}

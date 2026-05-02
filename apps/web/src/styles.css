@@ -2,6 +2,10 @@
 @import "./styles/base.css";
 @import "./styles/layout.css";
 @import "./styles/panels.css";
+@import "./styles/lobby.css";
+@import "./styles/toast.css";
+@import "./styles/player-cards.css";
+@import "./styles/match-hud.css";
 @import "./styles/game.css";
 @import "./styles/dialogs.css";
 @import "./styles/color-picker.css";
