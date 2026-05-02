@@ -41,6 +41,8 @@ export function ColorPicker(props: { value: string; onChange: (color: string) =>
       <div className="color-custom-row">
         <span>Custom</span>
         <input
+          id="custom-player-color"
+          name="customPlayerColor"
           type="color"
           className="color-custom-input"
           value={selectedColor}

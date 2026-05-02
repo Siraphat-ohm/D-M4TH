@@ -1,18 +1,21 @@
 .color-picker {
   display: grid;
   gap: 8px;
+  justify-items: start;
 }
 
 .color-swatches {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(28px, 36px));
   gap: 6px;
+  justify-content: start;
+  max-width: 100%;
 }
 
 .color-swatch {
-  width: 100%;
-  aspect-ratio: 1;
-  min-height: 32px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
   border: 1px solid var(--panel-border);
   border-radius: 0;
   padding: 0;
@@ -36,7 +39,7 @@
 
 .color-custom-input {
   width: 36px;
-  min-height: 32px;
+  min-height: 36px;
   border: 1px solid var(--panel-border);
   background: var(--panel);
 }

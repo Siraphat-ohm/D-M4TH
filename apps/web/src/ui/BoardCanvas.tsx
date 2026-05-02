@@ -22,6 +22,7 @@ interface BoardCanvasProps {
 
 const DEFAULT_BOARD_SIZE = 15;
 const DOUBLE_TAP_WINDOW_MS = 300;
+const MAX_INIT_RETRIES = 2;
 
 type RenderStatus = "loading" | "ready" | "error";
 
@@ -32,6 +33,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
   const lastTapRef = useRef<{ at: number; x: number; y: number } | undefined>(undefined);
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("loading");
   const [boardTargetPixels, setBoardTargetPixels] = useState(() => estimateInitialBoardPixels(props.variant ?? "game"));
+  const [initAttempt, setInitAttempt] = useState(0);
 
   const boardSize = props.snapshot?.config.boardSize ?? props.previewBoardSize ?? DEFAULT_BOARD_SIZE;
   const premiumMapId = props.snapshot?.config.premiumMapId ?? props.previewPremiumMapId ?? DEFAULT_PREMIUM_MAP_ID;
@@ -45,7 +47,9 @@ export function BoardCanvas(props: BoardCanvasProps) {
 
     async function mount(): Promise<void> {
       setRenderStatus("loading");
-      const initialSize = Math.max(1, Math.round(host?.getBoundingClientRect().width ?? 600));
+      const measured = Math.round(host?.getBoundingClientRect().width ?? 0);
+      const fallback = estimateInitialBoardPixels(props.variant ?? "game");
+      const initialSize = Math.max(1, measured > 1 ? measured : fallback);
       const game = new PixiBoardGame(pixiHost!, initialSize);
       boardGameRef.current = game;
 
@@ -58,7 +62,14 @@ export function BoardCanvas(props: BoardCanvasProps) {
         setRenderStatus("ready");
       } catch (e) {
         console.error("Pixi board init failed", e);
-        if (!disposed) setRenderStatus("error");
+        if (!disposed) {
+          setRenderStatus("error");
+          if (initAttempt < MAX_INIT_RETRIES) {
+            window.setTimeout(() => {
+              setInitAttempt((value) => value + 1);
+            }, 180);
+          }
+        }
       }
     }
 
@@ -69,7 +80,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       boardGameRef.current?.destroy();
       boardGameRef.current = null;
     };
-  }, []);
+  }, [initAttempt, props.variant]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -205,11 +216,19 @@ function measureBoardTargetPixels(host: HTMLDivElement, variant: "game" | "previ
   const parentWidth = parent?.getBoundingClientRect().width ?? 0;
   const hostRect = host.getBoundingClientRect();
   const viewportWidth = Math.max(1, window.innerWidth - 32);
-  const viewportHeight = Math.max(1, window.innerHeight - (variant === "preview" ? 140 : 180));
+  const viewportHeight = Math.max(1, window.innerHeight - (variant === "preview" ? 120 : 180));
 
   const widthBudget = Math.max(1, Math.floor(Math.min(parentWidth || hostRect.width || viewportWidth, viewportWidth)));
-  const cap = variant === "preview" ? 900 : 980;
-  const min = variant === "preview" ? 220 : 240;
+  if (variant === "preview") {
+    const cap = 980;
+    const minByViewport = Math.floor(Math.min(viewportWidth * 0.7, viewportHeight * 0.7));
+    const min = Math.max(280, minByViewport);
+    const next = Math.floor(Math.min(widthBudget, cap));
+    return Math.max(min, next);
+  }
+
+  const cap = 980;
+  const min = 240;
   const next = Math.floor(Math.min(widthBudget, viewportHeight, cap));
   const adaptiveMin = Math.min(min, Math.max(180, Math.floor(viewportWidth)));
   return Math.max(adaptiveMin, next);

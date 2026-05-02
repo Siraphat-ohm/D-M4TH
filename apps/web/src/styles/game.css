@@ -29,7 +29,9 @@
 .board-host--preview {
   width: var(--board-size, 750px);
   height: var(--board-size, 750px);
-  max-width: calc(100vw - (var(--match-gap) * 2));
+  max-width: min(100%, calc(72vw - (var(--match-gap) * 2)));
+  min-width: min(70vw, 520px);
+  min-height: min(70vw, 520px);
 }
 
 .app-shell--playing .board-host--game {

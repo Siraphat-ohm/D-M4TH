@@ -12,7 +12,7 @@
 }
 
 .app-shell--lobby {
-  grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
+  grid-template-columns: minmax(180px, clamp(200px, 22vw, 280px)) minmax(0, min(72vw, 980px)) minmax(180px, clamp(200px, 22vw, 280px));
   align-items: start;
   justify-content: center;
   gap: var(--lobby-gap);
@@ -35,6 +35,9 @@
   display: grid;
   gap: 12px;
   min-width: 0;
+  max-width: clamp(200px, 22vw, 280px);
+  max-height: calc(100dvh - (var(--lobby-padding) * 2));
+  overflow: auto;
 }
 
 .lobby-setup-panel {
@@ -83,7 +86,10 @@
   display: grid;
   align-content: start;
   justify-items: center;
+  justify-self: center;
   min-width: 0;
+  width: min(72vw, 980px);
+  max-width: 100%;
 }
 
 .play-surface {
@@ -188,10 +194,14 @@
   .lobby-notice,
   .setup-preview {
     grid-column: 1;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
   }
 
   .setup-preview {
     grid-row: auto;
+    width: 100%;
   }
 }
 

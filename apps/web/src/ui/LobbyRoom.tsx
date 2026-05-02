@@ -66,7 +66,14 @@ export function LobbyRoom(props: LobbyRoomProps) {
           )}
           <label>
             Name
-            <input value={props.name} maxLength={24} onChange={(event) => props.onNameChange(event.target.value)} />
+            <input
+              id="player-name"
+              name="playerName"
+              value={props.name}
+              maxLength={24}
+              autoComplete="nickname"
+              onChange={(event) => props.onNameChange(event.target.value)}
+            />
           </label>
           <label>
             Color
@@ -106,6 +113,8 @@ function CreateControls(props: {
       <label>
         Mode
         <select
+          id="match-mode"
+          name="matchMode"
           value={config.mode}
           onChange={(event) => onChange(event.target.value === "classical" ? createClassicalConfig() : createPartyConfig())}
         >
@@ -116,6 +125,8 @@ function CreateControls(props: {
       <label>
         Max players
         <input
+          id="max-players"
+          name="maxPlayers"
           type="number"
           min={2}
           max={6}
@@ -126,6 +137,8 @@ function CreateControls(props: {
       <label>
         Board size
         <input
+          id="board-size"
+          name="boardSize"
           type="number"
           min={15}
           max={25}
@@ -138,6 +151,8 @@ function CreateControls(props: {
         <label>
           Map layout
           <select
+            id="map-layout"
+            name="mapLayout"
             value={config.premiumMapId}
             onChange={(event) => onChange(createPartyConfig({ ...config, premiumMapId: event.target.value as PremiumMapId }))}
           >
@@ -164,6 +179,8 @@ function JoinControls(props: { disabled: boolean; roomCode: string; onChange: (r
       <label>
         Room code
         <input
+          id="room-code"
+          name="roomCode"
           value={props.roomCode}
           maxLength={6}
           autoCapitalize="characters"

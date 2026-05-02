@@ -48,8 +48,15 @@ export class ProtocolClient {
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
     this.messageBuffer = [];
-    this.socket?.close();
+    const socket = this.socket;
     this.socket = undefined;
+
+    if (!socket) return;
+    if (socket.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
+    socket.close();
   }
 
   private openSocket(): void {
@@ -57,12 +64,19 @@ export class ProtocolClient {
     this.socket = socket;
 
     socket.addEventListener("open", () => {
+      if (this.socket !== socket || this.intentionallyClosed) {
+        socket.close();
+        return;
+      }
       this.reconnectAttempts = 0;
       this.flushBuffer();
       this.onStatus(true);
     });
 
     socket.addEventListener("message", (event) => {
+      if (this.socket !== socket || this.intentionallyClosed) {
+        return;
+      }
       const message = parseServerMessage(event.data);
       if (message) {
         this.onMessage(message);
@@ -74,6 +88,10 @@ export class ProtocolClient {
     });
 
     socket.addEventListener("close", () => {
+      if (this.socket !== socket) {
+        return;
+      }
+      this.socket = undefined;
       this.onStatus(false);
       this.scheduleReconnect();
     });
