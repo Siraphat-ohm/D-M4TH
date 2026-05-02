@@ -1,4 +1,4 @@
-# ADR 0002: React HUD With Phaser Board Adapter
+# ADR 0002: React HUD With PixiJS 8 Board Adapter
 
 ## Status
 
@@ -10,7 +10,7 @@ The product needs responsive lobby, HUD, rack, and action controls while the boa
 
 ## Decision
 
-Use React for application state, lobby, HUD, rack, action bar, and forms. Use Phaser only inside the board adapter. The adapter renders board state and emits placement intents; it does not own rules or scoring.
+Use React for application state, lobby, HUD, rack, action bar, and forms. Use PixiJS 8 only inside the board adapter. The adapter renders board state and emits placement intents; it does not own rules or scoring.
 
 ## Consequences
 

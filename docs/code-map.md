@@ -29,7 +29,7 @@ Server should stay thin: validate protocol, call engine, broadcast snapshots.
 - `apps/web/src/ui/LobbyRoom.tsx`: create/join/setup/lobby UI.
 - `apps/web/src/ui/MatchTopBar.tsx`: player cards, turn timer, tiles-left.
 - `apps/web/src/ui/MatchLogPanel.tsx`: collapsible match log side panel.
-- `apps/web/src/ui/BoardCanvas.tsx`: Phaser board adapter and setup preview.
+- `apps/web/src/ui/BoardCanvas.tsx`: PixiJS board adapter and setup preview.
 - `apps/web/src/ui/Rack.tsx`: rack slots, rack tile selection, drag preview.
 - `apps/web/src/ui/Dialogs.tsx`: face selection and full log dialog.
 - `apps/web/src/ui/ColorPicker.tsx`: player color picker.

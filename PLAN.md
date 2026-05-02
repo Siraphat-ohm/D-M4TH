@@ -9,7 +9,7 @@ The match UI is now built around the **Monochrome + Player Accent** direction:
 - Active player color drives active player card border, turn timer value, PLAY button, selected rack tile, and pending board tile border.
 - Rack tiles and placed board tiles use off-white faces with dark text.
 - Bonus cells use muted colors: `2P #8A5A38`, `3P #3E7774`, `2E #8A7A3A`, `3E #80394D`.
-- React owns match HUD, rack, actions, log, dialogs, and lobby UI. Phaser owns board canvas rendering only.
+- React owns match HUD, rack, actions, log, dialogs, and lobby UI. PixiJS 8 owns board canvas rendering only.
 
 ## Completed Work
 
@@ -19,10 +19,10 @@ The match UI is now built around the **Monochrome + Player Accent** direction:
 - Removed gameplay brand card from the match HUD.
 - Removed accepted-action notice banners during gameplay; actions are recorded in the log instead.
 - Added `lucide-react` icons for HUD, log, and action controls.
-- Added responsive board sizing with CSS/ResizeObserver budgeting and Phaser resize handling.
-- Optimized Phaser rendering with object pooling for tiles and text, significantly reducing GC pressure.
-- Decoupled Phaser lifecycle from React by extracting `BoardGame` and `BoardScene` classes.
-- Fixed Phaser board lifecycle so resize changes do not leave the board stuck on `Loading board`.
+- Added responsive board sizing with CSS/ResizeObserver budgeting and PixiJS 8 resize handling.
+- Optimized PixiJS 8 rendering with object pooling for tiles and text, significantly reducing GC pressure.
+- Decoupled PixiJS 8 lifecycle from React by extracting `BoardGame` and `BoardScene` classes.
+- Fixed PixiJS 8 board lifecycle so resize changes do not leave the board stuck on `Loading board`.
 - Capped rack tile size so rack tiles stay readable without overpowering the board.
 
 ## Remaining UI Work
@@ -56,7 +56,7 @@ For browser validation:
 
 ## Guardrails
 
-- Do not put non-board UI into Phaser.
+- Do not put non-board UI into PixiJS 8.
 - Do not make the client authoritative.
 - Do not reintroduce neon glow, heavy gradients, decorative shadows, rounded card styling, or tile shadows.
 - Do not dump layout or style work into `App.tsx` or `styles.css`; keep focused React components and split CSS files.

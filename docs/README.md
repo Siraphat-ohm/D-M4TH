@@ -8,7 +8,7 @@ This docs folder is for engineers and agents changing the codebase.
 - [Code Map](./code-map.md): where main behavior lives.
 - [Web UI](./web-ui.md): current match UI structure, theme rules, and browser QA.
 - [ADR 0001](./adr/0001-bun-websocket-runtime.md): Bun WebSocket runtime decision.
-- [ADR 0002](./adr/0002-react-hud-phaser-board.md): React UI with Phaser board adapter decision.
+- [ADR 0002](./adr/0002-react-hud-pixijs-board.md): React UI with PixiJS 8 board adapter decision.
 
 ## Command Reference
 

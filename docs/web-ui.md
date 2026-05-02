@@ -25,7 +25,7 @@ Player palette:
 ## Component Ownership
 
 - React owns lobby, player cards, rack, actions, dialogs, logs, and all non-board UI.
-- Phaser owns board canvas rendering only.
+- PixiJS owns board canvas rendering only.
 - `useTurnController` owns client-side draft placement and swap state.
 - Server snapshot data remains authoritative for match state.
 
@@ -62,5 +62,5 @@ Must verify:
 - Rack tiles remain readable but do not dominate the board.
 - Log collapse works.
 - No text overlap in player cards, timer, actions, or log rows.
-- Phaser board remains square and input coordinates still snap correctly.
+- PixiJS board remains square and input coordinates still snap correctly.
 

@@ -19,26 +19,19 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
             : "";
 
         return (
-          <article
-            className={isActive ? "player-info-row current" : "player-info-row"}
-            key={player.id}
-            style={{ "--player-accent": player.color } as CSSProperties}
-          >
-            <div className="player-info-line player-info-line--top">
-              <span className="swatch" style={{ background: player.color }} />
+          <div key={player.id} className={isActive ? "player-card active" : "player-card"}>
+            <div className="player-swatch" style={{ background: player.color }} />
+            <div className="player-details">
               <span className="player-name">{player.name}</span>
-              <strong className="player-score">{player.score} pts</strong>
+              <span className="player-time">Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
             </div>
-            <div className="player-info-line player-info-line--bottom">
-              <span className="player-clock">Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
-              <span
-                className={showPreview ? "player-delta player-delta--preview" : player.lastPenaltyPoints !== undefined ? "player-delta player-delta--penalty" : "player-delta"}
-                aria-hidden={!scoreDelta}
-              >
-                {scoreDelta || " "}
+            <div className="player-score-block">
+              <strong className={showPreview ? "player-score preview" : "player-score"}>{player.score} pts</strong>
+              <span className={showPreview ? "player-delta preview" : player.lastPenaltyPoints !== undefined ? "player-delta penalty" : "player-delta"}>
+                {scoreDelta || " "}
               </span>
             </div>
-          </article>
+          </div>
         );
       })}
     </div>

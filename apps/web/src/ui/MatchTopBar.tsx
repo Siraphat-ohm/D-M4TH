@@ -28,21 +28,22 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
     : 0;
 
   return (
-    <>
+    <div className="topbar-content">
       <PlayerInfoList snapshot={props.snapshot} previewScore={props.previewScore} now={now} />
-      <div className="hud-metrics-group">
-        <section className="hud-block hud-metric hud-metric--turn">
-          <Clock3 size={16} aria-hidden="true" />
-          <span className="hud-label">Turn Timer</span>
-          <strong className="hud-value" style={{ color: activePlayer?.color }}>{formatTime(turnRemaining)}</strong>
-          <span className="hud-subtle">{activePlayer?.name ?? "--"}</span>
-        </section>
-        <section className="hud-block hud-metric hud-metric--bag">
-          <Package size={16} aria-hidden="true" />
-          <span className="hud-label">Tiles Left</span>
+      <div className="hud-metrics">
+        <div className="metric">
+          <Clock3 size={14} aria-hidden="true" />
+          <span className="hud-label">Turn</span>
+          <strong className="hud-value" style={{ color: activePlayer?.color }}>
+            {formatTime(turnRemaining)}
+          </strong>
+        </div>
+        <div className="metric">
+          <Package size={14} aria-hidden="true" />
+          <span className="hud-label">Bag</span>
           <strong className="hud-value">{props.snapshot.tileBagCount}</strong>
-        </section>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

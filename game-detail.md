@@ -133,7 +133,7 @@ The current gameplay theme is **Monochrome + Player Accent**:
 
 ## Board Interaction
 
-- Phaser owns board canvas rendering only.
+- PixiJS owns board canvas rendering only.
 - React owns lobby, player cards, rack, action buttons, dialogs, logs, and all non-board UI.
 - Draft placements are client-side and managed by turn controller state.
 - Placement supports snap-to-grid. Desktop supports drag/drop and click placement. Mobile/iPad primarily support tap rack tile, then tap board cell.
@@ -144,7 +144,7 @@ The current gameplay theme is **Monochrome + Player Accent**:
 ## Responsive Support
 
 - Web UI must support desktop, laptop, iPad/tablet, and mobile.
-- Board sizing uses viewport budgeting and Phaser resize handling.
+- Board sizing uses viewport budgeting and PixiJS resize handling.
 - Rack tile size is capped so rack tiles remain readable without overpowering the board.
 - Browser QA is required for gameplay layout changes at wide desktop, short laptop, tablet, and phone sizes.
 

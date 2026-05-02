@@ -7,13 +7,13 @@ Multiplayer math equation game (Scrabble-like). Players build equations on a gri
 Bun monorepo with workspaces:
 
 - `apps/server/` — Bun WebSocket server (`apps/server/src/index.ts`, `room-registry.ts`). Routes messages, delegates to game engine.
-- `apps/web/` — React 19 + Vite client. Phaser 4 for board canvas and setup preview only.
+- `apps/web/` — React 19 + Vite client. PixiJS 8 for board canvas and setup preview only.
 - `packages/game/` — Pure game engine: board state, equation parser, scoring, tile catalog. No I/O dependencies.
 - `packages/config/` — Match config factories (classical/party mode presets).
 - `packages/protocol/` — Type-safe client/server message definitions.
 
 Key decisions:
-- React handles lobby, player info, rack, action bar, dialogs, logs, and shell UI. Phaser handles board canvas only (ADR 0002).
+- React handles lobby, player info, rack, action bar, dialogs, logs, and shell UI. PixiJS handles board canvas only (ADR 0002).
 - Game engine is pure TypeScript — testable without server or client.
 - Use `seedrandom` via generic `shuffle` utility for deterministic randomization (see `packages/game/src/utils.ts`).
 - Server is thin adapter: validates protocol, calls engine, broadcasts snapshots.
@@ -57,19 +57,26 @@ Full rules in `game-detail.md`.
 ## Current UI Decisions
 
 - Current theme is **Monochrome + Player Accent**: dark neutral surfaces, crisp flat borders, no neon glow, no heavy gradients, no decorative shadows, and no tile shadows.
-- Player colors are the only strong accents. Active player color drives the active player card border, turn timer value, PLAY button, selected rack tile, and pending board tile border.
+- **Typography Identity**: 
+  - **Silkscreen**: Used for board identity (tiles, premium labels, stars), headers, and primary action buttons.
+  - **IBM Plex Mono**: Used for all other UI elements, including player cards, HUD metrics, logs, and inputs.
+- Player colors are the only strong accents. Active player color drives the active player card border, turn timer value, primary buttons, selected rack tile, and pending board tile border.
 - Player palette: `#EF476F`, `#8B5CF6`, `#06D6A0`, `#FFD166`, `#118AB2`, `#F97316`.
 - Bonus cells are muted so they do not compete with player identity: `2P #8A5A38`, `3P #3E7774`, `2E #8A7A3A`, `3E #80394D`.
 - Rack and placed board tiles use off-white faces with dark text.
 - Rack stays 8 slots with empty placeholders.
 - Draft board tiles return to rack on double click / double tap.
-- Top match bar shows compact player cards with name, score, and mini full timer, plus a centered turn timer and neutral tiles-left card.
+- **Match Layout (Board Stack)**: 
+  - The board and control strip (rack + actions) are grouped into a central vertical **Board Stack**.
+  - On desktop, the board is visually dominant and its size is height-aware (targets 800px).
+  - The control strip sits tightly (6px gap) below the board.
+- **Top HUD**: 
+  - Unified Flexbox layout with compact player cards.
+  - Turn Timer and Tile Bag count are integrated into the HUD metrics cluster next to player cards.
 - Preview score highlights on the active player's score, not in the action bar.
 - Gameplay accepted-action notices do not render as in-play banners; actions go to the match log.
-- Match log is a right-side React panel with `Hide/Show` collapse and `View All` full dialog.
-- The match screen has no gameplay brand card; the board, player state, log, rack, and actions are the focus.
-- Board sizing uses the Phaser resize path plus CSS/ResizeObserver budgeting. The Phaser canvas remains board-only.
-- Rack tile size is capped so rack tiles stay readable without overpowering the board.
+- Match log is a side panel that can be opened via a floating launcher.
+- Scaling uses a single ratio-based system (`--layout-scale`) derived from the viewport, supporting resolutions down to 1024x768.
 - Create/lobby screen is two columns: setup panel left, read-only board preview right.
 
 ## Current Work
@@ -82,12 +89,19 @@ Agents: `frontend-ux-game-team` (UI/UX), `backend-game-dev` (server/engine).
 
 - TypeScript strict mode. No runtime framework in packages/game.
 - Tests use Bun test runner (`bun:test`). Tests colocated with source (`*.test.ts`).
-- Phaser loaded dynamically (`import("phaser")`) — keep Phaser types minimal in BoardCanvas.
+- PixiJS loaded dynamically (`import("pixi.js")`) — keep PixiJS types minimal in BoardCanvas.
 - All authoritative game state flows through `PublicSnapshot` from server. Transient multiplayer state (like ghost placements) flows through separate `room:presence` messages.
 - Draft placements managed client-side via `useTurnController` hook in `turn/use-turn-controller.ts`.
 - ProtocolClient message routing: turn-related messages (preview/rejection) handled by `turnHandleRef` before App-level handling.
 - Keep React UI split into focused components under `apps/web/src/ui/`; avoid dumping new UI into `App.tsx`.
 - Keep styles split under `apps/web/src/styles/`; `apps/web/src/styles.css` should stay import-only.
+
+## Implementation Rules (Required)
+
+- Use standard library and existing project helpers first. Add external dependencies only when necessary.
+- If a technical detail is uncertain (API behavior, security property, browser/runtime compatibility), verify from official docs or trusted sources before implementation.
+- If logic appears in multiple places, create a centralized shared function/service and migrate callers to it instead of copy-paste.
+- For reconnect/auth/session features, keep validation/rotation/revocation in one server-side shared module and reuse across endpoints/handlers.
 
 ## Project Structure
 
@@ -98,7 +112,7 @@ apps/server/src/
 apps/web/src/
   main.tsx              # React root
   ui/App.tsx            # Shell, protocol wiring, high-level layout
-  ui/BoardCanvas.tsx    # Phaser board adapter and board preview
+  ui/BoardCanvas.tsx    # PixiJS board adapter and board preview
   ui/Rack.tsx           # Rack tiles and drag preview
   ui/MatchTopBar.tsx    # Match player cards, turn timer, tiles-left
   ui/MatchLogPanel.tsx  # Collapsible in-match log side panel

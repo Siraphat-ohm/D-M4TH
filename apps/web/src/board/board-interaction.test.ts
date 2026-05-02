@@ -6,7 +6,6 @@ import {
   snapClientPointToBoardCell,
   textColorForPlayerColor
 } from "./board-interaction";
-import { snapBoardPixelsToGrid } from "../ui/BoardCanvas";
 
 describe("board interaction", () => {
   test("snaps client coordinates using the visible board bounds", () => {
@@ -59,11 +58,5 @@ describe("board interaction", () => {
     expect(metrics.shortLabelFontSize).toBeGreaterThan(20);
     expect(metrics.valueFontSize).toBeGreaterThanOrEqual(8);
     expect(createDragPreviewSize(cellSize)).toBeLessThan(cellSize);
-  });
-
-  test("snaps board pixels so cells land on integer pixels", () => {
-    expect(snapBoardPixelsToGrid(760, 15, { maxPixels: 760 })).toBe(750);
-    expect(snapBoardPixelsToGrid(823, 15, { maxPixels: 823 })).toBe(810);
-    expect(snapBoardPixelsToGrid(990, 15, { maxPixels: 990 })).toBe(990);
   });
 });

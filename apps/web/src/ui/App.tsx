@@ -30,9 +30,9 @@ const STATIC_LAYOUT_VARS = {
   "--actions-width": "220px",
   "--lobby-gap": "16px",
   "--lobby-padding": "16px",
-  "--lobby-side-min": "280px",
-  "--lobby-side-max": "360px",
-  "--lobby-center-min": "400px"
+  "--lobby-side-min": "240px",
+  "--lobby-side-max": "300px",
+  "--lobby-center-min": "560px"
 } as CSSProperties;
 
 export function App() {
