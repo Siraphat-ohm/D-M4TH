@@ -84,8 +84,11 @@ Current decisions:
 - Rack tiles and placed board tiles use off-white faces with dark text.
 - Rack stays 8 slots with empty placeholders.
 - Draft board tiles return to rack on double click / double tap.
-- **Layout**: 
-  - Central vertical **Board Stack** (board + controls) with tight spacing (6px).
+- **Layout**:
+  - Gameplay uses a fixed-height `100dvh` shell with `play-surface` rows: top HUD, flexible board slot, and final control strip.
+  - The board must size from the actual `.match-main` / `.board-stage` slot height so rack and action controls remain visible.
+  - Tablet landscape reduces HUD/rack sizing before the board can push controls out of view.
+  - Short phone landscape uses a compact two-column layout: board on the left, compressed HUD/rack/actions on the right.
   - Top HUD uses a clean Flexbox layout with integrated Turn Timer and Bag count.
 - Preview score highlights on active player score, not in action bar.
 - Gameplay accepted-action notices do not render as in-play banners; actions go to log.

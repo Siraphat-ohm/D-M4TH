@@ -66,10 +66,11 @@ Full rules in `game-detail.md`.
 - Rack and placed board tiles use off-white faces with dark text.
 - Rack stays 8 slots with empty placeholders.
 - Draft board tiles return to rack on double click / double tap.
-- **Match Layout (Board Stack)**: 
-  - The board and control strip (rack + actions) are grouped into a central vertical **Board Stack**.
-  - On desktop, the board is visually dominant and its size is height-aware (targets 800px).
-  - The control strip sits tightly (6px gap) below the board.
+- **Match Layout**:
+  - Gameplay uses a fixed-height `100dvh` shell with `play-surface` rows: top HUD, flexible board slot, and final control strip.
+  - The board is visually dominant, but `BoardCanvas` must clamp to the actual `.match-main` / `.board-stage` slot height so rack and action controls remain visible.
+  - Tablet landscape uses tighter HUD/rack sizing and a more aggressive board cap.
+  - Short phone landscape uses a compact two-column layout: board on the left, compressed HUD/rack/actions on the right.
 - **Top HUD**: 
   - Unified Flexbox layout with compact player cards.
   - Turn Timer and Tile Bag count are integrated into the HUD metrics cluster next to player cards.

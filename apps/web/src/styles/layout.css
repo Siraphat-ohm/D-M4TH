@@ -1,7 +1,14 @@
+/* Fix lobby desktop layout: keep panels in their intended grid columns. */
 .puzzle-theme-root {
   min-height: 100dvh;
   background: var(--bg);
   --match-max-width: none;
+  --lobby-padding: clamp(10px, 1.4vw, 24px);
+  --lobby-gap: clamp(10px, 1.2vw, 18px);
+  --lobby-side-min: 220px;
+  --lobby-side-max: 300px;
+  --lobby-center-min: 520px;
+  --match-gap: clamp(8px, 1vw, 14px);
 }
 
 .app-shell {
@@ -17,13 +24,20 @@
 .app-shell--playing {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   padding: 8px;
-  height: auto;
+  height: 100dvh;
   min-height: 100dvh;
-  max-height: none;
-  overflow: auto;
+  max-height: 100dvh;
+  overflow: clip;
+  --match-gap: 8px;
+  --topbar-card-height: 52px;
+  --rack-tile-size: 56px;
+  --rack-gap: 6px;
+  --rack-padding: 8px;
+  --rack-shell-padding: 8px;
+  --rack-strip-height: 72px;
 }
 
 @media (min-width: 641px) {
@@ -36,43 +50,35 @@
 
 @media (min-width: 1025px) {
   .app-shell--lobby {
-    grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
+    grid-template-columns:
+      minmax(var(--lobby-side-min), var(--lobby-side-max))
+      minmax(var(--lobby-center-min), 1fr)
+      minmax(var(--lobby-side-min), var(--lobby-side-max));
     align-items: start;
     justify-content: center;
+    width: 100%;
   }
 
-  .lobby-setup-panel,
-  .lobby-status,
-  .lobby-notice,
-  .setup-preview {
-    max-height: calc(100dvh - (var(--lobby-padding) * 2));
-    overflow: auto;
-  }
-  
-  .lobby-setup-panel {
+  .app-shell--lobby > .lobby-setup-panel {
     grid-column: 1;
+    grid-row: 1;
   }
-  
-  .setup-preview {
+
+  .app-shell--lobby > .setup-preview {
     grid-column: 2;
     grid-row: 1;
-    display: grid;
-    align-content: start;
-    justify-items: center;
     justify-self: center;
-    min-width: 0;
+    align-self: start;
+    display: grid;
+    place-items: center;
     width: min(72vw, 980px);
     max-width: 100%;
+    overflow: hidden;
   }
 
-  .lobby-status {
+  .app-shell--lobby > .lobby-status {
     grid-column: 3;
-  }
-}
-
-@media (min-width: 1401px) {
-  .app-shell--lobby {
-    grid-template-columns: minmax(180px, clamp(200px, 22vw, 280px)) minmax(0, min(72vw, 980px)) minmax(180px, clamp(200px, 22vw, 280px));
+    grid-row: 1;
   }
 }
 
@@ -134,32 +140,28 @@
 }
 
 .play-surface {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: start;
-  gap: 8px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: var(--match-gap, 8px);
   width: 100%;
   max-width: none;
-  height: auto;
-  min-height: 100%;
-  padding-bottom: 20px;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
   container-type: inline-size;
   container-name: playsurface;
 }
 
-@container playsurface (min-width: 641px) {
-  .play-surface {
-    gap: var(--match-gap);
-  }
-}
-
 .match-topbar {
   display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
   max-width: none;
   padding: 0 10px;
+  min-height: 0;
 }
 
 .topbar-content {
@@ -215,14 +217,39 @@
   font-family: "IBM Plex Mono", monospace;
 }
 
-.match-main {
+.metric--turn {
+  padding: 0 18px;
+}
+
+.turn-indicator {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  gap: 2px;
+}
+
+.turn-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.turn-time {
+  font-size: clamp(1.1rem, 1.7vw, 1.3rem);
+  font-weight: 500;
+  font-family: "IBM Plex Mono", monospace;
+  line-height: 1;
+}
+
+.match-main {
+  display: grid;
+  place-items: stretch;
   width: 100%;
-  flex: 1;
-  height: auto;
+  height: 100%;
   min-height: 0;
+  overflow: clip;
 }
 
 .board-stage {
@@ -230,7 +257,10 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: auto;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: clip;
 }
 
 .match-notice {
@@ -244,11 +274,36 @@
 }
 
 @media (max-height: 820px) {
-  .puzzle-theme-root {
+  .app-shell--playing {
     --match-gap: 8px;
     --topbar-card-height: clamp(44px, 5vh, 54px);
     --rack-tile-size: clamp(36px, 4.35vmin, 46px);
+    --rack-padding: 7px;
     --rack-shell-padding: 7px;
+    --rack-strip-height: 62px;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 1050px) {
+  .play-surface {
+    gap: 6px;
+  }
+
+  .match-topbar {
+    padding: 0 4px;
+  }
+
+  .topbar-content {
+    gap: 6px;
+  }
+
+  .hud-metrics {
+    gap: 6px;
+  }
+
+  .hud-metrics .metric {
+    padding: 0 10px;
+    gap: 6px;
   }
 }
 
@@ -256,8 +311,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
-  gap: 10px;
+  gap: var(--match-gap);
   width: 100%;
+  min-height: 0;
   container-type: inline-size;
   container-name: controlstrip;
 }
@@ -266,5 +322,152 @@
   .control-strip {
     grid-template-columns: auto auto;
     justify-content: center;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1400px) and (min-height: 768px) and (max-height: 1050px) and (orientation: landscape) {
+  .app-shell--playing {
+    padding: 6px;
+    gap: 6px;
+    --match-gap: 6px;
+    --topbar-card-height: 44px;
+    --rack-tile-size: 46px;
+    --rack-gap: 5px;
+    --rack-padding: 6px;
+    --rack-shell-padding: 6px;
+    --rack-strip-height: 60px;
+    --floating-log-width: 250px;
+  }
+
+  .player-card {
+    min-width: 142px;
+    max-width: 208px;
+    padding: 5px 9px;
+    gap: 7px;
+  }
+
+  .player-name {
+    font-size: 0.78rem;
+  }
+
+  .player-score {
+    font-size: 0.86rem;
+  }
+
+  .action-bar {
+    grid-auto-rows: minmax(30px, auto);
+  }
+
+  .action-bar button {
+    min-height: 32px;
+    padding: 0 9px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 480px) and (min-width: 640px) {
+  .app-shell--playing {
+    padding: 4px;
+    gap: 4px;
+    --match-gap: 4px;
+    --topbar-card-height: 34px;
+    --rack-tile-size: 33px;
+    --rack-gap: 4px;
+    --rack-padding: 5px;
+    --rack-shell-padding: 5px;
+    --rack-strip-height: auto;
+    --floating-log-width: 220px;
+  }
+
+  .play-surface {
+    grid-template-columns: minmax(0, 1fr) minmax(236px, 292px);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: stretch;
+    column-gap: 6px;
+    row-gap: 4px;
+  }
+
+  .match-main {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .match-topbar {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .topbar-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .player-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .player-card {
+    min-width: 0;
+    max-width: none;
+    height: var(--topbar-card-height);
+    padding: 3px 5px;
+    gap: 5px;
+  }
+
+  .player-swatch,
+  .player-time,
+  .player-status,
+  .player-delta {
+    display: none;
+  }
+
+  .player-name {
+    font-size: 0.66rem;
+  }
+
+  .player-score {
+    font-size: 0.72rem;
+  }
+
+  .hud-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+
+  .hud-metrics .metric {
+    min-height: 32px;
+    padding: 0 7px;
+    gap: 5px;
+  }
+
+  .hud-metrics .metric .hud-label {
+    font-size: 0.58rem;
+  }
+
+  .hud-metrics .metric .hud-value,
+  .turn-time {
+    font-size: 0.88rem;
+  }
+
+  .turn-name {
+    font-size: 0.58rem;
+  }
+
+  .control-strip {
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    justify-items: stretch;
+    gap: 5px;
+    max-width: 100%;
   }
 }

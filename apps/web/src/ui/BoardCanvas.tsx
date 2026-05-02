@@ -23,8 +23,10 @@ interface BoardCanvasProps {
 const DEFAULT_BOARD_SIZE = 15;
 const DOUBLE_TAP_WINDOW_MS = 300;
 const MAX_INIT_RETRIES = 2;
+const BOARD_SIZE_SAFETY_MARGIN = 4;
 
 type RenderStatus = "loading" | "ready" | "error";
+type RenderErrorKind = "webgl-disabled" | "unknown";
 
 export function BoardCanvas(props: BoardCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("loading");
   const [boardTargetPixels, setBoardTargetPixels] = useState(() => estimateInitialBoardPixels(props.variant ?? "game"));
   const [initAttempt, setInitAttempt] = useState(0);
+  const [renderErrorKind, setRenderErrorKind] = useState<RenderErrorKind>("unknown");
 
   const boardSize = props.snapshot?.config.boardSize ?? props.previewBoardSize ?? DEFAULT_BOARD_SIZE;
   const premiumMapId = props.snapshot?.config.premiumMapId ?? props.previewPremiumMapId ?? DEFAULT_PREMIUM_MAP_ID;
@@ -47,6 +50,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
 
     async function mount(): Promise<void> {
       setRenderStatus("loading");
+      setRenderErrorKind("unknown");
       const measured = Math.round(host?.getBoundingClientRect().width ?? 0);
       const fallback = estimateInitialBoardPixels(props.variant ?? "game");
       const initialSize = Math.max(1, measured > 1 ? measured : fallback);
@@ -64,7 +68,9 @@ export function BoardCanvas(props: BoardCanvasProps) {
         console.error("Pixi board init failed", e);
         if (!disposed) {
           setRenderStatus("error");
-          if (initAttempt < MAX_INIT_RETRIES) {
+          const errorKind = classifyRenderError(e);
+          setRenderErrorKind(errorKind);
+          if (errorKind !== "webgl-disabled" && initAttempt < MAX_INIT_RETRIES) {
             window.setTimeout(() => {
               setInitAttempt((value) => value + 1);
             }, 180);
@@ -99,10 +105,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
     };
 
     const observer = new ResizeObserver(updateBoardTarget);
-    observer.observe(host);
-    if (host.parentElement) {
-      observer.observe(host.parentElement);
-    }
+    getBoardSizingElements(host).forEach((element) => observer.observe(element));
 
     updateBoardTarget();
 
@@ -191,17 +194,30 @@ export function BoardCanvas(props: BoardCanvasProps) {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      <div ref={pixiRef} className="absolute inset-0 pointer-events-none" />
+      <div ref={pixiRef} className="pixi-canvas-layer" />
       {renderStatus !== "ready" && (
         <div
-          className="absolute inset-0 z-10 grid place-items-center bg-[rgb(10_15_28_/_0.92)] px-4 text-center text-sm uppercase tracking-[0.18em] text-[color:var(--muted)]"
+          className="board-render-overlay"
           role="status"
         >
-          {renderStatus === "error" ? "Board load failed" : "Loading board"}
+          {renderStatus === "error"
+            ? renderErrorKind === "webgl-disabled"
+              ? "WebGL disabled in this browser mode"
+              : "Board load failed"
+            : "Loading board"}
         </div>
       )}
     </div>
   );
+}
+
+function classifyRenderError(error: unknown): RenderErrorKind {
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+  if (normalized.includes("webgl") && (normalized.includes("disabled") || normalized.includes("context"))) {
+    return "webgl-disabled";
+  }
+  return "unknown";
 }
 
 function estimateInitialBoardPixels(variant: "game" | "preview"): number {
@@ -212,26 +228,67 @@ function estimateInitialBoardPixels(variant: "game" | "preview"): number {
 }
 
 function measureBoardTargetPixels(host: HTMLDivElement, variant: "game" | "preview"): number {
-  const parent = host.parentElement;
-  const parentWidth = parent?.getBoundingClientRect().width ?? 0;
-  const hostRect = host.getBoundingClientRect();
-  const viewportWidth = Math.max(1, window.innerWidth - 32);
-  const viewportHeight = Math.max(1, window.innerHeight - (variant === "preview" ? 120 : 180));
+  const slot = readBoardSlotSize(host);
+  const viewportSafeCap = getViewportSafeBoardCap(variant);
+  const viewportWidth = Math.max(1, window.innerWidth - 16);
+  const viewportHeight = Math.max(1, window.innerHeight - 16);
+  const widthBudget = Math.max(1, Math.floor(Math.min(slot.width || viewportWidth, viewportWidth)));
+  const heightBudget = Math.max(1, Math.floor(Math.min(slot.height || viewportHeight, viewportHeight)));
 
-  const widthBudget = Math.max(1, Math.floor(Math.min(parentWidth || hostRect.width || viewportWidth, viewportWidth)));
   if (variant === "preview") {
     const cap = 980;
-    const minByViewport = Math.floor(Math.min(viewportWidth * 0.7, viewportHeight * 0.7));
-    const min = Math.max(280, minByViewport);
-    const next = Math.floor(Math.min(widthBudget, cap));
-    return Math.max(min, next);
+    return Math.max(1, Math.floor(Math.min(widthBudget, heightBudget, viewportSafeCap, cap)));
   }
 
-  const cap = 980;
-  const min = 240;
-  const next = Math.floor(Math.min(widthBudget, viewportHeight, cap));
-  const adaptiveMin = Math.min(min, Math.max(180, Math.floor(viewportWidth)));
-  return Math.max(adaptiveMin, next);
+  const next = Math.floor(Math.min(widthBudget, heightBudget, viewportSafeCap) - BOARD_SIZE_SAFETY_MARGIN);
+  return Math.max(1, next);
+}
+
+function getBoardSizingElements(host: HTMLDivElement): HTMLElement[] {
+  return uniqueElements([
+    host,
+    host.parentElement,
+    host.closest<HTMLElement>(".board-stage"),
+    host.closest<HTMLElement>(".match-main"),
+    host.closest<HTMLElement>(".play-surface")
+  ]);
+}
+
+function readBoardSlotSize(host: HTMLDivElement): { width: number; height: number } {
+  const elements = uniqueElements([
+    host.parentElement,
+    host.closest<HTMLElement>(".board-stage"),
+    host.closest<HTMLElement>(".match-main")
+  ]);
+  const widths = elements.map((element) => element.getBoundingClientRect().width).filter(isUsefulDimension);
+  const heights = elements.map((element) => element.getBoundingClientRect().height).filter(isUsefulDimension);
+  return {
+    width: widths.length > 0 ? Math.min(...widths) : 0,
+    height: heights.length > 0 ? Math.min(...heights) : 0
+  };
+}
+
+function getViewportSafeBoardCap(variant: "game" | "preview"): number {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (variant === "preview") {
+    return Math.floor(Math.min(width, height) * 0.72);
+  }
+  if (height <= 480 && width >= 640) {
+    return Math.floor(height - 8);
+  }
+  if (width >= 900 && width <= 1400 && height >= 768 && height <= 1050) {
+    return Math.floor(height * 0.84);
+  }
+  return 980;
+}
+
+function uniqueElements(elements: Array<HTMLElement | null | undefined>): HTMLElement[] {
+  return [...new Set(elements.filter((element): element is HTMLElement => element !== null && element !== undefined))];
+}
+
+function isUsefulDimension(value: number): boolean {
+  return Number.isFinite(value) && value > 1;
 }
 
 function readBoardContentBounds(host: HTMLDivElement) {
