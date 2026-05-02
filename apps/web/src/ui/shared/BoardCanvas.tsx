@@ -1,8 +1,8 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { DEFAULT_PREMIUM_MAP_ID, type PremiumMapId } from "@d-m4th/config";
 import type { BoardTile, Placement, PublicSnapshot, Tile } from "@d-m4th/game";
-import { snapClientPointToBoardCell } from "../board/board-interaction";
-import { PixiBoardGame } from "../pixi/PixiBoardGame";
+import { snapClientPointToBoardCell } from "../../board/board-interaction";
+import { PixiBoardGame } from "../../pixi/PixiBoardGame";
 
 interface BoardCanvasProps {
   snapshot?: PublicSnapshot;

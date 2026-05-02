@@ -1,8 +1,8 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { faceOptionsForTileLabel, type Tile } from "@d-m4th/game";
-import { textColorForPlayerColor } from "../board/board-interaction";
-import { formatClock } from "./format";
-import type { LogEntry } from "./types";
+import { textColorForPlayerColor } from "../../board/board-interaction";
+import { formatClock } from "../shared/format";
+import type { LogEntry } from "../shared/types";
 
 export function LogDialog(props: { entries: LogEntry[]; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);

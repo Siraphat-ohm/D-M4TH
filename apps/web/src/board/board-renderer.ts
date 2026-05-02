@@ -8,7 +8,7 @@ import {
   type TileRenderMetrics,
   type RenderTile
 } from "./board-interaction";
-import { displayTileLabel } from "../ui/tile-display";
+import { displayTileLabel } from "../ui/rack/tile-display";
 
 export interface TileObjectGroup {
   outer: Graphics;

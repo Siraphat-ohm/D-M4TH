@@ -1,10 +1,10 @@
 import type { MutableRefObject } from "react";
 import type { BoardTile, PublicSnapshot } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
-import { createRequestId, type ProtocolClient } from "../protocol-client";
-import type { PrivateState, NoticeState } from "../store/app-store";
-import type { ReconnectSession } from "../reconnect-session";
-import type { ViewMode } from "./types";
+import { createRequestId, type ProtocolClient } from "./protocol-client";
+import type { PrivateState, NoticeState } from "../app/store/app-store";
+import type { ReconnectSession } from "./reconnect-session";
+import type { ViewMode } from "../ui/shared/types";
 
 export type ReconnectState = "idle" | "waiting" | "resuming" | "failed" | "expired";
 

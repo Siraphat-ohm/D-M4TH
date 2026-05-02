@@ -1,9 +1,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { LogOut } from "lucide-react";
 import type { PublicSnapshot } from "@d-m4th/game";
-import { formatTime } from "./format";
-import { PlayerInfoList } from "./PlayerInfoList";
-import { usePenaltyDelta } from "./usePenaltyDelta";
+import { formatTime } from "@/ui/shared/format";
+import { PlayerInfoList } from "@/ui/match/PlayerInfoList";
+import { usePenaltyDelta } from "@/ui/match/usePenaltyDelta";
 
 export function MatchTopBar(props: {
   snapshot?: PublicSnapshot;

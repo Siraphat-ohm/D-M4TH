@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import { createClassicalConfig, type MatchConfig } from "@d-m4th/config";
-import { normalizeRoomCode } from "../../ui/format";
+import { normalizeRoomCode } from "../../../ui/shared/format";
 
 const DEFAULT_PLAYER_COLOR = "#EF476F";
 

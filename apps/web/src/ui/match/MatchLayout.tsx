@@ -1,13 +1,13 @@
 import { type CSSProperties } from "react";
 import { Check, RefreshCcw, ScrollText, SkipForward, Undo2 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { BoardCanvas } from "./BoardCanvas";
-import { FaceSelectionDialog } from "./Dialogs";
-import { MatchTopBar } from "./MatchTopBar";
-import { Rack } from "./Rack";
-import { resolvePlayerAccent } from "./player-colors";
-import { useAppStore } from "../store/app-store";
-import { useTurn } from "../turn/TurnContext";
+import { BoardCanvas } from "@/ui/shared/BoardCanvas";
+import { FaceSelectionDialog } from "@/ui/dialogs/Dialogs";
+import { MatchTopBar } from "@/ui/match/MatchTopBar";
+import { Rack } from "@/ui/rack/Rack";
+import { resolvePlayerAccent } from "@/ui/shared/player-colors";
+import { useAppStore } from "@/app/store/app-store";
+import { useTurn } from "@/turn/TurnContext";
 
 export function MatchLayout(props: { onLeaveMatch: () => void }) {
   const {

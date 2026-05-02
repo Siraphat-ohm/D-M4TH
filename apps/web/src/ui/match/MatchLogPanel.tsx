@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { List, ScrollText } from "lucide-react";
-import { formatClock } from "./format";
-import type { LogEntry } from "./types";
+import { formatClock } from "../shared/format";
+import type { LogEntry } from "../shared/types";
 
 const LOG_PREVIEW_LIMIT = 6;
 

@@ -1,7 +1,7 @@
 import { type MatchConfig } from "@d-m4th/config";
 import type { Placement, PublicSnapshot, Tile } from "@d-m4th/game";
-import { BoardCanvas } from "./BoardCanvas";
-import { LobbyRoom } from "./LobbyRoom";
+import { BoardCanvas } from "@/ui/shared/BoardCanvas";
+import { LobbyRoom } from "@/ui/lobby/LobbyRoom";
 
 interface LobbyLayoutProps {
   viewMode: "create" | "join";

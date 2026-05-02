@@ -1,6 +1,6 @@
 import { type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
-import { formatTime } from "./format";
+import { formatTime } from "../shared/format";
 
 export function PlayerInfoList(props: {
   snapshot: PublicSnapshot;

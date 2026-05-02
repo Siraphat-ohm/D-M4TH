@@ -4,7 +4,7 @@ import {
   readLatestReconnectSession,
   readReconnectSession,
   writeReconnectSession
-} from "../reconnect-session";
+} from "../client/reconnect-session";
 
 const ORIGINAL_WARN = console.warn;
 const ORIGINAL_WINDOW = globalThis.window;

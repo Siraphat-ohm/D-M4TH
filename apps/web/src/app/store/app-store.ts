@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Tile } from "@d-m4th/game";
-import type { NoticeTone } from "../ui/types";
+import type { NoticeTone } from "../../ui/shared/types";
 import { createUISlice, type UISlice } from "./slices/uiSlice";
 import { createMatchSlice, type MatchSlice } from "./slices/matchSlice";
 import { createPlayerSlice, type PlayerSlice } from "./slices/playerSlice";

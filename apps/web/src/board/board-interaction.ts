@@ -1,5 +1,5 @@
 import type { BoardTile, Coordinate, Placement, PublicPlayer, Tile } from "@d-m4th/game";
-import { textColorForBackground } from "../ui/format";
+import { textColorForBackground } from "../ui/shared/format";
 
 export interface BoardBounds {
   left: number;

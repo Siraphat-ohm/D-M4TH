@@ -1,6 +1,6 @@
 import type { BoardTile, Placement, Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
-import type { ProtocolClient } from "../protocol-client";
+import type { ProtocolClient } from "../client/protocol-client";
 import type { TurnMode } from "./turn-controls";
 
 export interface UseTurnControllerParams {

@@ -1,5 +1,5 @@
 import type { Placement } from "@d-m4th/game";
-import { createRequestId, type ProtocolClient } from "../protocol-client";
+import { createRequestId, type ProtocolClient } from "../client/protocol-client";
 
 export function useTurnActions(client: ProtocolClient, actionsFrozen: boolean) {
   function sendDraft(placements: readonly Placement[]): void {

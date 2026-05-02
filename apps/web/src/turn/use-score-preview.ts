@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Placement } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
-import { createRequestId, type ProtocolClient } from "../protocol-client";
+import { createRequestId, type ProtocolClient } from "../client/protocol-client";
 
 const PREVIEW_DEBOUNCE_MS = 150;
 
