@@ -17,8 +17,8 @@
   --button-accent: var(--active-player-color);
   color: var(--text);
   background: var(--bg);
-  font-family: "Silkscreen", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 17px;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--root-font-size, 16px);
   font-weight: 400;
   font-synthesis: none;
 }
@@ -42,7 +42,8 @@ body {
 button,
 input,
 select {
-  font: inherit;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.9em;
   font-weight: 400;
 }
 
@@ -55,6 +56,7 @@ button {
   padding: 0 12px;
   cursor: pointer;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 button svg {
@@ -79,11 +81,41 @@ button:disabled {
   border-color: var(--button-accent);
   background: var(--button-accent);
   color: var(--tile-text);
+  font-family: "Silkscreen", monospace;
+  letter-spacing: 0.1em;
 }
 
 h1 {
   margin: 0;
+  font-family: "Silkscreen", serif;
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 400;
   color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+
+
+/* Keep the game surface flat. No CRT/Balatro curvature or global filters. */
+html,
+body,
+#root,
+.puzzle-theme-root,
+.app-shell,
+.play-surface {
+  background-image: none !important;
+  filter: none !important;
+  transform: none;
+  perspective: none;
+}
+
+.puzzle-theme-root::before,
+.puzzle-theme-root::after,
+.app-shell::before,
+.app-shell::after,
+.play-surface::before,
+.play-surface::after {
+  content: none !important;
+  display: none !important;
 }

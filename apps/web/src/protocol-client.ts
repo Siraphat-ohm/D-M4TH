@@ -63,7 +63,10 @@ export class ProtocolClient {
     });
 
     socket.addEventListener("message", (event) => {
-      this.onMessage(JSON.parse(String(event.data)) as ServerMessage);
+      const message = parseServerMessage(event.data);
+      if (message) {
+        this.onMessage(message);
+      }
     });
 
     socket.addEventListener("error", () => {
@@ -107,4 +110,13 @@ export function defaultWebSocketUrl(): string {
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.hostname}:2567/ws`;
+}
+
+function parseServerMessage(raw: unknown): ServerMessage | undefined {
+  try {
+    return JSON.parse(String(raw)) as ServerMessage;
+  } catch (error) {
+    console.warn("Ignored malformed server message", error);
+    return undefined;
+  }
 }

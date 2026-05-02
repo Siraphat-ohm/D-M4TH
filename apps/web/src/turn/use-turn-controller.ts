@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DraftManager, type BoardTile, type Placement, type Tile } from "@d-m4th/game";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { createRequestId, type ProtocolClient } from "../protocol-client";
-import { toggleSelection, type TurnMode } from "./turn-controls";
+import { isCellBlocked, toggleSelection, type TurnMode } from "./turn-controls";
 
 const PREVIEW_DEBOUNCE_MS = 150;
 
@@ -56,6 +56,24 @@ export function useTurnController(params: {
     return () => window.clearTimeout(timerId);
   }, [client, draft, isMyTurn]);
 
+  useEffect(() => {
+    if (isMyTurn) return;
+    if (draftRef.current.placements.length === 0 && !selectedTileId) return;
+    updateDraftManager(draftRef.current.clear());
+    setSelectedTileId(undefined);
+    setPreviewScore(undefined);
+  }, [isMyTurn, selectedTileId]);
+
+  useEffect(() => {
+    if (draftRef.current.placements.length === 0) return;
+    const rackIds = new Set(rack.map((tile) => tile.id));
+    const hasOutdatedDraft = draftRef.current.placements.some((placement) => !rackIds.has(placement.tileId));
+    if (!hasOutdatedDraft) return;
+    updateDraftManager(draftRef.current.clear());
+    setSelectedTileId(undefined);
+    setPreviewScore(undefined);
+  }, [rack]);
+
   function updateDraftManager(nextManager: DraftManager): void {
     draftRef.current = nextManager;
     setDraftManager(nextManager);
@@ -82,6 +100,9 @@ export function useTurnController(params: {
     }
 
     if (draftRef.current.has(selectedTileId)) {
+      if (isCellBlocked(occupiedCells, draftRef.current.at(x, y)?.tileId, selectedTileId, x, y)) {
+        return;
+      }
       updateAndBroadcastDraft(draftRef.current.move(selectedTileId, x, y, occupiedCells));
       setSelectedTileId(undefined);
       return;
@@ -98,6 +119,7 @@ export function useTurnController(params: {
   function placeRackTile(tileId: string, x: number, y: number): void {
     const tile = rack.find((candidate) => candidate.id === tileId);
     if (turnMode !== "play" || !isMyTurn || !tile) return;
+    if (isCellBlocked(occupiedCells, draftRef.current.at(x, y)?.tileId, undefined, x, y)) return;
 
     const nextManager = draftRef.current.place(tile, x, y, occupiedCells);
     updateAndBroadcastDraft(nextManager);

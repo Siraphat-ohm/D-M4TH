@@ -14,10 +14,10 @@
   position: relative;
   box-sizing: content-box;
   overflow: hidden;
-  width: var(--board-target-size, 840px);
-  max-width: 100%;
-  height: var(--board-target-size, 840px);
-  max-height: 100%;
+  width: var(--board-size, 840px);
+  max-width: calc(100vw - (var(--match-gap) * 2));
+  height: var(--board-size, 840px);
+  max-height: none;
   min-width: 0;
   aspect-ratio: 1 / 1;
   border: 1px solid var(--panel-border);
@@ -27,29 +27,36 @@
 }
 
 .board-host--preview {
-  width: var(--board-target-size, 750px);
-  height: var(--board-target-size, 750px);
-  max-width: 100%;
+  width: var(--board-size, 750px);
+  height: var(--board-size, 750px);
+  max-width: calc(100vw - (var(--match-gap) * 2));
 }
 
 .app-shell--playing .board-host--game {
-  width: var(--board-target-size, 840px);
-  height: var(--board-target-size, 840px);
-  max-width: 100%;
-  max-height: 100%;
+  width: var(--board-size, 840px);
+  height: var(--board-size, 840px);
+  max-width: calc(100vw - (var(--match-gap) * 2));
+  max-height: none;
 }
 
 .board-host canvas {
   display: block;
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
+  image-rendering: auto;
+}
+
+.board-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
 }
 
 .control-strip {
-  display: grid;
-  grid-template-columns: var(--rack-shell-width) var(--actions-width);
-  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: var(--match-gap);
   width: fit-content;
@@ -61,22 +68,23 @@
 
 .rack-panel,
 .action-panel {
-  width: 100%;
-  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  padding: var(--rack-padding);
   min-height: var(--rack-strip-height);
-  padding: var(--rack-shell-padding);
-  align-content: center;
 }
 
 .rack-panel {
-  width: var(--rack-shell-width);
+  width: auto;
   max-width: 100%;
-  overflow: hidden;
 }
 
 .action-panel {
-  width: var(--actions-width);
-  justify-items: stretch;
+  width: auto;
+  height: auto;
+  align-items: stretch;
 }
 
 .rack {
@@ -133,9 +141,9 @@
 .action-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
+  grid-auto-rows: minmax(32px, auto);
   gap: 7px;
-  height: 100%;
+  height: auto;
 }
 
 .action-bar button {
@@ -245,6 +253,7 @@
   border: 1px solid var(--panel-border);
   padding: 5px 6px;
   min-height: 29px;
+  font-family: "IBM Plex Mono", monospace;
   font-size: clamp(0.6rem, 0.62vw, 0.72rem);
   line-height: 1.2;
   text-transform: uppercase;
@@ -308,10 +317,6 @@
 }
 
 @media (max-width: 640px) {
-  .board-host {
-    width: min(100%, var(--board-target-size, 460px), 640px);
-  }
-
   .rack {
     grid-template-columns: repeat(4, var(--rack-tile-size));
     justify-content: center;
@@ -420,4 +425,51 @@
     width: 46px;
     height: 46px;
   }
+}
+
+/* PixiJS 8 scale rework: the React wrapper owns the square size; PixiJS 8 gets exact pixels. */
+.board-scroll-container {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.board-host,
+.app-shell--playing .board-host--game,
+.board-host--preview {
+  width: var(--board-size, 840px);
+  height: var(--board-size, 840px);
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  max-height: 100%;
+  contain: layout paint size;
+}
+
+.board-host canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Extreme zoom guard: do not let a parent max-width shrink the board/control
+   cluster at low browser zoom. PixiJS 8 receives an explicit square size from
+   BoardCanvas; CSS only provides the containing viewport and scroll behavior. */
+.board-scroll-container {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.control-strip {
+  max-width: calc(100vw - (var(--match-gap) * 2));
+}
+
+.board-pixi-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
 }

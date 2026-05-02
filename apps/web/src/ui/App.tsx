@@ -1,50 +1,93 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { createClassicalConfig, type MatchConfig } from "@d-m4th/config";
-import type { BoardTile, PublicSnapshot, Tile } from "@d-m4th/game";
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import type { MatchConfig } from "@d-m4th/config";
 import type { ServerMessage } from "@d-m4th/protocol";
+import { useShallow } from "zustand/react/shallow";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "../protocol-client";
+import { useAppStore, type AppRoute, type NoticeState } from "../store/app-store";
 import { useTurnController } from "../turn/use-turn-controller";
 import { LogDialog } from "./Dialogs";
 import { LobbyLayout } from "./LobbyLayout";
 import { MatchLayout } from "./MatchLayout";
 import { normalizeRoomCode } from "./format";
-import type { LogEntry, NoticeTone, ViewMode } from "./types";
 
 const NOTICE_AUTO_DISMISS_MS = 4000;
-const DEFAULT_PLAYER_COLOR = "#EF476F";
-const LOG_HISTORY_LIMIT = 30;
-
-interface PrivateState {
-  playerId: string;
-  rack: Tile[];
-}
-
-interface NoticeState {
-  text: string;
-  tone: NoticeTone;
-  sticky?: boolean;
-}
+const STATIC_LAYOUT_VARS = {
+  "--layout-scale": "1",
+  "--gap": "10px",
+  "--topbar-height": "52px",
+  "--rack-tile-size": "56px",
+  "--rack-gap": "6px",
+  "--rack-padding": "8px",
+  "--action-width": "220px",
+  "--ui-font-size": "16px",
+  "--root-font-size": "16px",
+  "--match-gap": "8px",
+  "--topbar-card-height": "52px",
+  "--rack-shell-padding": "8px",
+  "--rack-shell-width": "502px",
+  "--rack-strip-height": "72px",
+  "--floating-log-width": "280px",
+  "--actions-width": "220px",
+  "--lobby-gap": "16px",
+  "--lobby-padding": "16px",
+  "--lobby-side-min": "280px",
+  "--lobby-side-max": "360px",
+  "--lobby-center-min": "400px"
+} as CSSProperties;
 
 export function App() {
-  const initialRoomCode = readInitialRoomCode();
-  
-  // -- UI State --
-  const [viewMode, setViewMode] = useState<ViewMode>(initialRoomCode ? "join" : "create");
-  const [name, setName] = useState("");
-  const [color, setColor] = useState(DEFAULT_PLAYER_COLOR);
-  const [roomCode, setRoomCode] = useState(normalizeRoomCode(initialRoomCode));
-  const [config, setConfig] = useState<MatchConfig>(createClassicalConfig());
-  const [logOpen, setLogOpen] = useState(false);
-  const [notice, setNotice] = useState<NoticeState>();
-
-  // -- Game State --
-  const [snapshot, setSnapshot] = useState<PublicSnapshot>();
-  const [privateState, setPrivateState] = useState<PrivateState>();
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-  const [ghostPlacements, setGhostPlacements] = useState<Array<{ playerId: string; placements: BoardTile[] }>>([]);
-
+  const {
+    viewMode,
+    name,
+    color,
+    roomCode,
+    config,
+    logOpen,
+    notice,
+    route,
+    snapshot,
+    privateState,
+    logEntries,
+    ghostPlacements,
+    setViewMode,
+    setName,
+    setColor,
+    setRoomCode,
+    setConfig,
+    setLogOpen,
+    setNotice,
+    setRoute,
+    setSnapshot,
+    setPrivateState,
+    setGhostPlacements
+  } = useAppStore(
+    useShallow((state) => ({
+      viewMode: state.viewMode,
+      name: state.name,
+      color: state.color,
+      roomCode: state.roomCode,
+      config: state.config,
+      logOpen: state.logOpen,
+      notice: state.notice,
+      route: state.route,
+      snapshot: state.snapshot,
+      privateState: state.privateState,
+      logEntries: state.logEntries,
+      ghostPlacements: state.ghostPlacements,
+      setViewMode: state.setViewMode,
+      setName: state.setName,
+      setColor: state.setColor,
+      setRoomCode: state.setRoomCode,
+      setConfig: state.setConfig,
+      setLogOpen: state.setLogOpen,
+      setNotice: state.setNotice,
+      setRoute: state.setRoute,
+      setSnapshot: state.setSnapshot,
+      setPrivateState: state.setPrivateState,
+      setGhostPlacements: state.setGhostPlacements
+    }))
+  );
   const turnHandleRef = useRef<(message: ServerMessage) => boolean>(() => false);
-  const nextLogIdRef = useRef(1);
 
   const client = useMemo(() => {
     return new ProtocolClient(defaultWebSocketUrl(), handleMessage, () => {});
@@ -57,6 +100,8 @@ export function App() {
           setSnapshot(message.snapshot);
           if (message.private) {
             setPrivateState({ playerId: message.private.playerId, rack: message.private.rack });
+          } else {
+            setPrivateState(undefined);
           }
           break;
 
@@ -65,17 +110,17 @@ export function App() {
           break;
 
         case "action:accepted":
-          addLog(message.action, "success");
+          useAppStore.getState().addLog(message.action, "success");
           break;
 
         case "action:rejected":
-          addLog(message.reason, "danger");
-          setNotice({ text: message.reason, tone: "danger" });
+          useAppStore.getState().addLog(message.reason, "danger");
+          useAppStore.getState().setNotice({ text: message.reason, tone: "danger" });
           break;
 
         case "match:ended":
-          addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
-          setNotice({
+          useAppStore.getState().addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
+          useAppStore.getState().setNotice({
             text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
             tone: "info",
             sticky: true
@@ -84,13 +129,6 @@ export function App() {
       }
     }
   }, []);
-
-  function addLog(text: string, tone: NoticeTone): void {
-    setLogEntries((entries) => [
-      { id: nextLogIdRef.current++, text, tone, at: Date.now() },
-      ...entries
-    ].slice(0, LOG_HISTORY_LIMIT));
-  }
 
   // -- Lifecycle --
   useEffect(() => {
@@ -103,6 +141,14 @@ export function App() {
     const timerId = window.setTimeout(() => setNotice(undefined), NOTICE_AUTO_DISMISS_MS);
     return () => window.clearTimeout(timerId);
   }, [notice]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setRoute(toRoute(window.location.pathname));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [setRoute]);
 
   // -- Derived State --
   const isPlaying = snapshot?.status === "playing";
@@ -119,9 +165,21 @@ export function App() {
   });
 
   // -- Handlers --
+  const navigate = useCallback((nextRoute: AppRoute, options?: { replace?: boolean }) => {
+    if (toRoute(window.location.pathname) !== nextRoute) {
+      if (options?.replace) {
+        window.history.replaceState(null, "", nextRoute);
+      } else {
+        window.history.pushState(null, "", nextRoute);
+      }
+    }
+    setRoute(nextRoute);
+  }, [setRoute]);
+
   const createRoom = () => {
     if (!name.trim()) return;
     client.send({ type: "room:create", requestId: createRequestId(), name: name.trim(), color, config });
+    navigate("/lobby");
   };
 
   const joinRoom = () => {
@@ -129,6 +187,7 @@ export function App() {
     if (!name.trim() || code.length !== 6) return;
     if (code !== roomCode) setRoomCode(code);
     client.send({ type: "room:join", requestId: createRequestId(), code, name: name.trim(), color });
+    navigate("/lobby");
   };
 
   const configure = (nextConfig: MatchConfig) => {
@@ -140,13 +199,27 @@ export function App() {
 
   const startMatch = () => client.send({ type: "match:start", requestId: createRequestId() });
 
+  useEffect(() => {
+    if (snapshot?.status === "playing" && route !== "/match") {
+      navigate("/match", { replace: true });
+      return;
+    }
+
+    if (snapshot?.status === "lobby" && route === "/") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, route, snapshot?.status]);
+
+  const showLobbyPage = route !== "/match";
+  const canShowMatchPage = snapshot?.status === "playing";
+
   return (
     <div
       className="puzzle-theme-root"
-      style={{ "--active-player-color": activeColor, "--button-accent": activeColor } as CSSProperties}
+      style={{ ...STATIC_LAYOUT_VARS, "--active-player-color": activeColor, "--button-accent": activeColor } as CSSProperties}
     >
       <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
-        {!isPlaying ? (
+        {showLobbyPage ? (
           <>
             <LobbyLayout
               viewMode={viewMode}
@@ -166,11 +239,11 @@ export function App() {
             />
             {notice && (
               <section className="lobby-notice">
-                <NoticeBanner notice={notice} onDismiss={() => setNotice(undefined)} />
+                <NoticeBanner notice={notice} onDismiss={() => setNotice()} />
               </section>
             )}
           </>
-        ) : (
+        ) : canShowMatchPage ? (
           <MatchLayout
             snapshot={snapshot}
             ghostPlacements={ghostPlacements}
@@ -186,6 +259,10 @@ export function App() {
             onPassTurn={turn.passTurn}
             onRecallRack={turn.recallRack}
           />
+        ) : (
+          <section className="lobby-notice">
+            <NoticeBanner notice={{ text: "Match not ready yet", tone: "info" }} onDismiss={() => navigate("/")} />
+          </section>
         )}
 
         {logOpen && <LogDialog entries={logEntries} onClose={() => setLogOpen(false)} />}
@@ -194,6 +271,11 @@ export function App() {
   );
 }
 
+function toRoute(pathname: string): AppRoute {
+  if (pathname === "/match") return "/match";
+  if (pathname === "/lobby") return "/lobby";
+  return "/";
+}
 function NoticeBanner({ notice, onDismiss }: { notice: NoticeState; onDismiss: () => void }) {
   return (
     <div className={`notice ${notice.tone}`} role="status" aria-live="polite">
@@ -203,8 +285,4 @@ function NoticeBanner({ notice, onDismiss }: { notice: NoticeState; onDismiss: (
       </button>
     </div>
   );
-}
-
-function readInitialRoomCode(): string {
-  return normalizeRoomCode(new URLSearchParams(window.location.search).get("room") ?? "");
 }

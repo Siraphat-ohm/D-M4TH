@@ -1,20 +1,7 @@
 .puzzle-theme-root {
   min-height: 100dvh;
   background: var(--bg);
-  --match-gap: clamp(6px, 0.85vw, 14px);
-  --topbar-card-height: clamp(46px, 5.1vh, 58px);
-  --rack-tile-size: clamp(38px, 4.55vmin, 50px);
-  --rack-gap: 6px;
-  --rack-shell-padding: 8px;
-  --rack-shell-width: calc((var(--rack-tile-size) * 8) + (var(--rack-gap) * 7) + (var(--rack-shell-padding) * 2));
-  --rack-strip-height: calc(var(--rack-tile-size) + (var(--rack-shell-padding) * 2));
-  --floating-log-width: clamp(230px, 17vw, 300px);
-  --actions-width: clamp(220px, 15vw, 260px);
-  --match-max-width: 1880px;
-}
-
-.puzzle-phaser-stage {
-  display: none;
+  --match-max-width: none;
 }
 
 .app-shell {
@@ -25,21 +12,22 @@
 }
 
 .app-shell--lobby {
-  grid-template-columns: minmax(300px, 380px) minmax(420px, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
   align-items: start;
   justify-content: center;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--lobby-gap);
+  padding: var(--lobby-padding);
 }
 
 .app-shell--playing {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--match-gap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
   padding: var(--match-gap);
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
 }
 
 .lobby-setup-panel,
@@ -99,92 +87,94 @@
 }
 
 .play-surface {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
   gap: var(--match-gap);
-  min-width: 0;
-  min-height: 0;
   width: 100%;
-  height: 100%;
-  max-width: var(--match-max-width);
-  margin: 0 auto;
-  justify-items: center;
+  height: auto;
+  min-height: 100%;
+  padding-bottom: 20px;
 }
 
 .match-topbar {
-  grid-row: 1;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--match-gap);
-  width: min(100%, var(--match-max-width));
-  margin: 0 auto;
-  align-items: stretch;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  padding: 0 10px;
 }
 
-.hud-metrics-group {
-  grid-column: 2;
+.topbar-content {
+  display: flex;
+  align-items: stretch;
+  gap: var(--match-gap);
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.hud-metrics {
   display: flex;
   gap: var(--match-gap);
   align-items: stretch;
-  justify-self: end;
 }
 
-.match-topbar .hud-metric--turn {
-  width: var(--actions-width);
+.hud-metrics .metric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-strong);
+  padding: 0 14px;
+  min-height: var(--topbar-card-height);
 }
 
-.match-topbar .hud-metric--bag {
-  width: var(--actions-width);
+.hud-metrics .metric .hud-label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-right: -2px;
 }
 
-.board-stage {
-  grid-row: 2;
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: visible;
+.hud-metrics .metric .hud-value {
+  font-size: clamp(1.1rem, 1.7vw, 1.3rem);
+  line-height: 1;
+  font-weight: 500;
+  font-family: "IBM Plex Mono", monospace;
 }
 
 .match-main {
-  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
+  flex: 1;
 }
 
-.control-strip {
-  grid-row: 3;
+.board-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: auto;
 }
 
 .match-notice {
   min-width: 0;
 }
 
-.hud-metric--turn,
-.hud-metric--bag {
-  width: 100%;
-  max-width: var(--actions-width);
-}
-
 @media (max-width: 1400px) {
   .app-shell--lobby {
-    grid-template-columns: minmax(280px, 320px) minmax(420px, 1fr) minmax(280px, 320px);
+    grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
   }
 }
 
 @media (max-width: 1280px) {
   .puzzle-theme-root {
     --actions-width: clamp(216px, 19vw, 250px);
-  }
-
-  .match-topbar {
-    grid-template-columns: minmax(0, 1fr) clamp(140px, 17vw, 180px) clamp(126px, 15vw, 160px);
   }
 }
 
@@ -202,10 +192,6 @@
 
   .setup-preview {
     grid-row: auto;
-  }
-
-  .match-topbar {
-    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.65fr) minmax(126px, 0.55fr);
   }
 }
 
@@ -240,11 +226,6 @@
   .play-surface {
     gap: 8px;
   }
-
-  .match-topbar {
-    grid-template-columns: 1fr;
-    padding: 0;
-  }
 }
 
 @media (max-height: 820px) {
@@ -259,4 +240,56 @@
     gap: 8px;
     padding: 8px;
   }
+}
+
+/* PixiJS 8 scale rework: keep board, topbar, and controls in normal document flow.
+   Browser zoom should scroll the page when needed, not collapse the board row. */
+.app-shell--playing {
+  height: auto;
+  min-height: 100dvh;
+  max-height: none;
+  overflow: auto;
+}
+
+.board-stage,
+.match-main {
+  height: auto;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .topbar-content {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hud-metrics {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* Extreme browser zoom guard.
+   At 30% zoom a fixed layout cap becomes physically tiny, so the match
+   surface must be allowed to use the full CSS viewport. At high zoom the page
+   should scroll instead of forcing the board row to collapse. */
+.app-shell--playing,
+.play-surface,
+.match-topbar {
+  max-width: none;
+}
+
+.app-shell--playing {
+  min-width: 0;
+}
+
+.play-surface {
+  width: 100%;
+  max-width: none;
+}
+
+.board-stage {
+  width: 100%;
+  justify-items: center;
 }
