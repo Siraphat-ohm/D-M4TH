@@ -1,16 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition, type CSSProperties } from "react";
 import type { MatchConfig } from "@d-m4th/config";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { useShallow } from "zustand/react/shallow";
+import { Route, Switch, useLocation } from "wouter";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "../protocol-client";
-import { useAppStore, type AppRoute, type NoticeState } from "../store/app-store";
+import {
+  clearReconnectSession,
+  readLatestReconnectSession,
+  readReconnectSession,
+  type ReconnectSession,
+  writeReconnectSession
+} from "../reconnect-session";
+import { useAppStore, type NoticeState } from "../store/app-store";
 import { useTurnController } from "../turn/use-turn-controller";
+import { TurnProvider } from "../turn/TurnContext";
 import { LogDialog } from "./Dialogs";
 import { LobbyLayout } from "./LobbyLayout";
 import { MatchLayout } from "./MatchLayout";
 import { normalizeRoomCode } from "./format";
 
 const NOTICE_AUTO_DISMISS_MS = 4000;
+type ReconnectState = "idle" | "waiting" | "resuming" | "failed" | "expired";
+
 const STATIC_LAYOUT_VARS = {
   "--layout-scale": "1",
   "--gap": "10px",
@@ -36,6 +47,7 @@ const STATIC_LAYOUT_VARS = {
 } as CSSProperties;
 
 export function App() {
+  const [location, setLocation] = useLocation();
   const {
     viewMode,
     name,
@@ -44,7 +56,6 @@ export function App() {
     config,
     logOpen,
     notice,
-    route,
     snapshot,
     privateState,
     logEntries,
@@ -56,10 +67,10 @@ export function App() {
     setConfig,
     setLogOpen,
     setNotice,
-    setRoute,
     setSnapshot,
     setPrivateState,
-    setGhostPlacements
+    setGhostPlacements,
+    addLog
   } = useAppStore(
     useShallow((state) => ({
       viewMode: state.viewMode,
@@ -69,7 +80,6 @@ export function App() {
       config: state.config,
       logOpen: state.logOpen,
       notice: state.notice,
-      route: state.route,
       snapshot: state.snapshot,
       privateState: state.privateState,
       logEntries: state.logEntries,
@@ -81,46 +91,137 @@ export function App() {
       setConfig: state.setConfig,
       setLogOpen: state.setLogOpen,
       setNotice: state.setNotice,
-      setRoute: state.setRoute,
       setSnapshot: state.setSnapshot,
       setPrivateState: state.setPrivateState,
-      setGhostPlacements: state.setGhostPlacements
+      setGhostPlacements: state.setGhostPlacements,
+      addLog: state.addLog
     }))
   );
   const turnHandleRef = useRef<(message: ServerMessage) => boolean>(() => false);
+  const resumeRequestIdRef = useRef<string | undefined>(undefined);
+  const resumeRoomCodeRef = useRef<string | undefined>(undefined);
+  const resumeAttemptKeyRef = useRef<string | undefined>(undefined);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [socketEpoch, setSocketEpoch] = useState(0);
+  const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
+  const reconnectStateRef = useRef<ReconnectState>(reconnectState);
+  const [reconnectSession, setReconnectSession] = useState<ReconnectSession | undefined>(() => readLatestReconnectSession());
+  const reconnectSessionRef = useRef<ReconnectSession | undefined>(reconnectSession);
+  const inActiveMatchContext = location === "/match" || snapshot?.status === "playing";
+  const inActiveMatchContextRef = useRef<boolean>(inActiveMatchContext);
+
+  useEffect(() => {
+    reconnectSessionRef.current = reconnectSession;
+  }, [reconnectSession]);
+
+  useEffect(() => {
+    reconnectStateRef.current = reconnectState;
+  }, [reconnectState]);
+
+  useEffect(() => {
+    inActiveMatchContextRef.current = inActiveMatchContext;
+  }, [inActiveMatchContext]);
+
+  useEffect(() => {
+    if (!inActiveMatchContext || !reconnectSession || reconnectState !== "idle" || privateState?.playerId) {
+      return;
+    }
+    setReconnectState("waiting");
+  }, [inActiveMatchContext, privateState?.playerId, reconnectSession, reconnectState]);
+
+  useEffect(() => {
+    if (!reconnectSession && reconnectState === "waiting") {
+      setReconnectState("idle");
+    }
+  }, [reconnectSession, reconnectState]);
+
+  useEffect(() => {
+    if (inActiveMatchContext) return;
+    if (reconnectState === "waiting" || reconnectState === "resuming") {
+      setReconnectState("idle");
+    }
+  }, [inActiveMatchContext, reconnectState]);
 
   const client = useMemo(() => {
-    return new ProtocolClient(defaultWebSocketUrl(), handleMessage, () => {});
+    return new ProtocolClient(defaultWebSocketUrl(), handleMessage, handleSocketStatus);
+
+    function handleSocketStatus(connected: boolean): void {
+      setSocketConnected(connected);
+
+      if (connected) {
+        setSocketEpoch((value) => value + 1);
+        return;
+      }
+
+      if (reconnectSessionRef.current && inActiveMatchContextRef.current) {
+        setReconnectState("waiting");
+      }
+    }
 
     function handleMessage(message: ServerMessage): void {
       if (turnHandleRef.current(message)) return;
 
       switch (message.type) {
         case "room:snapshot":
-          setSnapshot(message.snapshot);
-          if (message.private) {
-            setPrivateState({ playerId: message.private.playerId, rack: message.private.rack });
-          } else {
-            setPrivateState(undefined);
-          }
+          startTransition(() => {
+            setSnapshot(message.snapshot);
+            if (message.private) {
+              setPrivateState({ playerId: message.private.playerId, rack: message.private.rack });
+              if (message.private.reconnectToken) {
+                persistReconnectSession({
+                  roomCode: message.snapshot.code,
+                  reconnectToken: message.private.reconnectToken
+                });
+              }
+            } else {
+              setPrivateState(undefined);
+            }
+            if (resumeRequestIdRef.current && message.private?.playerId) {
+              resumeRequestIdRef.current = undefined;
+              setReconnectState("idle");
+            }
+          });
           break;
 
         case "room:presence":
-          setGhostPlacements(message.ghostPlacements);
+          startTransition(() => {
+            setGhostPlacements(message.ghostPlacements);
+          });
           break;
 
         case "action:accepted":
-          useAppStore.getState().addLog(message.action, "success");
+          if (message.action === "room:resume" && message.requestId === resumeRequestIdRef.current) {
+            resumeRequestIdRef.current = undefined;
+            setReconnectState("idle");
+          }
+
+          if (message.reconnectToken) {
+            const roomCode = message.roomCode ?? resumeRoomCodeRef.current;
+            if (roomCode) {
+              persistReconnectSession({ roomCode, reconnectToken: message.reconnectToken });
+            }
+          }
+
+          addLog(message.action, "success");
           break;
 
         case "action:rejected":
-          useAppStore.getState().addLog(message.reason, "danger");
-          useAppStore.getState().setNotice({ text: message.reason, tone: "danger" });
+          if (
+            resumeRequestIdRef.current &&
+            (message.requestId === resumeRequestIdRef.current || (message.requestId === undefined && reconnectStateRef.current === "resuming"))
+          ) {
+            resumeRequestIdRef.current = undefined;
+            handleResumeRejected(message);
+            break;
+          }
+
+          addLog(message.reason, "danger");
+          setNotice({ text: message.reason, tone: "danger" });
           break;
 
         case "match:ended":
-          useAppStore.getState().addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
-          useAppStore.getState().setNotice({
+          addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
+          setNotice({
             text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
             tone: "info",
             sticky: true
@@ -129,6 +230,31 @@ export function App() {
       }
     }
   }, []);
+
+  function persistReconnectSession(session: ReconnectSession): void {
+    writeReconnectSession(session);
+    setReconnectSession(session);
+  }
+
+  function clearReconnectRoom(roomCode: string): void {
+    clearReconnectSession(roomCode);
+    setReconnectSession((current) => (current?.roomCode === roomCode ? undefined : current));
+  }
+
+  function handleResumeRejected(message: Extract<ServerMessage, { type: "action:rejected" }>): void {
+    const isGone =
+      message.statusCode === 410 || (message.reason.toLowerCase().includes("410") && message.reason.toLowerCase().includes("gone"));
+    const roomCode = message.roomCode ?? resumeRoomCodeRef.current ?? reconnectSessionRef.current?.roomCode;
+    if (isGone && roomCode) {
+      clearReconnectRoom(roomCode);
+      setReconnectState("expired");
+      setNotice({ text: "Reconnect expired. Please join the room again.", tone: "danger", sticky: true });
+      return;
+    }
+
+    setReconnectState("failed");
+    setNotice({ text: `Reconnect failed: ${message.reason}`, tone: "danger", sticky: true });
+  }
 
   // -- Lifecycle --
   useEffect(() => {
@@ -140,15 +266,7 @@ export function App() {
     if (!notice || notice.sticky) return;
     const timerId = window.setTimeout(() => setNotice(undefined), NOTICE_AUTO_DISMISS_MS);
     return () => window.clearTimeout(timerId);
-  }, [notice]);
-
-  useEffect(() => {
-    const onPopState = () => {
-      setRoute(toRoute(window.location.pathname));
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [setRoute]);
+  }, [notice, setNotice]);
 
   // -- Derived State --
   const isPlaying = snapshot?.status === "playing";
@@ -157,61 +275,92 @@ export function App() {
   const isMyTurn = snapshot?.currentPlayerId === privateState?.playerId;
   const ownColor = snapshot?.players.find((p) => p.id === privateState?.playerId)?.color ?? color;
   const activeColor = snapshot?.players.find((p) => p.id === snapshot.currentPlayerId)?.color ?? ownColor;
+  const actionsFrozen = reconnectState === "waiting" || reconnectState === "resuming";
 
-  const turn = useTurnController({ client, isMyTurn, rack, rackSize: activeConfig.rackSize, board: snapshot?.board ?? [] });
+  const turn = useTurnController({
+    client,
+    isMyTurn,
+    actionsFrozen,
+    rack,
+    rackSize: activeConfig.rackSize,
+    board: snapshot?.board ?? []
+  });
 
   useEffect(() => {
     turnHandleRef.current = turn.handleMessage;
   });
 
-  // -- Handlers --
-  const navigate = useCallback((nextRoute: AppRoute, options?: { replace?: boolean }) => {
-    if (toRoute(window.location.pathname) !== nextRoute) {
-      if (options?.replace) {
-        window.history.replaceState(null, "", nextRoute);
-      } else {
-        window.history.pushState(null, "", nextRoute);
-      }
+  useEffect(() => {
+    if (!socketConnected || !isReconnectRoute(location)) {
+      return;
     }
-    setRoute(nextRoute);
-  }, [setRoute]);
 
+    const scopedSession = snapshot?.code ? readReconnectSession(snapshot.code) : undefined;
+    const session = scopedSession ?? reconnectSessionRef.current;
+    if (!session) {
+      return;
+    }
+
+    if (privateState?.playerId && snapshot?.code === session.roomCode) {
+      setReconnectState("idle");
+      return;
+    }
+
+    const attemptKey = `${socketEpoch}:${session.roomCode}:${session.reconnectToken}`;
+    if (resumeAttemptKeyRef.current === attemptKey) {
+      return;
+    }
+
+    const requestId = createRequestId();
+    resumeAttemptKeyRef.current = attemptKey;
+    resumeRequestIdRef.current = requestId;
+    resumeRoomCodeRef.current = session.roomCode;
+    setReconnectState("resuming");
+    client.send({ type: "room:resume", requestId, code: session.roomCode, reconnectToken: session.reconnectToken });
+  }, [client, privateState?.playerId, reconnectSession, location, snapshot?.code, socketConnected, socketEpoch]);
+
+  // -- Handlers --
   const createRoom = () => {
+    if (actionsFrozen) return;
     if (!name.trim()) return;
     client.send({ type: "room:create", requestId: createRequestId(), name: name.trim(), color, config });
-    navigate("/lobby");
+    setLocation("/lobby");
   };
 
   const joinRoom = () => {
+    if (actionsFrozen) return;
     const code = normalizeRoomCode(roomCode);
     if (!name.trim() || code.length !== 6) return;
     if (code !== roomCode) setRoomCode(code);
     client.send({ type: "room:join", requestId: createRequestId(), code, name: name.trim(), color });
-    navigate("/lobby");
+    setLocation("/lobby");
   };
 
   const configure = (nextConfig: MatchConfig) => {
+    if (actionsFrozen) return;
     setConfig(nextConfig);
     if (snapshot?.status === "lobby") {
       client.send({ type: "match:configure", requestId: createRequestId(), config: nextConfig });
     }
   };
 
-  const startMatch = () => client.send({ type: "match:start", requestId: createRequestId() });
+  const startMatch = () => {
+    if (actionsFrozen) return;
+    client.send({ type: "match:start", requestId: createRequestId() });
+  };
 
   useEffect(() => {
-    if (snapshot?.status === "playing" && route !== "/match") {
-      navigate("/match", { replace: true });
+    if (snapshot?.status === "playing" && location !== "/match") {
+      setLocation("/match", { replace: true });
       return;
     }
 
-    if (snapshot?.status === "lobby" && route === "/") {
-      navigate("/lobby", { replace: true });
+    if (snapshot?.status === "lobby" && location === "/") {
+      setLocation("/lobby", { replace: true });
     }
-  }, [navigate, route, snapshot?.status]);
+  }, [location, setLocation, snapshot?.status]);
 
-  const showLobbyPage = route !== "/match";
-  const canShowMatchPage = snapshot?.status === "playing";
+  const reconnectNotice = toReconnectNotice(reconnectState);
 
   return (
     <div
@@ -219,8 +368,26 @@ export function App() {
       style={{ ...STATIC_LAYOUT_VARS, "--active-player-color": activeColor, "--button-accent": activeColor } as CSSProperties}
     >
       <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
-        {showLobbyPage ? (
-          <>
+        {reconnectNotice && (
+          <section className={`reconnect-notice ${isPlaying ? "reconnect-notice--playing" : ""}`}>
+            <ReconnectBanner notice={reconnectNotice} />
+          </section>
+        )}
+
+        <Switch>
+          <Route path="/match">
+            {snapshot?.status === "playing" ? (
+              <TurnProvider turn={turn}>
+                <MatchLayout />
+              </TurnProvider>
+            ) : (
+              <section className="lobby-notice">
+                <NoticeBanner notice={{ text: "Match not ready yet", tone: "info" }} onDismiss={() => setLocation("/")} />
+              </section>
+            )}
+          </Route>
+
+          <Route path="*">
             <LobbyLayout
               viewMode={viewMode}
               name={name}
@@ -236,34 +403,15 @@ export function App() {
               onRoomCodeChange={setRoomCode}
               onStartMatch={startMatch}
               onViewModeChange={setViewMode}
+              actionsDisabled={actionsFrozen}
             />
             {notice && (
               <section className="lobby-notice">
                 <NoticeBanner notice={notice} onDismiss={() => setNotice()} />
               </section>
             )}
-          </>
-        ) : canShowMatchPage ? (
-          <MatchLayout
-            snapshot={snapshot}
-            ghostPlacements={ghostPlacements}
-            privateState={privateState}
-            logEntries={logEntries}
-            activeColor={activeColor}
-            ownColor={ownColor}
-            turn={turn}
-            isMyTurn={isMyTurn}
-            onOpenLog={() => setLogOpen(true)}
-            onCommitPlay={turn.commitPlay}
-            onSwapAction={turn.handleSwapAction}
-            onPassTurn={turn.passTurn}
-            onRecallRack={turn.recallRack}
-          />
-        ) : (
-          <section className="lobby-notice">
-            <NoticeBanner notice={{ text: "Match not ready yet", tone: "info" }} onDismiss={() => navigate("/")} />
-          </section>
-        )}
+          </Route>
+        </Switch>
 
         {logOpen && <LogDialog entries={logEntries} onClose={() => setLogOpen(false)} />}
       </main>
@@ -271,11 +419,33 @@ export function App() {
   );
 }
 
-function toRoute(pathname: string): AppRoute {
-  if (pathname === "/match") return "/match";
-  if (pathname === "/lobby") return "/lobby";
-  return "/";
+function isReconnectRoute(route: string): boolean {
+  return route === "/" || route === "/lobby" || route === "/match";
 }
+
+function toReconnectNotice(state: ReconnectState): NoticeState | undefined {
+  switch (state) {
+    case "waiting":
+      return { text: "Connection lost. Reconnecting...", tone: "info", sticky: true };
+    case "resuming":
+      return { text: "Resuming your room session...", tone: "info", sticky: true };
+    case "failed":
+      return { text: "Reconnect failed. Join room again to continue.", tone: "danger", sticky: true };
+    case "expired":
+      return { text: "Reconnect expired for this room. Join again.", tone: "danger", sticky: true };
+    default:
+      return undefined;
+  }
+}
+
+function ReconnectBanner({ notice }: { notice: NoticeState }) {
+  return (
+    <div className={`notice ${notice.tone} reconnect-banner`} role="status" aria-live="polite">
+      <span>{notice.text}</span>
+    </div>
+  );
+}
+
 function NoticeBanner({ notice, onDismiss }: { notice: NoticeState; onDismiss: () => void }) {
   return (
     <div className={`notice ${notice.tone}`} role="status" aria-live="polite">

@@ -1,47 +1,42 @@
 import { type CSSProperties } from "react";
 import { Check, RefreshCcw, ScrollText, SkipForward, Undo2 } from "lucide-react";
-import type { BoardTile, PublicSnapshot, Tile } from "@d-m4th/game";
+import { useShallow } from "zustand/react/shallow";
 import { BoardCanvas } from "./BoardCanvas";
 import { FaceSelectionDialog } from "./Dialogs";
 import { MatchTopBar } from "./MatchTopBar";
 import { Rack } from "./Rack";
-import type { LogEntry, NoticeTone } from "./types";
-import type { useTurnController } from "../turn/use-turn-controller";
+import { useAppStore } from "../store/app-store";
+import { useTurn } from "../turn/TurnContext";
 
-interface MatchLayoutProps {
-  snapshot: PublicSnapshot;
-  ghostPlacements: Array<{ playerId: string; placements: BoardTile[] }>;
-  privateState: { playerId: string; rack: Tile[] } | undefined;
-  logEntries: LogEntry[];
-  activeColor: string;
-  ownColor: string;
-  turn: ReturnType<typeof useTurnController>;
-  isMyTurn: boolean;
-  onOpenLog: () => void;
-  onCommitPlay: () => void;
-  onSwapAction: () => void;
-  onPassTurn: () => void;
-  onRecallRack: () => void;
-}
-
-export function MatchLayout(props: MatchLayoutProps) {
+export function MatchLayout() {
   const {
     snapshot,
     ghostPlacements,
     privateState,
     logEntries,
-    activeColor,
-    ownColor,
-    turn,
-    isMyTurn,
-    onOpenLog,
-    onCommitPlay,
-    onSwapAction,
-    onPassTurn,
-    onRecallRack
-  } = props;
+    color: ownColor,
+    setLogOpen
+  } = useAppStore(
+    useShallow((state) => ({
+      snapshot: state.snapshot,
+      ghostPlacements: state.ghostPlacements,
+      privateState: state.privateState,
+      logEntries: state.logEntries,
+      color: state.color,
+      setLogOpen: state.setLogOpen
+    }))
+  );
+
+  const turn = useTurn();
+
+  if (!snapshot) return null;
 
   const rack = privateState?.rack ?? [];
+  const activePlayer = snapshot.players.find((p) => p.id === snapshot.currentPlayerId);
+  const activeColor = activePlayer?.color ?? ownColor;
+  const activePlayerName = activePlayer?.name;
+  const isMyTurn = snapshot.currentPlayerId === privateState?.playerId;
+  const actionsFrozen = turn.actionsFrozen;
 
   return (
     <section className="play-surface">
@@ -60,7 +55,7 @@ export function MatchLayout(props: MatchLayoutProps) {
                 rack={rack}
                 currentPlayerId={privateState?.playerId}
                 selectedTileId={turn.selectedTileId}
-                placementDisabled={turn.placementDisabled}
+                placementDisabled={turn.placementDisabled || actionsFrozen}
                 onCellClick={turn.handleBoardCellClick}
                 onDraftTileDoubleClick={turn.handleBoardCellDoubleClick}
                 onTileDrop={turn.placeRackTile}
@@ -74,34 +69,39 @@ export function MatchLayout(props: MatchLayoutProps) {
                 rackSlots={turn.rackSlots}
                 selectedTileIds={turn.selectedRackTileIds}
                 playerColor={ownColor}
-                canDrag={turn.turnMode === "play"}
+                canDrag={turn.turnMode === "play" && !actionsFrozen}
                 onSelect={turn.handleRackSelect}
               />
             </section>
 
             <section className="action-panel">
+              {!isMyTurn && snapshot.status === "playing" && (
+                <div className="waiting-message">
+                  WAITING FOR {activePlayerName?.toUpperCase() ?? "OPPONENT"}...
+                </div>
+              )}
               <div className="action-bar">
                 <button
                   className="primary"
                   style={{ "--button-accent": activeColor } as CSSProperties}
-                  onClick={onCommitPlay}
-                  disabled={!isMyTurn || turn.draft.length === 0}
+                  onClick={turn.commitPlay}
+                  disabled={actionsFrozen || !isMyTurn || turn.draft.length === 0}
                 >
                   <Check size={15} aria-hidden="true" />
                   Play
                 </button>
                 <button
-                  onClick={onSwapAction}
-                  disabled={!isMyTurn || (turn.turnMode === "swap" && turn.swapSelectedTileIds.length === 0)}
+                  onClick={turn.handleSwapAction}
+                  disabled={actionsFrozen || !isMyTurn || (turn.turnMode === "swap" && turn.swapSelectedTileIds.length === 0)}
                 >
                   <RefreshCcw size={15} aria-hidden="true" />
                   {turn.turnMode === "swap" ? `Swap ${turn.swapSelectedTileIds.length}` : "Swap"}
                 </button>
-                <button onClick={onPassTurn} disabled={!isMyTurn || turn.turnMode === "swap"}>
+                <button onClick={turn.passTurn} disabled={actionsFrozen || !isMyTurn || turn.turnMode === "swap"}>
                   <SkipForward size={15} aria-hidden="true" />
                   Pass
                 </button>
-                <button onClick={onRecallRack} disabled={turn.turnMode === "play" && turn.draft.length === 0}>
+                <button onClick={turn.recallRack} disabled={actionsFrozen || (turn.turnMode === "play" && turn.draft.length === 0)}>
                   <Undo2 size={15} aria-hidden="true" />
                   {turn.turnMode === "swap" ? "Cancel" : "Recall"}
                 </button>
@@ -115,7 +115,7 @@ export function MatchLayout(props: MatchLayoutProps) {
         type="button"
         className="floating-log-button"
         aria-label="Open match log"
-        onClick={onOpenLog}
+        onClick={() => setLogOpen(true)}
       >
         <ScrollText size={18} aria-hidden="true" />
         {logEntries.length > 0 && (
