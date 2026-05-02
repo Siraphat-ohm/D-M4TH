@@ -8,6 +8,16 @@
   padding: 12px;
   background: var(--panel-strong);
   min-width: 0;
+  position: relative;
+}
+
+.waiting-message {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.05em;
+  padding-bottom: 4px;
 }
 
 .compact {
@@ -185,11 +195,24 @@ input[type="color"] {
 }
 
 .player-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.85rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.player-status {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--player-accent, var(--active-player-color));
+  background: color-mix(in srgb, var(--player-accent, var(--active-player-color)) 15%, transparent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
 }
 
 .player-time {

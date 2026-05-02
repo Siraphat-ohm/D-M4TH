@@ -22,7 +22,12 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
           <div key={player.id} className={isActive ? "player-card active" : "player-card"}>
             <div className="player-swatch" style={{ background: player.color }} />
             <div className="player-details">
-              <span className="player-name">{player.name}</span>
+              <span className="player-name">
+                {player.name}
+                {isActive && props.snapshot.status === "playing" && (
+                  <span className="player-status">PLAYING</span>
+                )}
+              </span>
               <span className="player-time">Full {props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
             </div>
             <div className="player-score-block">
