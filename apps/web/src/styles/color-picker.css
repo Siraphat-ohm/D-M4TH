@@ -22,8 +22,13 @@
   text-transform: none;
 }
 
+.color-swatch:hover:not(:disabled) {
+  border-color: #fff;
+}
+
 .color-swatch.selected {
-  border-color: var(--active-player-color);
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--active-player-color);
 }
 
 .color-custom-row {
