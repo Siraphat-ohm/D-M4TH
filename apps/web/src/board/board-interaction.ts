@@ -1,9 +1,4 @@
-import {
-  colorNumber,
-  createRenderTiles,
-  createTileRenderMetrics,
-  type RenderTile
-} from "./board-interaction";
+import type { BoardTile, Coordinate, Placement, PublicPlayer, Tile } from "@d-m4th/game";
 import { textColorForBackground } from "../ui/format";
 
 export interface BoardBounds {

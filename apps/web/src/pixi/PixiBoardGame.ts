@@ -160,6 +160,7 @@ export class PixiBoardGame {
     const app = this.app;
     this.app = undefined;
     this.root = undefined;
+    this.cache = createInitialCache();
 
     if (!app) {
       this.parent.replaceChildren();
