@@ -9,11 +9,12 @@ const PREVIEW_DEBOUNCE_MS = 150;
 export function useTurnController(params: {
   client: ProtocolClient;
   isMyTurn: boolean;
+  actionsFrozen?: boolean;
   rack: Tile[];
   rackSize: number;
   board: BoardTile[];
 }) {
-  const { client, isMyTurn, rack, rackSize, board } = params;
+  const { client, isMyTurn, actionsFrozen = false, rack, rackSize, board } = params;
 
   const occupiedCells = useMemo(() => {
     const set = new Set<string>();
@@ -26,6 +27,30 @@ export function useTurnController(params: {
   const [draftManager, setDraftManager] = useState<DraftManager>(DraftManager.empty());
   const draftRef = useRef<DraftManager>(draftManager);
   
+  const [customRackOrder, setCustomRackOrder] = useState<string[]>([]);
+
+  useEffect(() => {
+    setCustomRackOrder((prev) => {
+      const existingIds = new Set(prev);
+      const newIds = rack.map((t) => t.id).filter((id) => !existingIds.has(id));
+      if (newIds.length === 0) return prev;
+      return [...prev, ...newIds];
+    });
+  }, [rack]);
+
+  const orderedRack = useMemo(() => {
+    const rackCopy = [...rack];
+    rackCopy.sort((a, b) => {
+      const indexA = customRackOrder.indexOf(a.id);
+      const indexB = customRackOrder.indexOf(b.id);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return 0;
+    });
+    return rackCopy;
+  }, [rack, customRackOrder]);
+
   const [selectedTileId, setSelectedTileId] = useState<string>();
   const autoPreviewRequestIdRef = useRef<string | undefined>(undefined);
   const [turnMode, setTurnMode] = useState<TurnMode>("play");
@@ -34,14 +59,14 @@ export function useTurnController(params: {
 
   const draft = draftManager.placements;
   const draftTileIds = new Set(draft.map((p) => p.tileId));
-  const visibleRack = turnMode === "swap" ? rack : rack.filter((tile) => !draftTileIds.has(tile.id));
+  const visibleRack = turnMode === "swap" ? orderedRack : orderedRack.filter((tile) => !draftTileIds.has(tile.id));
   const rackSlots = createRackSlots(visibleRack, rackSize);
   const selectedRackTileIds = turnMode === "swap"
     ? new Set(swapSelectedTileIds)
     : new Set(selectedTileId ? [selectedTileId] : []);
 
   useEffect(() => {
-    if (!isMyTurn || draft.length === 0) {
+    if (!isMyTurn || actionsFrozen || draft.length === 0) {
       autoPreviewRequestIdRef.current = undefined;
       setPreviewScore(undefined);
       return;
@@ -54,7 +79,7 @@ export function useTurnController(params: {
     }, PREVIEW_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timerId);
-  }, [client, draft, isMyTurn]);
+  }, [actionsFrozen, client, draft, isMyTurn]);
 
   useEffect(() => {
     if (isMyTurn) return;
@@ -80,6 +105,7 @@ export function useTurnController(params: {
   }
 
   function updateAndBroadcastDraft(nextManager: DraftManager): void {
+    if (actionsFrozen) return;
     updateDraftManager(nextManager);
     setPreviewScore(undefined);
     client.send({
@@ -90,6 +116,7 @@ export function useTurnController(params: {
   }
 
   function handleBoardCellClick(x: number, y: number): void {
+    if (actionsFrozen) return;
     if (turnMode !== "play" || !isMyTurn) return;
 
     const targetDraft = draftRef.current.at(x, y);
@@ -99,8 +126,13 @@ export function useTurnController(params: {
       return;
     }
 
+    if (targetDraft && targetDraft.tileId !== selectedTileId) {
+      setSelectedTileId(targetDraft.tileId);
+      return;
+    }
+
     if (draftRef.current.has(selectedTileId)) {
-      if (isCellBlocked(occupiedCells, draftRef.current.at(x, y)?.tileId, selectedTileId, x, y)) {
+      if (isCellBlocked(occupiedCells, targetDraft?.tileId, selectedTileId, x, y)) {
         return;
       }
       updateAndBroadcastDraft(draftRef.current.move(selectedTileId, x, y, occupiedCells));
@@ -108,15 +140,11 @@ export function useTurnController(params: {
       return;
     }
 
-    if (targetDraft) {
-      setSelectedTileId(targetDraft.tileId);
-      return;
-    }
-
     placeRackTile(selectedTileId, x, y);
   }
 
   function placeRackTile(tileId: string, x: number, y: number): void {
+    if (actionsFrozen) return;
     const tile = rack.find((candidate) => candidate.id === tileId);
     if (turnMode !== "play" || !isMyTurn || !tile) return;
     if (isCellBlocked(occupiedCells, draftRef.current.at(x, y)?.tileId, undefined, x, y)) return;
@@ -130,6 +158,7 @@ export function useTurnController(params: {
   }
 
   function placeResolvedRackTile(tile: Tile, x: number, y: number, face?: string): void {
+    if (actionsFrozen) return;
     if (face) {
       updateAndBroadcastDraft(draftRef.current.resolveFace(face));
     }
@@ -137,6 +166,7 @@ export function useTurnController(params: {
   }
 
   function handleBoardCellDoubleClick(x: number, y: number): void {
+    if (actionsFrozen) return;
     if (turnMode !== "play" || !isMyTurn) return;
 
     const draftPlacement = draftRef.current.at(x, y);
@@ -150,12 +180,14 @@ export function useTurnController(params: {
   }
 
   function commitPlay(): void {
+    if (actionsFrozen) return;
     client.send({ type: "play:commit", requestId: createRequestId(), placements: draftRef.current.placements.map((p) => ({ ...p })) });
     updateDraftManager(draftRef.current.clear());
     setPreviewScore(undefined);
   }
 
   function handleSwapAction(): void {
+    if (actionsFrozen) return;
     if (turnMode !== "swap") {
       setTurnMode("swap");
       setSelectedTileId(undefined);
@@ -177,10 +209,12 @@ export function useTurnController(params: {
   }
 
   function passTurn(): void {
+    if (actionsFrozen) return;
     client.send({ type: "turn:pass", requestId: createRequestId() });
   }
 
   function recallRack(): void {
+    if (actionsFrozen) return;
     if (turnMode === "swap") {
       setTurnMode("play");
       setSwapSelectedTileIds([]);
@@ -193,9 +227,42 @@ export function useTurnController(params: {
     client.send({ type: "rack:recall", requestId: createRequestId() });
   }
 
+  function handleRackSwap(idA: string, idB: string): void {
+    if (idA === idB) return;
+
+    setCustomRackOrder((prev) => {
+      const indexA = prev.indexOf(idA);
+      const indexB = prev.indexOf(idB);
+
+      if (indexA === -1 || indexB === -1) return prev;
+
+      const next = [...prev];
+      next[indexA] = idB;
+      next[indexB] = idA;
+
+      return next;
+    });
+  }
+
   function handleRackSelect(tile: Tile): void {
     if (turnMode === "swap") {
+      if (actionsFrozen) return;
       setSwapSelectedTileIds((ids) => toggleSelection(ids, tile.id));
+      return;
+    }
+
+    if (selectedTileId && selectedTileId !== tile.id) {
+      if (draftTileIds.has(selectedTileId)) {
+        setSelectedTileId(tile.id);
+        return;
+      }
+      handleRackSwap(selectedTileId, tile.id);
+      setSelectedTileId(undefined);
+      return;
+    }
+
+    if (selectedTileId === tile.id) {
+      setSelectedTileId(undefined);
       return;
     }
 
@@ -241,7 +308,8 @@ export function useTurnController(params: {
     recallRack,
     handleRackSelect,
     cancelPendingFace: () => updateDraftManager(draftRef.current.cancelFace()),
-    handleMessage
+    handleMessage,
+    actionsFrozen
   };
 }
 
