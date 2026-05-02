@@ -1,4 +1,7 @@
 :root {
+  --font-ui: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-pixel: "Silkscreen", monospace;
+
   --bg: #080a0f;
   --panel: #11141c;
   --panel-strong: #171b26;
@@ -17,7 +20,7 @@
   --button-accent: var(--active-player-color);
   color: var(--text);
   background: var(--bg);
-  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-ui);
   font-size: var(--root-font-size, 16px);
   font-weight: 400;
   font-synthesis: none;
@@ -42,7 +45,7 @@ body {
 button,
 input,
 select {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-ui);
   font-size: 0.9em;
   font-weight: 400;
 }
@@ -66,7 +69,7 @@ button svg {
 button:hover:not(:disabled),
 input:focus,
 select:focus {
-  border-color: var(--active-player-color);
+  border-color: var(--text);
   outline: none;
 }
 
@@ -81,21 +84,19 @@ button:disabled {
   border-color: var(--button-accent);
   background: var(--button-accent);
   color: var(--tile-text);
-  font-family: "Silkscreen", monospace;
+  font-family: var(--font-pixel);
   letter-spacing: 0.1em;
 }
 
 h1 {
   margin: 0;
-  font-family: "Silkscreen", serif;
+  font-family: var(--font-pixel);
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 400;
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 0.15em;
 }
-
-
 
 /* Keep the game surface flat. No CRT/Balatro curvature or global filters. */
 html,

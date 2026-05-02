@@ -85,6 +85,41 @@
   max-width: 100%;
 }
 
+.rack-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.rack-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 54px;
+  height: var(--rack-tile-size);
+  padding: 0 10px;
+  border-right: 1px solid var(--panel-border);
+  color: var(--muted);
+  font-family: var(--font-pixel);
+  flex-shrink: 0;
+}
+
+.rack-meta svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
+.rack-meta strong {
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
 .action-panel {
   width: auto;
   height: auto;
@@ -122,7 +157,7 @@
 }
 
 .tile.selected {
-  border-color: var(--tile-accent, var(--active-player-color));
+  border-color: var(--tile-accent, var(--panel-border));
 }
 
 .tile span {
@@ -323,6 +358,20 @@
     width: 100%;
   }
 
+  .rack-shell {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rack-meta {
+    border-right: none;
+    border-bottom: 1px solid var(--panel-border);
+    height: auto;
+    min-width: 0;
+    padding: 4px 0;
+    align-self: stretch;
+  }
+
   .rack-panel {
     width: calc((var(--rack-tile-size) * 4) + (var(--rack-gap) * 3) + (var(--rack-shell-padding) * 2));
   }
@@ -347,6 +396,20 @@
     grid-template-columns: repeat(4, var(--rack-tile-size));
     justify-content: center;
     width: 100%;
+  }
+
+  .rack-shell {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rack-meta {
+    border-right: none;
+    border-bottom: 1px solid var(--panel-border);
+    height: auto;
+    min-width: 0;
+    padding: 4px 0;
+    align-self: stretch;
   }
 
   .rack-panel,
@@ -423,7 +486,7 @@
 
 .floating-log-button:hover:not(:disabled),
 .floating-log-button:focus-visible {
-  border-color: var(--active-player-color);
+  border-color: var(--text);
   background: rgb(17 20 28 / 94%);
   opacity: 1;
   transform: translateY(-1px);
@@ -448,10 +511,10 @@
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border: 1px solid var(--active-player-color);
+  border: 1px solid var(--panel-border);
   border-radius: 999px;
-  background: var(--active-player-color);
-  color: var(--tile-text);
+  background: var(--panel-border);
+  color: var(--text);
   font-size: 0.58rem;
   line-height: 1;
 }
@@ -493,4 +556,28 @@
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: var(--muted);
+}
+
+/* Gameplay controls pixel typography pass.
+   Append this block at the end of game.css if rack/action controls still look visually detached from the board. */
+
+.rack,
+.rack .tile,
+.rack .tile span,
+.rack .tile small,
+.action-bar,
+.action-bar button {
+  font-family: var(--font-pixel);
+}
+
+.action-bar button {
+  letter-spacing: 0.06em;
+}
+
+.tile span {
+  font-size: clamp(0.74rem, 0.86vw, 0.94rem);
+}
+
+.tile small {
+  font-size: 0.54rem;
 }

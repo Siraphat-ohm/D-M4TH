@@ -28,7 +28,7 @@
 
 .color-swatch.selected {
   border-color: #fff;
-  box-shadow: 0 0 0 2px var(--active-player-color);
+  box-shadow: 0 0 0 2px var(--text);
 }
 
 .color-custom-row {
