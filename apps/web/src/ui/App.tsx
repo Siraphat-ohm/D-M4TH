@@ -17,6 +17,7 @@ import { TurnProvider } from "../turn/TurnContext";
 import { LogDialog } from "./Dialogs";
 import { LobbyLayout } from "./LobbyLayout";
 import { MatchLayout } from "./MatchLayout";
+import { NoticeToastStack } from "./NoticeToast";
 import { normalizeRoomCode } from "./format";
 
 const NOTICE_AUTO_DISMISS_MS = 4000;
@@ -220,11 +221,14 @@ export function App() {
           break;
 
         case "match:ended":
-          addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
-          setNotice({
-            text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
-            tone: "info",
-            sticky: true
+          startTransition(() => {
+            setSnapshot(message.snapshot);
+            addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
+            setNotice({
+              text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
+              tone: "info",
+              sticky: true
+            });
           });
           break;
       }
@@ -238,6 +242,9 @@ export function App() {
 
   function clearReconnectRoom(roomCode: string): void {
     clearReconnectSession(roomCode);
+    if (reconnectSessionRef.current?.roomCode === roomCode) {
+      reconnectSessionRef.current = undefined;
+    }
     setReconnectSession((current) => (current?.roomCode === roomCode ? undefined : current));
   }
 
@@ -349,7 +356,40 @@ export function App() {
     client.send({ type: "match:start", requestId: createRequestId() });
   };
 
+  const leaveMatch = () => {
+    const activeRoomCode = snapshot?.code ?? reconnectSessionRef.current?.roomCode;
+    if (client.isConnected()) {
+      client.send({ type: "room:leave", requestId: createRequestId() });
+    }
+
+    if (activeRoomCode) {
+      clearReconnectRoom(activeRoomCode);
+    }
+
+    client.close();
+    setSocketConnected(false);
+    setReconnectState("idle");
+    resumeRequestIdRef.current = undefined;
+    resumeRoomCodeRef.current = undefined;
+    resumeAttemptKeyRef.current = undefined;
+    inActiveMatchContextRef.current = false;
+    turnHandleRef.current = () => false;
+    setSnapshot(undefined);
+    setPrivateState(undefined);
+    setGhostPlacements([]);
+    setLogOpen(false);
+    setNotice({ text: "Left match", tone: "info" });
+    setRoomCode("");
+    setViewMode("join");
+    setLocation("/", { replace: true });
+  };
+
   useEffect(() => {
+    if (snapshot?.status === "ended" && location === "/match") {
+      setLocation("/", { replace: true });
+      return;
+    }
+
     if (snapshot?.status === "playing" && location !== "/match") {
       setLocation("/match", { replace: true });
       return;
@@ -361,6 +401,10 @@ export function App() {
   }, [location, setLocation, snapshot?.status]);
 
   const reconnectNotice = toReconnectNotice(reconnectState);
+  const toastNotices = [
+    ...(reconnectNotice ? [{ id: "reconnect", notice: reconnectNotice }] : []),
+    ...(notice ? [{ id: "notice", notice, onDismiss: () => setNotice() }] : [])
+  ];
 
   return (
     <div
@@ -368,22 +412,16 @@ export function App() {
       style={{ ...STATIC_LAYOUT_VARS, "--active-player-color": activeColor, "--button-accent": activeColor } as CSSProperties}
     >
       <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
-        {reconnectNotice && (
-          <section className={`reconnect-notice ${isPlaying ? "reconnect-notice--playing" : ""}`}>
-            <ReconnectBanner notice={reconnectNotice} />
-          </section>
-        )}
-
         <Switch>
           <Route path="/match">
             {snapshot?.status === "playing" ? (
               <TurnProvider turn={turn}>
-                <MatchLayout />
+                <MatchLayout onLeaveMatch={leaveMatch} />
               </TurnProvider>
             ) : (
-              <section className="lobby-notice">
-                <NoticeBanner notice={{ text: "Match not ready yet", tone: "info" }} onDismiss={() => setLocation("/")} />
-              </section>
+              <NoticeToastStack
+                notices={[{ id: "match-not-ready", notice: { text: "Match not ready yet", tone: "info" }, onDismiss: () => setLocation("/") }]}
+              />
             )}
           </Route>
 
@@ -405,13 +443,10 @@ export function App() {
               onViewModeChange={setViewMode}
               actionsDisabled={actionsFrozen}
             />
-            {notice && (
-              <section className="lobby-notice">
-                <NoticeBanner notice={notice} onDismiss={() => setNotice()} />
-              </section>
-            )}
           </Route>
         </Switch>
+
+        <NoticeToastStack notices={toastNotices} />
 
         {logOpen && <LogDialog entries={logEntries} onClose={() => setLogOpen(false)} />}
       </main>
@@ -436,23 +471,4 @@ function toReconnectNotice(state: ReconnectState): NoticeState | undefined {
     default:
       return undefined;
   }
-}
-
-function ReconnectBanner({ notice }: { notice: NoticeState }) {
-  return (
-    <div className={`notice ${notice.tone} reconnect-banner`} role="status" aria-live="polite">
-      <span>{notice.text}</span>
-    </div>
-  );
-}
-
-function NoticeBanner({ notice, onDismiss }: { notice: NoticeState; onDismiss: () => void }) {
-  return (
-    <div className={`notice ${notice.tone}`} role="status" aria-live="polite">
-      <span>{notice.text}</span>
-      <button type="button" aria-label="Dismiss notice" onClick={onDismiss}>
-        Close
-      </button>
-    </div>
-  );
 }

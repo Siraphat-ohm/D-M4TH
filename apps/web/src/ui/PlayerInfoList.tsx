@@ -2,7 +2,7 @@ import { type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { formatTime } from "./format";
 
-export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?: number; now?: number }) {
+export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?: number; penaltyDeltas?: Record<string, number>; now?: number }) {
   const now = props.now ?? Date.now();
 
   return (
@@ -10,16 +10,22 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
       {props.snapshot.players.map((player) => {
         const isActive = props.snapshot.currentPlayerId === player.id;
         const showPreview = isActive && props.previewScore !== undefined;
+        const penaltyPoints = props.penaltyDeltas?.[player.id];
         const elapsed = isActive ? Math.max(0, now - props.snapshot.turnStartedAt) : 0;
         const fullRemaining = props.snapshot.status === "playing" ? Math.max(0, player.remainingMs - elapsed) : player.remainingMs;
         const scoreDelta = showPreview
           ? `+${props.previewScore}`
-          : player.lastPenaltyPoints !== undefined
-            ? `-${player.lastPenaltyPoints}`
+          : penaltyPoints !== undefined
+            ? `-${penaltyPoints} penalty`
             : "";
+        const deltaClassName = showPreview ? "player-delta preview" : penaltyPoints !== undefined ? "player-delta penalty" : "player-delta";
 
         return (
-          <div key={player.id} className={isActive ? "player-card active" : "player-card"}>
+          <div
+            key={player.id}
+            className={`player-card${isActive ? " active" : ""}${!isActive ? " inactive" : ""}`}
+            style={{ "--player-accent": player.color } as CSSProperties}
+          >
             <div className="player-swatch" style={{ background: player.color }} />
             <div className="player-details">
               <span className="player-name">
@@ -32,7 +38,7 @@ export function PlayerInfoList(props: { snapshot: PublicSnapshot; previewScore?:
             </div>
             <div className="player-score-block">
               <strong className={showPreview ? "player-score preview" : "player-score"}>{player.score} pts</strong>
-              <span className={showPreview ? "player-delta preview" : player.lastPenaltyPoints !== undefined ? "player-delta penalty" : "player-delta"}>
+              <span className={deltaClassName}>
                 {scoreDelta || " "}
               </span>
             </div>

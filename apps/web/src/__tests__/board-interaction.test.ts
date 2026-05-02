@@ -5,7 +5,7 @@ import {
   createTileRenderMetrics,
   snapClientPointToBoardCell,
   textColorForPlayerColor
-} from "./board-interaction";
+} from "../board/board-interaction";
 
 describe("board interaction", () => {
   test("snaps client coordinates using the visible board bounds", () => {

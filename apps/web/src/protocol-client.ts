@@ -59,6 +59,10 @@ export class ProtocolClient {
     socket.close();
   }
 
+  isConnected(): boolean {
+    return this.socket?.readyState === WebSocket.OPEN;
+  }
+
   private openSocket(): void {
     const socket = new WebSocket(this.url);
     this.socket = socket;

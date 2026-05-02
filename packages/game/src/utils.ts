@@ -33,8 +33,16 @@ export function getPlayer(match: MatchState, playerId: string): Player {
 
 export function nextTurnPlayer(match: MatchState): string {
   const currentIndex = match.playerOrder.indexOf(match.currentPlayerId ?? "");
-  const nextIndex = (currentIndex + 1) % match.playerOrder.length;
-  return match.playerOrder[nextIndex];
+  for (let offset = 1; offset <= match.playerOrder.length; offset += 1) {
+    const nextIndex = (currentIndex + offset) % match.playerOrder.length;
+    const playerId = match.playerOrder[nextIndex];
+    const player = match.players.find((candidate) => candidate.id === playerId);
+    if (player && !player.left) {
+      return playerId;
+    }
+  }
+
+  throw new Error("No active players remain");
 }
 
 export function toPublicPlayer(player: Player): PublicPlayer {
@@ -46,7 +54,8 @@ export function toPublicPlayer(player: Player): PublicPlayer {
     lastPenaltyPoints: player.lastPenaltyPoints,
     rackCount: player.rack.length,
     remainingMs: player.remainingMs,
-    connected: player.connected
+    connected: player.connected,
+    left: player.left
   };
 }
 

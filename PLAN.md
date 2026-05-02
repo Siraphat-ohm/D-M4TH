@@ -27,6 +27,9 @@ The match UI is now built around the **Monochrome + Player Accent** direction:
 
 ## Remaining UI Work
 
+- Implement explicit intentional-leave flow: client sends `room:leave`, clears only that room's reconnect token, and closes intentionally.
+- Keep server state authoritative for leave/forfeit: intentional leave can end a match when fewer than two active players remain; accidental disconnect must still allow reconnect.
+- Refactor gameplay notices into compact non-blocking toasts that avoid the board, rack, and action controls.
 - Run browser QA after every gameplay layout/theme change at desktop, laptop, tablet, and mobile sizes.
 - Tune board/rack/action/log proportions using Chrome screenshots, not only CSS inspection.
 - Decide final phone rack behavior: keep 8-wide with horizontal scroll or wrap to 4x2.

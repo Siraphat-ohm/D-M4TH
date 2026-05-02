@@ -8,7 +8,7 @@ import { Rack } from "./Rack";
 import { useAppStore } from "../store/app-store";
 import { useTurn } from "../turn/TurnContext";
 
-export function MatchLayout() {
+export function MatchLayout(props: { onLeaveMatch: () => void }) {
   const {
     snapshot,
     ghostPlacements,
@@ -34,14 +34,13 @@ export function MatchLayout() {
   const rack = privateState?.rack ?? [];
   const activePlayer = snapshot.players.find((p) => p.id === snapshot.currentPlayerId);
   const activeColor = activePlayer?.color ?? ownColor;
-  const activePlayerName = activePlayer?.name;
   const isMyTurn = snapshot.currentPlayerId === privateState?.playerId;
   const actionsFrozen = turn.actionsFrozen;
 
   return (
     <section className="play-surface">
       <section className="match-topbar">
-        <MatchTopBar snapshot={snapshot} previewScore={turn.previewScore} />
+        <MatchTopBar snapshot={snapshot} previewScore={turn.previewScore} onLeaveMatch={props.onLeaveMatch} />
       </section>
 
       <section className="match-main">

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isCellBlocked, toggleSelection } from "./turn-controls";
+import { isCellBlocked, toggleSelection } from "../turn/turn-controls";
 
 describe("turn controls", () => {
   test("toggles rack swap selection", () => {

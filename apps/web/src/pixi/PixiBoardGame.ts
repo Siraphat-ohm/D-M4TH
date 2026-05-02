@@ -36,9 +36,15 @@ export class PixiBoardGame {
   constructor(private readonly parent: HTMLElement, private readonly initialSize: number) {}
 
   async init(): Promise<void> {
-    const { Application, Container } = await import("pixi.js");
+    const { Application, BitmapFont, Container } = await import("pixi.js");
     await waitForFonts();
-    
+
+    BitmapFont.install({
+      name: "Silkscreen",
+      style: { fontFamily: "Silkscreen", fontSize: 64 },
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~★×÷±≤≥"
+    });
+
     const app = new Application();
     const bootSize = sanitizeSize(this.initialSize);
     const resolution = renderResolutionForSize(bootSize);
@@ -50,12 +56,13 @@ export class PixiBoardGame {
       antialias: false,
       autoDensity: true,
       autoStart: false,
+      preference: "webgl",
       resolution,
       roundPixels: true
     });
 
     if (this.disposed) {
-      app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true });
+      app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true });
       return;
     }
 
@@ -131,7 +138,7 @@ export class PixiBoardGame {
     });
 
     if (this.disposed) {
-      app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true });
+      app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true });
       return;
     }
 
@@ -160,7 +167,7 @@ export class PixiBoardGame {
     }
 
     try {
-      app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true });
+      app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true });
     } catch {
       // Pixi destroy signatures have changed across v8 minors.
     }

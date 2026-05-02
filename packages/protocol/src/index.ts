@@ -4,6 +4,8 @@ import type { BoardTile, Placement, PrivatePlayerPayload, PublicSnapshot, ScoreB
 export type ClientMessage =
   | { type: "room:create"; requestId: string; name: string; color: string; config?: MatchConfig }
   | { type: "room:join"; requestId: string; code: string; name: string; color: string }
+  | { type: "room:resume"; requestId: string; code: string; reconnectToken: string }
+  | { type: "room:leave"; requestId: string }
   | { type: "match:configure"; requestId: string; config: MatchConfig }
   | { type: "match:start"; requestId: string }
   | { type: "placement:draft"; requestId: string; placements: Placement[] }
@@ -14,12 +16,37 @@ export type ClientMessage =
   | { type: "rack:recall"; requestId: string };
 
 export type ServerMessage =
-  | { type: "room:snapshot"; snapshot: PublicSnapshot; private?: PrivatePlayerPayload }
+  | { type: "room:snapshot"; snapshot: PublicSnapshot; private?: PrivatePlayerPayload & { reconnectToken?: string } }
   | { type: "room:presence"; ghostPlacements: Array<{ playerId: string; placements: BoardTile[] }> }
   | { type: "play:previewed"; requestId: string; score: ScoreBreakdown }
-  | { type: "action:accepted"; requestId: string; action: string }
-  | { type: "action:rejected"; requestId?: string; reason: string }
+  | { type: "action:accepted"; requestId: string; action: string; roomCode?: string; reconnectToken?: string }
+  | { type: "action:rejected"; requestId?: string; reason: string; statusCode?: number; roomCode?: string }
   | { type: "match:ended"; snapshot: PublicSnapshot };
+
+export interface ReconnectIssueRequest {
+  roomCode: string;
+  playerId: string;
+}
+
+export interface ReconnectIssueResponse {
+  roomCode: string;
+  playerId: string;
+  reconnectToken: string;
+  expiresAtMs: number;
+}
+
+export interface ReconnectResumeRequest {
+  roomCode: string;
+  playerId?: string;
+  reconnectToken: string;
+}
+
+export interface ReconnectResumeResponse {
+  roomCode: string;
+  playerId: string;
+  reconnectToken: string;
+  expiresAtMs: number;
+}
 
 export function parseClientMessage(rawMessage: string): ClientMessage {
   const parsed: unknown = JSON.parse(rawMessage);
@@ -44,6 +71,18 @@ export function parseClientMessage(rawMessage: string): ClientMessage {
         code: readString(parsed, "code").toUpperCase(),
         name: readString(parsed, "name"),
         color: readString(parsed, "color")
+      };
+    case "room:resume":
+      return {
+        type: parsed.type,
+        requestId: readString(parsed, "requestId"),
+        code: readString(parsed, "code").toUpperCase(),
+        reconnectToken: readString(parsed, "reconnectToken")
+      };
+    case "room:leave":
+      return {
+        type: parsed.type,
+        requestId: readString(parsed, "requestId")
       };
     case "match:configure":
       return {
@@ -79,6 +118,29 @@ export function parseClientMessage(rawMessage: string): ClientMessage {
 
 export function encodeServerMessage(message: ServerMessage): string {
   return JSON.stringify(message);
+}
+
+export function parseReconnectIssueRequest(payload: unknown): ReconnectIssueRequest {
+  if (!isRecord(payload)) {
+    throw new Error("Request body must be an object");
+  }
+
+  return {
+    roomCode: readString(payload, "roomCode").toUpperCase(),
+    playerId: readString(payload, "playerId")
+  };
+}
+
+export function parseReconnectResumeRequest(payload: unknown): ReconnectResumeRequest {
+  if (!isRecord(payload)) {
+    throw new Error("Request body must be an object");
+  }
+
+  return {
+    roomCode: readString(payload, "roomCode").toUpperCase(),
+    playerId: readOptionalString(payload, "playerId"),
+    reconnectToken: readString(payload, "reconnectToken")
+  };
 }
 
 function readPlacements(value: unknown): Placement[] {

@@ -23,7 +23,11 @@ export class RoomRegistry {
   private readonly roomsByCode = new Map<string, RoomRecord>();
   private readonly sessionsByConnection = new Map<string, RoomSession>();
 
-  constructor(private readonly engine = new GameEngine()) {}
+  constructor(
+    private readonly engine = new GameEngine(),
+    private readonly issueReconnectToken?: (roomCode: string, playerId: string) => string,
+    private readonly revokeReconnectBinding?: (roomCode: string, playerId: string, reason: string) => void
+  ) {}
 
   handleRawMessage(connection: RoomConnection, rawMessage: string): void {
     try {
@@ -64,6 +68,29 @@ export class RoomRegistry {
     return this.roomsByCode.get(code.toUpperCase())?.match;
   }
 
+  hasPlayer(roomCode: string, playerId: string): boolean {
+    const room = this.roomsByCode.get(roomCode.toUpperCase());
+    return room ? room.match.players.some((player) => player.id === playerId && !player.left) : false;
+  }
+
+  resumeConnection(connection: RoomConnection, roomCode: string, playerId: string): boolean {
+    const room = this.roomsByCode.get(roomCode.toUpperCase());
+    if (!room) {
+      return false;
+    }
+
+    const player = room.match.players.find((candidate) => candidate.id === playerId);
+    if (!player || player.left) {
+      return false;
+    }
+
+    this.detachPlayerConnections(room, playerId, connection.id);
+    this.attach(connection, room, playerId);
+    this.broadcastPresence(room, connection.id);
+    this.broadcastSnapshot(room);
+    return true;
+  }
+
   private handleMessage(connection: RoomConnection, message: ClientMessage): void {
     switch (message.type) {
       case "room:create":
@@ -71,6 +98,9 @@ export class RoomRegistry {
         break;
       case "room:join":
         this.joinRoom(connection, message);
+        break;
+      case "room:leave":
+        this.leaveRoom(connection, message);
         break;
       case "match:configure":
         this.configureMatch(connection, message);
@@ -115,7 +145,13 @@ export class RoomRegistry {
 
     this.roomsByCode.set(match.code, room);
     this.attach(connection, room, host.id);
-    this.send(connection, { type: "action:accepted", requestId: message.requestId, action: "room:create" });
+    this.send(connection, {
+      type: "action:accepted",
+      requestId: message.requestId,
+      action: "room:create",
+      roomCode: match.code,
+      reconnectToken: this.issueReconnectToken?.(match.code, host.id)
+    });
     this.broadcastSnapshot(room);
   }
 
@@ -129,8 +165,33 @@ export class RoomRegistry {
     }
 
     this.attach(connection, room, result.value.id);
-    this.send(connection, { type: "action:accepted", requestId: message.requestId, action: "room:join" });
+    this.send(connection, {
+      type: "action:accepted",
+      requestId: message.requestId,
+      action: "room:join",
+      roomCode: room.match.code,
+      reconnectToken: this.issueReconnectToken?.(room.match.code, result.value.id)
+    });
     this.broadcastSnapshot(room);
+  }
+
+  private leaveRoom(connection: RoomConnection, message: Extract<ClientMessage, { type: "room:leave" }>): void {
+    const session = this.readSession(connection);
+    const room = this.readRoom(session.roomCode);
+    const result = this.engine.leaveMatch(room.match, session.playerId);
+
+    if (!result.ok) {
+      this.reject(connection, message.requestId, result.error);
+      return;
+    }
+
+    this.revokeReconnectBinding?.(session.roomCode, session.playerId, "intentional_leave");
+    room.ghostPlacements.delete(session.playerId);
+    this.send(connection, { type: "action:accepted", requestId: message.requestId, action: "room:leave" });
+    this.detachConnection(room, connection.id);
+    this.broadcastPresence(room);
+    this.broadcastSnapshot(room);
+    this.broadcastEndedIfNeeded(room);
   }
 
   private configureMatch(connection: RoomConnection, message: Extract<ClientMessage, { type: "match:configure" }>): void {
@@ -243,6 +304,24 @@ export class RoomRegistry {
     room.sessions.set(connection.id, session);
     this.sessionsByConnection.set(connection.id, session);
     readPlayer(room.match, playerId).connected = true;
+  }
+
+  private detachPlayerConnections(room: RoomRecord, playerId: string, exceptConnectionId?: string): void {
+    for (const [connectionId, session] of room.sessions) {
+      if (session.playerId !== playerId || connectionId === exceptConnectionId) {
+        continue;
+      }
+
+      room.sessions.delete(connectionId);
+      room.connections.delete(connectionId);
+      this.sessionsByConnection.delete(connectionId);
+    }
+  }
+
+  private detachConnection(room: RoomRecord, connectionId: string): void {
+    room.sessions.delete(connectionId);
+    room.connections.delete(connectionId);
+    this.sessionsByConnection.delete(connectionId);
   }
 
   private broadcastSnapshot(room: RoomRecord | undefined): void {

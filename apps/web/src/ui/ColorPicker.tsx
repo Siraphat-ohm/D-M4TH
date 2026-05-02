@@ -11,7 +11,7 @@ const PRESET_COLORS = [
   "#F97316"
 ] as const;
 
-export function ColorPicker(props: { value: string; onChange: (color: string) => void }) {
+export function ColorPicker(props: { value: string; onChange: (color: string) => void; disabled?: boolean }) {
   const selectedColor = normalizeColorValue(props.value).toLowerCase();
 
   return (
@@ -32,6 +32,7 @@ export function ColorPicker(props: { value: string; onChange: (color: string) =>
               onClick={() => props.onChange(presetColor)}
               aria-label={`Select color ${presetColor}`}
               aria-pressed={isSelected}
+              disabled={props.disabled}
             >
               {isSelected ? "✓" : ""}
             </button>
@@ -48,6 +49,7 @@ export function ColorPicker(props: { value: string; onChange: (color: string) =>
           value={selectedColor}
           onChange={(event) => props.onChange(event.target.value)}
           aria-label="Custom player color"
+          disabled={props.disabled}
         />
       </div>
     </div>

@@ -12,12 +12,31 @@
 }
 
 .waiting-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
   text-align: center;
   letter-spacing: 0.05em;
   padding-bottom: 4px;
+}
+
+.waiting-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border);
+}
+
+.action-panel--waiting {
+  opacity: 0.6;
+}
+
+.action-panel--waiting .waiting-message {
+  opacity: 1;
 }
 
 .compact {
@@ -105,6 +124,12 @@ input[type="color"] {
   padding: 8px;
 }
 
+.lobby-player-row .swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--panel-border);
+}
+
 .lobby-player-score {
   color: var(--muted);
 }
@@ -154,12 +179,64 @@ input[type="color"] {
   white-space: nowrap;
 }
 
+.notice-toast-stack {
+  position: fixed;
+  top: clamp(10px, 1.4dvh, 18px);
+  right: clamp(10px, 1.4vw, 18px);
+  z-index: 28;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  width: min(340px, calc(100vw - 20px));
+  pointer-events: none;
+}
+
+.notice-toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--panel-border);
+  background: rgb(17 20 28 / 92%);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  pointer-events: auto;
+}
+
+.notice-toast span {
+  min-width: 0;
+}
+
+.notice-toast button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.64rem;
+}
+
+.notice-toast--success {
+  border-color: color-mix(in srgb, var(--active-player-color) 60%, var(--panel-border));
+}
+
+.notice-toast--danger {
+  border-color: #80394d;
+}
+
+.notice-toast--info {
+  border-color: var(--panel-border);
+}
+
 .player-list {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--match-gap);
-  align-items: stretch;
+  align-items: center;
 }
 
 .player-card {
@@ -177,6 +254,12 @@ input[type="color"] {
 
 .player-card.active {
   border-color: var(--player-accent, var(--active-player-color));
+  border-width: 2px;
+  background: color-mix(in srgb, var(--player-accent, var(--active-player-color)) 10%, var(--panel-strong));
+}
+
+.player-card.inactive {
+  opacity: 0.7;
 }
 
 .player-swatch {
@@ -209,7 +292,7 @@ input[type="color"] {
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--player-accent, var(--active-player-color));
-  background: color-mix(in srgb, var(--player-accent, var(--active-player-color)) 15%, transparent);
+  background: color-mix(in srgb, var(--player-accent, var(--active-player-color)) 20%, transparent);
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.05em;
@@ -252,6 +335,5 @@ input[type="color"] {
 }
 
 .player-delta.penalty {
-  color: var(--muted);
+  color: #c88491;
 }
-

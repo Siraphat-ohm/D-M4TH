@@ -18,6 +18,7 @@ interface LobbyLayoutProps {
   onRoomCodeChange: (code: string) => void;
   onStartMatch: () => void;
   onViewModeChange: (mode: "create" | "join") => void;
+  actionsDisabled: boolean;
 }
 
 const EMPTY_RACK: Tile[] = [];
@@ -39,7 +40,8 @@ export function LobbyLayout(props: LobbyLayoutProps) {
     onNameChange,
     onRoomCodeChange,
     onStartMatch,
-    onViewModeChange
+    onViewModeChange,
+    actionsDisabled
   } = props;
 
   const playerName = name.trim();
@@ -62,6 +64,7 @@ export function LobbyLayout(props: LobbyLayoutProps) {
         onRoomCodeChange={onRoomCodeChange}
         onStartMatch={onStartMatch}
         onViewModeChange={onViewModeChange}
+        actionsDisabled={actionsDisabled}
       />
 
       <section className="setup-preview">

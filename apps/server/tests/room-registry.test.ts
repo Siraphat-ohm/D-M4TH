@@ -45,6 +45,26 @@ describe("room registry", () => {
     expect(presenceMessage).toBeDefined();
     expect(presenceMessage.ghostPlacements[0].placements).toHaveLength(1);
   });
+
+  test("resumeConnection reattaches existing player identity", () => {
+    const registry = new RoomRegistry();
+    const host = createConnection("host");
+    const resumed = createConnection("host-resumed");
+
+    registry.handleRawMessage(host, JSON.stringify({ type: "room:create", requestId: "1", name: "Ada", color: "#f97316" }));
+
+    const snapshot = lastSnapshot(host);
+    const roomCode = snapshot.snapshot.code;
+    const playerId = snapshot.private?.playerId;
+    expect(playerId).toBeString();
+
+    const resumedOk = registry.resumeConnection(resumed, roomCode, playerId!);
+    expect(resumedOk).toBe(true);
+
+    const resumedSnapshot = lastSnapshot(resumed);
+    expect(resumedSnapshot.private?.playerId).toBe(playerId);
+    expect(resumedSnapshot.snapshot.players.find((player) => player.id === playerId)?.connected).toBe(true);
+  });
 });
 
 function createConnection(id: string): RoomConnection & { messages: ServerMessage[] } {

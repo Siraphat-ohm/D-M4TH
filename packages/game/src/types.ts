@@ -40,6 +40,7 @@ export interface Player {
   rack: Tile[];
   remainingMs: number;
   connected: boolean;
+  left?: boolean;
 }
 
 export interface PublicPlayer {
@@ -51,6 +52,7 @@ export interface PublicPlayer {
   rackCount: number;
   remainingMs: number;
   connected: boolean;
+  left?: boolean;
 }
 
 export interface Placement extends Coordinate {

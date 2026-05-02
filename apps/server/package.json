@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@d-m4th/config": "workspace:*",
+    "@d-m4th/db": "workspace:*",
     "@d-m4th/game": "workspace:*",
     "@d-m4th/protocol": "workspace:*"
   },

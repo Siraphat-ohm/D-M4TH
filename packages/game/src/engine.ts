@@ -258,6 +258,43 @@ export class GameEngine {
     }
   }
 
+  leaveMatch(match: MatchState, playerId: string, now = Date.now()): EngineResult<MatchState> {
+    try {
+      const player = getPlayer(match, playerId);
+      player.connected = false;
+      player.left = true;
+
+      if (match.status === "lobby") {
+        match.players = match.players.filter((candidate) => candidate.id !== playerId);
+        match.playerOrder = match.playerOrder.filter((id) => id !== playerId);
+        return accepted(match);
+      }
+
+      if (match.status !== "playing") {
+        return accepted(match);
+      }
+
+      const activePlayerIds = new Set(match.players.filter((candidate) => !candidate.left).map((candidate) => candidate.id));
+      match.playerOrder = match.playerOrder.filter((id) => activePlayerIds.has(id));
+
+      if (activePlayerIds.size < 2) {
+        match.status = "ended";
+        match.endedReason = "player-left";
+        match.turnStartedAt = now;
+        return accepted(match);
+      }
+
+      if (match.currentPlayerId === playerId) {
+        match.currentPlayerId = nextTurnPlayer(match);
+        match.turnStartedAt = now;
+      }
+
+      return accepted(match);
+    } catch (error) {
+      return rejected(errorMessage(error));
+    }
+  }
+
   createSnapshot(match: MatchState): PublicSnapshot {
     return {
       id: match.id,
