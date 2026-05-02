@@ -15,13 +15,13 @@ import { useAppStore, type NoticeState } from "../store/app-store";
 import { useTurnController } from "../turn/use-turn-controller";
 import { TurnProvider } from "../turn/TurnContext";
 import { LogDialog } from "./Dialogs";
+import { leaveMatch as leaveMatchFlow, type ReconnectState } from "./leave-match";
 import { LobbyLayout } from "./LobbyLayout";
 import { MatchLayout } from "./MatchLayout";
 import { NoticeToastStack } from "./NoticeToast";
 import { normalizeRoomCode } from "./format";
 
 const NOTICE_AUTO_DISMISS_MS = 4000;
-type ReconnectState = "idle" | "waiting" | "resuming" | "failed" | "expired";
 
 const STATIC_LAYOUT_VARS = {
   "--layout-scale": "1",
@@ -357,31 +357,27 @@ export function App() {
   };
 
   const leaveMatch = () => {
-    const activeRoomCode = snapshot?.code ?? reconnectSessionRef.current?.roomCode;
-    if (client.isConnected()) {
-      client.send({ type: "room:leave", requestId: createRequestId() });
-    }
-
-    if (activeRoomCode) {
-      clearReconnectRoom(activeRoomCode);
-    }
-
-    client.close();
-    setSocketConnected(false);
-    setReconnectState("idle");
-    resumeRequestIdRef.current = undefined;
-    resumeRoomCodeRef.current = undefined;
-    resumeAttemptKeyRef.current = undefined;
-    inActiveMatchContextRef.current = false;
-    turnHandleRef.current = () => false;
-    setSnapshot(undefined);
-    setPrivateState(undefined);
-    setGhostPlacements([]);
-    setLogOpen(false);
-    setNotice({ text: "Left match", tone: "info" });
-    setRoomCode("");
-    setViewMode("join");
-    setLocation("/", { replace: true });
+    leaveMatchFlow({
+      client,
+      snapshotCode: snapshot?.code,
+      reconnectSession: reconnectSessionRef.current,
+      clearReconnectRoom,
+      setSocketConnected,
+      setReconnectState,
+      resumeRequestIdRef,
+      resumeRoomCodeRef,
+      resumeAttemptKeyRef,
+      inActiveMatchContextRef,
+      turnHandleRef,
+      setSnapshot,
+      setPrivateState,
+      setGhostPlacements,
+      setLogOpen,
+      setNotice,
+      setRoomCode,
+      setViewMode,
+      setLocation
+    });
   };
 
   useEffect(() => {

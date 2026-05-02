@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DraftManager, type BoardTile, type Placement, type Tile } from "@d-m4th/game";
-import type { ServerMessage } from "@d-m4th/protocol";
-import { createRequestId, type ProtocolClient } from "../protocol-client";
-import { isCellBlocked, toggleSelection, type TurnMode } from "./turn-controls";
+import { DraftManager, type Tile } from "@d-m4th/game";
+import { isCellBlocked } from "./turn-controls";
+import type { TurnControllerState, UseTurnControllerParams } from "./turn-controller-types";
+import { createRackSlots, useRackOrder } from "./use-rack-order";
+import { useScorePreview } from "./use-score-preview";
+import { useSwapMode } from "./use-swap-mode";
+import { useTurnActions } from "./use-turn-actions";
 
-const PREVIEW_DEBOUNCE_MS = 150;
-
-export function useTurnController(params: {
-  client: ProtocolClient;
-  isMyTurn: boolean;
-  actionsFrozen?: boolean;
-  rack: Tile[];
-  rackSize: number;
-  board: BoardTile[];
-}) {
+export function useTurnController(params: UseTurnControllerParams): TurnControllerState {
   const { client, isMyTurn, actionsFrozen = false, rack, rackSize, board } = params;
+  const turnActions = useTurnActions(client, actionsFrozen);
+  const { orderedRack, handleRackSwap } = useRackOrder(rack);
+  const {
+    enterSwapMode,
+    exitSwapMode,
+    swapSelectedTileIds,
+    toggleSwapTile,
+    turnMode
+  } = useSwapMode();
 
   const occupiedCells = useMemo(() => {
     const set = new Set<string>();
@@ -26,37 +29,7 @@ export function useTurnController(params: {
 
   const [draftManager, setDraftManager] = useState<DraftManager>(DraftManager.empty());
   const draftRef = useRef<DraftManager>(draftManager);
-  
-  const [customRackOrder, setCustomRackOrder] = useState<string[]>([]);
-
-  useEffect(() => {
-    setCustomRackOrder((prev) => {
-      const existingIds = new Set(prev);
-      const newIds = rack.map((t) => t.id).filter((id) => !existingIds.has(id));
-      if (newIds.length === 0) return prev;
-      return [...prev, ...newIds];
-    });
-  }, [rack]);
-
-  const orderedRack = useMemo(() => {
-    const rackCopy = [...rack];
-    rackCopy.sort((a, b) => {
-      const indexA = customRackOrder.indexOf(a.id);
-      const indexB = customRackOrder.indexOf(b.id);
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return 0;
-    });
-    return rackCopy;
-  }, [rack, customRackOrder]);
-
   const [selectedTileId, setSelectedTileId] = useState<string>();
-  const autoPreviewRequestIdRef = useRef<string | undefined>(undefined);
-  const [turnMode, setTurnMode] = useState<TurnMode>("play");
-  const [swapSelectedTileIds, setSwapSelectedTileIds] = useState<string[]>([]);
-  const [previewScore, setPreviewScore] = useState<number>();
-
   const draft = draftManager.placements;
   const draftTileIds = new Set(draft.map((p) => p.tileId));
   const visibleRack = turnMode === "swap" ? orderedRack : orderedRack.filter((tile) => !draftTileIds.has(tile.id));
@@ -64,30 +37,15 @@ export function useTurnController(params: {
   const selectedRackTileIds = turnMode === "swap"
     ? new Set(swapSelectedTileIds)
     : new Set(selectedTileId ? [selectedTileId] : []);
-
-  useEffect(() => {
-    if (!isMyTurn || actionsFrozen || draft.length === 0) {
-      autoPreviewRequestIdRef.current = undefined;
-      setPreviewScore(undefined);
-      return;
-    }
-
-    const requestId = `auto-preview:${createRequestId()}`;
-    autoPreviewRequestIdRef.current = requestId;
-    const timerId = window.setTimeout(() => {
-      client.send({ type: "play:preview", requestId, placements: draft.map((p) => ({ ...p })) });
-    }, PREVIEW_DEBOUNCE_MS);
-
-    return () => window.clearTimeout(timerId);
-  }, [actionsFrozen, client, draft, isMyTurn]);
+  const { clearPreviewScore, handlePreviewMessage, previewScore } = useScorePreview({ client, isMyTurn, actionsFrozen, draft });
 
   useEffect(() => {
     if (isMyTurn) return;
     if (draftRef.current.placements.length === 0 && !selectedTileId) return;
     updateDraftManager(draftRef.current.clear());
     setSelectedTileId(undefined);
-    setPreviewScore(undefined);
-  }, [isMyTurn, selectedTileId]);
+    clearPreviewScore();
+  }, [clearPreviewScore, isMyTurn, selectedTileId]);
 
   useEffect(() => {
     if (draftRef.current.placements.length === 0) return;
@@ -96,8 +54,8 @@ export function useTurnController(params: {
     if (!hasOutdatedDraft) return;
     updateDraftManager(draftRef.current.clear());
     setSelectedTileId(undefined);
-    setPreviewScore(undefined);
-  }, [rack]);
+    clearPreviewScore();
+  }, [clearPreviewScore, rack]);
 
   function updateDraftManager(nextManager: DraftManager): void {
     draftRef.current = nextManager;
@@ -107,12 +65,8 @@ export function useTurnController(params: {
   function updateAndBroadcastDraft(nextManager: DraftManager): void {
     if (actionsFrozen) return;
     updateDraftManager(nextManager);
-    setPreviewScore(undefined);
-    client.send({
-      type: "placement:draft",
-      requestId: createRequestId(),
-      placements: nextManager.placements.map((p) => ({ ...p }))
-    });
+    clearPreviewScore();
+    turnActions.sendDraft(nextManager.placements);
   }
 
   function handleBoardCellClick(x: number, y: number): void {
@@ -181,73 +135,53 @@ export function useTurnController(params: {
 
   function commitPlay(): void {
     if (actionsFrozen) return;
-    client.send({ type: "play:commit", requestId: createRequestId(), placements: draftRef.current.placements.map((p) => ({ ...p })) });
+    turnActions.sendCommitPlay(draftRef.current.placements);
     updateDraftManager(draftRef.current.clear());
-    setPreviewScore(undefined);
+    clearPreviewScore();
   }
 
   function handleSwapAction(): void {
     if (actionsFrozen) return;
     if (turnMode !== "swap") {
-      setTurnMode("swap");
+      enterSwapMode();
       setSelectedTileId(undefined);
       updateDraftManager(draftRef.current.cancelFace());
-      setSwapSelectedTileIds([]);
 
       if (draftRef.current.placements.length > 0) {
         updateDraftManager(draftRef.current.clear());
-        client.send({ type: "rack:recall", requestId: createRequestId() });
+        turnActions.sendRecallRack();
       }
       return;
     }
 
     if (swapSelectedTileIds.length === 0) return;
 
-    client.send({ type: "turn:swap", requestId: createRequestId(), tileIds: swapSelectedTileIds });
-    setSwapSelectedTileIds([]);
-    setTurnMode("play");
+    turnActions.sendSwap(swapSelectedTileIds);
+    exitSwapMode();
   }
 
   function passTurn(): void {
     if (actionsFrozen) return;
-    client.send({ type: "turn:pass", requestId: createRequestId() });
+    turnActions.sendPass();
   }
 
   function recallRack(): void {
     if (actionsFrozen) return;
     if (turnMode === "swap") {
-      setTurnMode("play");
-      setSwapSelectedTileIds([]);
+      exitSwapMode();
       return;
     }
 
     updateDraftManager(draftRef.current.clear());
     setSelectedTileId(undefined);
-    setPreviewScore(undefined);
-    client.send({ type: "rack:recall", requestId: createRequestId() });
-  }
-
-  function handleRackSwap(idA: string, idB: string): void {
-    if (idA === idB) return;
-
-    setCustomRackOrder((prev) => {
-      const indexA = prev.indexOf(idA);
-      const indexB = prev.indexOf(idB);
-
-      if (indexA === -1 || indexB === -1) return prev;
-
-      const next = [...prev];
-      next[indexA] = idB;
-      next[indexB] = idA;
-
-      return next;
-    });
+    clearPreviewScore();
+    turnActions.sendRecallRack();
   }
 
   function handleRackSelect(tile: Tile): void {
     if (turnMode === "swap") {
       if (actionsFrozen) return;
-      setSwapSelectedTileIds((ids) => toggleSelection(ids, tile.id));
+      toggleSwapTile(tile.id);
       return;
     }
 
@@ -267,24 +201,7 @@ export function useTurnController(params: {
     }
 
     setSelectedTileId(tile.id);
-    setPreviewScore(undefined);
-  }
-
-  function handleMessage(message: ServerMessage): boolean {
-    if (message.type === "play:previewed") {
-      if (message.requestId !== autoPreviewRequestIdRef.current) return false;
-      setPreviewScore(message.score.totalScore);
-      return true;
-    }
-
-    if (message.type === "action:rejected") {
-      if (message.requestId === autoPreviewRequestIdRef.current) {
-        setPreviewScore(undefined);
-        return true;
-      }
-    }
-
-    return false;
+    clearPreviewScore();
   }
 
   return {
@@ -308,11 +225,7 @@ export function useTurnController(params: {
     recallRack,
     handleRackSelect,
     cancelPendingFace: () => updateDraftManager(draftRef.current.cancelFace()),
-    handleMessage,
+    handleMessage: handlePreviewMessage,
     actionsFrozen
   };
-}
-
-function createRackSlots(rack: readonly Tile[], rackSize: number): Array<Tile | undefined> {
-  return [...rack, ...Array.from({ length: Math.max(0, rackSize - rack.length) }, () => undefined)];
 }

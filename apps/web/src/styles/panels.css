@@ -206,6 +206,10 @@ input[type="color"] {
   font-size: 0.72rem;
   line-height: 1.25;
   text-transform: uppercase;
+  pointer-events: none;
+}
+
+.notice-toast--interactive {
   pointer-events: auto;
 }
 

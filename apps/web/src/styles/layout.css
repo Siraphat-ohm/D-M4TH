@@ -488,7 +488,7 @@
   .notice-toast-stack {
     top: 4px;
     right: 4px;
-    width: min(292px, calc(100vw - 508px));
+    width: min(292px, max(180px, calc(100vw - 508px)));
   }
 
   .notice-toast {

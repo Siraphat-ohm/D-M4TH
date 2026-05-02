@@ -1,22 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, Package } from "lucide-react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { formatTime } from "./format";
 import { PlayerInfoList } from "./PlayerInfoList";
-
-const PENALTY_DELTA_VISIBLE_MS = 5000;
-const TIMEOUT_PENALTY_POINTS = 10;
-
-interface PenaltyDelta {
-  points: number;
-  expiresAt: number;
-}
+import { usePenaltyDelta } from "./usePenaltyDelta";
 
 export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: number; onLeaveMatch: () => void }) {
   const [clockNow, setClockNow] = useState(() => Date.now());
-  const previousScoresRef = useRef<Map<string, number>>(new Map());
-  const shownPenaltyKeysRef = useRef<Set<string>>(new Set());
-  const [penaltyDeltas, setPenaltyDeltas] = useState<Record<string, PenaltyDelta>>({});
 
   useEffect(() => {
     if (props.snapshot?.status !== "playing") return;
@@ -26,36 +16,13 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
     return () => clearInterval(id);
   }, [props.snapshot?.status, props.snapshot?.turnStartedAt, props.snapshot?.currentPlayerId]);
 
-  useEffect(() => {
-    const snapshot = props.snapshot;
-    if (!snapshot) return;
-
-    const now = Date.now();
-    setPenaltyDeltas((current) => {
-      const next = keepVisiblePenaltyDeltas(current, now);
-      for (const player of snapshot.players) {
-        const previousScore = previousScoresRef.current.get(player.id);
-        const detectedPenalty = previousScore !== undefined && previousScore - player.score === TIMEOUT_PENALTY_POINTS
-          ? TIMEOUT_PENALTY_POINTS
-          : undefined;
-        const points = player.lastPenaltyPoints ?? detectedPenalty;
-        const penaltyKey = points !== undefined ? `${player.id}:${player.score}:${points}` : undefined;
-        if (points !== undefined && points > 0 && penaltyKey && !shownPenaltyKeysRef.current.has(penaltyKey)) {
-          shownPenaltyKeysRef.current.add(penaltyKey);
-          next[player.id] = { points, expiresAt: now + PENALTY_DELTA_VISIBLE_MS };
-        }
-      }
-      return next;
-    });
-
-    previousScoresRef.current = new Map(snapshot.players.map((player) => [player.id, player.score]));
-  }, [props.snapshot]);
+  const now = clockNow;
+  const visiblePenaltyDeltas = usePenaltyDelta(props.snapshot, now);
 
   if (!props.snapshot) {
     return null;
   }
 
-  const now = clockNow;
   const activePlayer = props.snapshot.players.find((player) => player.id === props.snapshot?.currentPlayerId);
   const elapsed = props.snapshot.status === "playing" && activePlayer
     ? Math.max(0, now - props.snapshot.turnStartedAt)
@@ -63,7 +30,6 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
   const turnRemaining = props.snapshot.status === "playing"
     ? Math.max(0, props.snapshot.config.turnTimeMs - elapsed)
     : 0;
-  const visiblePenaltyDeltas = toVisiblePenaltyPoints(penaltyDeltas, now);
 
   return (
     <div className="topbar-content">
@@ -90,17 +56,5 @@ export function MatchTopBar(props: { snapshot?: PublicSnapshot; previewScore?: n
         </button>
       </div>
     </div>
-  );
-}
-
-function keepVisiblePenaltyDeltas(deltas: Record<string, PenaltyDelta>, now: number): Record<string, PenaltyDelta> {
-  return Object.fromEntries(Object.entries(deltas).filter(([, delta]) => delta.expiresAt > now));
-}
-
-function toVisiblePenaltyPoints(deltas: Record<string, PenaltyDelta>, now: number): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(deltas)
-      .filter(([, delta]) => delta.expiresAt > now)
-      .map(([playerId, delta]) => [playerId, delta.points])
   );
 }

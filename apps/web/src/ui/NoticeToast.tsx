@@ -2,9 +2,10 @@ import type { NoticeState } from "../store/app-store";
 
 export function NoticeToast(props: { notice: NoticeState; onDismiss?: () => void }) {
   const ariaLive = props.notice.tone === "danger" ? "assertive" : "polite";
+  const className = `notice-toast notice-toast--${props.notice.tone}${props.onDismiss ? " notice-toast--interactive" : ""}`;
 
   return (
-    <div className={`notice-toast notice-toast--${props.notice.tone}`} role="status" aria-live={ariaLive}>
+    <div className={className} role="status" aria-live={ariaLive}>
       <span>{props.notice.text}</span>
       {props.onDismiss && (
         <button type="button" aria-label="Dismiss notice" onClick={props.onDismiss}>
