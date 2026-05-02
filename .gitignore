@@ -9,3 +9,4 @@ dist
 .claude/
 .codex
 .remember/
+apps/server/d-m4th.db
