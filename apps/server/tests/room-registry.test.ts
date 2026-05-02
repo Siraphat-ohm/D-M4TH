@@ -65,6 +65,63 @@ describe("room registry", () => {
     expect(resumedSnapshot.private?.playerId).toBe(playerId);
     expect(resumedSnapshot.snapshot.players.find((player) => player.id === playerId)?.connected).toBe(true);
   });
+
+  test("normal disconnect marks player disconnected without leaving or ending the match", () => {
+    const registry = new RoomRegistry();
+    const host = createConnection("host");
+    const guest = createConnection("guest");
+
+    registry.handleRawMessage(host, JSON.stringify({ type: "room:create", requestId: "1", name: "Ada", color: "#f97316" }));
+    const roomCode = lastSnapshot(host).snapshot.code;
+    registry.handleRawMessage(guest, JSON.stringify({ type: "room:join", requestId: "2", code: roomCode, name: "Grace", color: "#2563eb" }));
+    registry.handleRawMessage(host, JSON.stringify({ type: "match:start", requestId: "3" }));
+
+    const guestId = lastSnapshot(guest).private?.playerId;
+    expect(guestId).toBeString();
+
+    registry.disconnect(guest);
+
+    const snapshot = lastSnapshot(host).snapshot;
+    const disconnectedGuest = snapshot.players.find((player) => player.id === guestId);
+    expect(snapshot.status).toBe("playing");
+    expect(disconnectedGuest?.connected).toBe(false);
+    expect(disconnectedGuest?.left).not.toBe(true);
+
+    const resumed = createConnection("guest-resumed");
+    const resumedOk = registry.resumeConnection(resumed, roomCode, guestId!);
+    expect(resumedOk).toBe(true);
+    expect(lastSnapshot(resumed).snapshot.players.find((player) => player.id === guestId)?.connected).toBe(true);
+  });
+
+  test("room leave marks player left and ends a two-player match", () => {
+    const revoked: Array<{ roomCode: string; playerId: string; reason: string }> = [];
+    const registry = new RoomRegistry(
+      undefined,
+      (roomCode, playerId) => `${roomCode}:${playerId}:token`,
+      (roomCode, playerId, reason) => revoked.push({ roomCode, playerId, reason })
+    );
+    const host = createConnection("host");
+    const guest = createConnection("guest");
+
+    registry.handleRawMessage(host, JSON.stringify({ type: "room:create", requestId: "1", name: "Ada", color: "#f97316" }));
+    const roomCode = lastSnapshot(host).snapshot.code;
+    registry.handleRawMessage(guest, JSON.stringify({ type: "room:join", requestId: "2", code: roomCode, name: "Grace", color: "#2563eb" }));
+    registry.handleRawMessage(host, JSON.stringify({ type: "match:start", requestId: "3" }));
+
+    const guestId = lastSnapshot(guest).private?.playerId;
+    expect(guestId).toBeString();
+
+    registry.handleRawMessage(guest, JSON.stringify({ type: "room:leave", requestId: "4" }));
+
+    const snapshot = lastSnapshot(host).snapshot;
+    const leftGuest = snapshot.players.find((player) => player.id === guestId);
+    expect(snapshot.status).toBe("ended");
+    expect(snapshot.endedReason).toBe("player-left");
+    expect(leftGuest?.connected).toBe(false);
+    expect(leftGuest?.left).toBe(true);
+    expect(registry.resumeConnection(createConnection("guest-resumed"), roomCode, guestId!)).toBe(false);
+    expect(revoked).toContainEqual({ roomCode, playerId: guestId!, reason: "intentional_leave" });
+  });
 });
 
 function createConnection(id: string): RoomConnection & { messages: ServerMessage[] } {

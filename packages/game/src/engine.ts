@@ -261,6 +261,8 @@ export class GameEngine {
   leaveMatch(match: MatchState, playerId: string, now = Date.now()): EngineResult<MatchState> {
     try {
       const player = getPlayer(match, playerId);
+      const previousPlayerOrder = [...match.playerOrder];
+      const previousTurnIndex = previousPlayerOrder.indexOf(playerId);
       player.connected = false;
       player.left = true;
 
@@ -274,10 +276,12 @@ export class GameEngine {
         return accepted(match);
       }
 
-      const activePlayerIds = new Set(match.players.filter((candidate) => !candidate.left).map((candidate) => candidate.id));
+      const activePlayers = match.players.filter((candidate) => !candidate.left);
+      const activePlayerIds = new Set(activePlayers.map((candidate) => candidate.id));
       match.playerOrder = match.playerOrder.filter((id) => activePlayerIds.has(id));
 
-      if (activePlayerIds.size < 2) {
+      if (activePlayers.length < 2) {
+        match.currentPlayerId = activePlayers[0]?.id;
         match.status = "ended";
         match.endedReason = "player-left";
         match.turnStartedAt = now;
@@ -285,11 +289,21 @@ export class GameEngine {
       }
 
       if (match.currentPlayerId === playerId) {
-        match.currentPlayerId = nextTurnPlayer(match);
+        match.currentPlayerId = nextActivePlayerAfter(previousPlayerOrder, previousTurnIndex, activePlayerIds);
         match.turnStartedAt = now;
       }
 
       return accepted(match);
+    } catch (error) {
+      return rejected(errorMessage(error));
+    }
+  }
+
+  setPlayerConnected(match: MatchState, playerId: string, connected: boolean): EngineResult<Player> {
+    try {
+      const player = getPlayer(match, playerId);
+      player.connected = connected;
+      return accepted(player);
     } catch (error) {
       return rejected(errorMessage(error));
     }
@@ -356,7 +370,7 @@ export class GameEngine {
       return;
     }
 
-    if (match.tileBag.length === 0 && match.consecutivePasses >= match.players.length) {
+    if (match.tileBag.length === 0 && match.consecutivePasses >= countActivePlayers(match)) {
       match.status = "ended";
       match.endedReason = "stalemate";
     }
@@ -419,4 +433,24 @@ function accepted<T>(value: T): EngineResult<T> {
 
 function rejected<T>(error: string): EngineResult<T> {
   return { ok: false, error };
+}
+
+function countActivePlayers(match: MatchState): number {
+  return match.players.filter((player) => !player.left).length;
+}
+
+function nextActivePlayerAfter(previousOrder: readonly string[], previousTurnIndex: number, activePlayerIds: ReadonlySet<string>): string {
+  if (previousOrder.length === 0) {
+    throw new Error("No active players remain");
+  }
+
+  const startIndex = previousTurnIndex === -1 ? 0 : previousTurnIndex + 1;
+  for (let offset = 0; offset < previousOrder.length; offset += 1) {
+    const playerId = previousOrder[(startIndex + offset) % previousOrder.length];
+    if (activePlayerIds.has(playerId)) {
+      return playerId;
+    }
+  }
+
+  throw new Error("No active players remain");
 }

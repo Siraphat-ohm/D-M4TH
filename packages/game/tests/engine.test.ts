@@ -272,6 +272,90 @@ describe("game engine", () => {
     expect(startRoles.size).toBe(2);
   });
 
+  describe("intentional leave", () => {
+    test("ends a two-player match when the current player intentionally leaves", () => {
+      const { engine, match, host, guest } = startedMatch();
+
+      const result = engine.leaveMatch(match, host.id, 1000);
+
+      expect(result.ok).toBe(true);
+      expect(host.left).toBe(true);
+      expect(host.connected).toBe(false);
+      expect(match.status).toBe("ended");
+      expect(match.endedReason).toBe("player-left");
+      expect(match.playerOrder).toEqual([guest.id]);
+      expect(match.currentPlayerId).toBe(guest.id);
+    });
+
+    test("continues a three-player match after one leave and ends after another leaves", () => {
+      const { engine, match } = startedThreePlayerMatch();
+
+      const firstLeavingPlayer = match.players.find((player) => player.id !== match.currentPlayerId)!;
+      const firstLeave = engine.leaveMatch(match, firstLeavingPlayer.id, 1000);
+
+      expect(firstLeave.ok).toBe(true);
+      expect(firstLeavingPlayer.left).toBe(true);
+      expect(match.status).toBe("playing");
+      expect(match.playerOrder).not.toContain(firstLeavingPlayer.id);
+      expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
+
+      const secondLeavingPlayer = match.players.find((player) => !player.left && player.id !== match.currentPlayerId)!;
+      const secondLeave = engine.leaveMatch(match, secondLeavingPlayer.id, 2000);
+
+      expect(secondLeave.ok).toBe(true);
+      expect(secondLeavingPlayer.left).toBe(true);
+      expect(match.status).toBe("ended");
+      expect(match.endedReason).toBe("player-left");
+      expect(match.players.filter((player) => !player.left)).toHaveLength(1);
+      expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
+    });
+
+    test("skips a left player when advancing the turn", () => {
+      const { engine, match, host, guest, third } = startedThreePlayerMatch();
+      match.playerOrder = [host.id, guest.id, third.id];
+      match.currentPlayerId = host.id;
+
+      const leaveResult = engine.leaveMatch(match, guest.id, 1000);
+      expect(leaveResult.ok).toBe(true);
+
+      const passResult = engine.passTurn(match, host.id, 2000);
+
+      expect(passResult.ok).toBe(true);
+      expect(match.currentPlayerId).toBe(third.id);
+      expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
+    });
+
+    test("advances to the next original turn player when the current player leaves", () => {
+      const { engine, match, host, guest, third } = startedThreePlayerMatch();
+      match.playerOrder = [host.id, guest.id, third.id];
+      match.currentPlayerId = guest.id;
+
+      const leaveResult = engine.leaveMatch(match, guest.id, 1000);
+
+      expect(leaveResult.ok).toBe(true);
+      expect(match.status).toBe("playing");
+      expect(match.playerOrder).toEqual([host.id, third.id]);
+      expect(match.currentPlayerId).toBe(third.id);
+      expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
+    });
+
+    test("uses active non-left players for stalemate after a leave", () => {
+      const { engine, match, host, guest, third } = startedThreePlayerMatch();
+      match.playerOrder = [host.id, guest.id, third.id];
+      match.currentPlayerId = host.id;
+      match.tileBag = [];
+
+      expect(engine.leaveMatch(match, third.id, 1000).ok).toBe(true);
+      expect(engine.passTurn(match, host.id, 2000).ok).toBe(true);
+      expect(match.status).toBe("playing");
+
+      expect(engine.passTurn(match, guest.id, 3000).ok).toBe(true);
+
+      expect(match.status).toBe("ended");
+      expect(match.endedReason).toBe("stalemate");
+    });
+  });
+
   describe("lastPlacements tracking", () => {
     test("records placed tiles after commitPlay", () => {
       const { engine, match, host } = startedMatch();
@@ -421,6 +505,42 @@ function startedMatch(config = createPartyConfig({ maxPlayers: 2 })): {
     match,
     host,
     guest
+  };
+}
+
+function startedThreePlayerMatch(): {
+  engine: GameEngine;
+  match: MatchState;
+  host: Player;
+  guest: Player;
+  third: Player;
+} {
+  const engine = new GameEngine();
+  const match = engine.createMatch({
+    hostName: "Ada",
+    hostColor: "#f97316",
+    config: createPartyConfig({ maxPlayers: 3 }),
+    now: 0
+  });
+  const guestResult = engine.joinMatch(match, { name: "Grace", color: "#2563eb" });
+  const thirdResult = engine.joinMatch(match, { name: "Katherine", color: "#06d6a0" });
+
+  if (!guestResult.ok || !guestResult.value || !thirdResult.ok || !thirdResult.value) {
+    throw new Error("test setup failed");
+  }
+
+  const startResult = engine.startMatch(match, 0);
+
+  if (!startResult.ok) {
+    throw new Error(startResult.error);
+  }
+
+  return {
+    engine,
+    match,
+    host: match.players[0],
+    guest: guestResult.value,
+    third: thirdResult.value
   };
 }
 

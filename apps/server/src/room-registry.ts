@@ -56,7 +56,7 @@ export class RoomRegistry {
 
       const player = room.match.players.find((candidate) => candidate.id === session.playerId);
       if (player) {
-        player.connected = false;
+        this.engine.setPlayerConnected(room.match, session.playerId, false);
         this.broadcastSnapshot(room);
       }
     }
@@ -303,7 +303,7 @@ export class RoomRegistry {
     room.connections.set(connection.id, connection);
     room.sessions.set(connection.id, session);
     this.sessionsByConnection.set(connection.id, session);
-    readPlayer(room.match, playerId).connected = true;
+    this.engine.setPlayerConnected(room.match, playerId, true);
   }
 
   private detachPlayerConnections(room: RoomRecord, playerId: string, exceptConnectionId?: string): void {
