@@ -9,48 +9,101 @@
   width: 100%;
   min-height: 100dvh;
   min-width: 0;
-}
-
-.app-shell--lobby {
-  grid-template-columns: minmax(180px, clamp(200px, 22vw, 280px)) minmax(0, min(72vw, 980px)) minmax(180px, clamp(200px, 22vw, 280px));
-  align-items: start;
-  justify-content: center;
-  gap: var(--lobby-gap);
-  padding: var(--lobby-padding);
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 8px;
 }
 
 .app-shell--playing {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  padding: var(--match-gap);
-  min-height: 100dvh;
+  gap: 8px;
+  padding: 8px;
   height: auto;
-  overflow: visible;
-}
-
-.lobby-setup-panel,
-.lobby-status {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  max-width: clamp(200px, 22vw, 280px);
-  max-height: calc(100dvh - (var(--lobby-padding) * 2));
+  min-height: 100dvh;
+  max-height: none;
   overflow: auto;
 }
 
-.lobby-setup-panel {
-  grid-column: 1;
+@media (min-width: 641px) {
+  .app-shell--lobby {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--lobby-padding);
+    gap: var(--lobby-gap);
+  }
 }
 
-.lobby-status {
-  grid-column: 3;
+@media (min-width: 1025px) {
+  .app-shell--lobby {
+    grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
+    align-items: start;
+    justify-content: center;
+  }
+
+  .lobby-setup-panel,
+  .lobby-status,
+  .lobby-notice,
+  .setup-preview {
+    max-height: calc(100dvh - (var(--lobby-padding) * 2));
+    overflow: auto;
+  }
+  
+  .lobby-setup-panel {
+    grid-column: 1;
+  }
+  
+  .setup-preview {
+    grid-column: 2;
+    grid-row: 1;
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    justify-self: center;
+    min-width: 0;
+    width: min(72vw, 980px);
+    max-width: 100%;
+  }
+
+  .lobby-status {
+    grid-column: 3;
+  }
 }
 
-.lobby-notice {
+@media (min-width: 1401px) {
+  .app-shell--lobby {
+    grid-template-columns: minmax(180px, clamp(200px, 22vw, 280px)) minmax(0, min(72vw, 980px)) minmax(180px, clamp(200px, 22vw, 280px));
+  }
+}
+
+.lobby-setup-panel,
+.lobby-status,
+.lobby-notice,
+.setup-preview {
   grid-column: 1;
+  display: grid;
+  gap: 12px;
   min-width: 0;
+  max-width: 100%;
+}
+
+.setup-preview {
+  padding: 10px;
+  width: 100%;
+}
+
+.reconnect-notice {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.reconnect-notice--playing {
+  width: min(100%, 980px);
+}
+
+.reconnect-banner {
+  justify-content: center;
+  border-color: var(--panel-border);
 }
 
 .sidebar-header,
@@ -80,28 +133,25 @@
   justify-content: space-between;
 }
 
-.setup-preview {
-  grid-column: 2;
-  grid-row: 1;
-  display: grid;
-  align-content: start;
-  justify-items: center;
-  justify-self: center;
-  min-width: 0;
-  width: min(72vw, 980px);
-  max-width: 100%;
-}
-
 .play-surface {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: start;
-  gap: var(--match-gap);
+  gap: 8px;
   width: 100%;
+  max-width: none;
   height: auto;
   min-height: 100%;
   padding-bottom: 20px;
+  container-type: inline-size;
+  container-name: playsurface;
+}
+
+@container playsurface (min-width: 641px) {
+  .play-surface {
+    gap: var(--match-gap);
+  }
 }
 
 .match-topbar {
@@ -119,12 +169,25 @@
   width: auto;
   max-width: 100%;
   min-width: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@container playsurface (min-width: 901px) {
+  .topbar-content {
+    flex-wrap: nowrap;
+  }
+  .hud-metrics {
+    width: auto;
+  }
 }
 
 .hud-metrics {
   display: flex;
   gap: var(--match-gap);
   align-items: stretch;
+  width: 100%;
+  justify-content: center;
 }
 
 .hud-metrics .metric {
@@ -158,13 +221,15 @@
   align-items: center;
   width: 100%;
   flex: 1;
+  height: auto;
+  min-height: 0;
 }
 
 .board-stage {
   position: relative;
   display: grid;
   place-items: center;
-  width: auto;
+  width: 100%;
   height: auto;
 }
 
@@ -172,69 +237,9 @@
   min-width: 0;
 }
 
-@media (max-width: 1400px) {
-  .app-shell--lobby {
-    grid-template-columns: minmax(var(--lobby-side-min), var(--lobby-side-max)) minmax(var(--lobby-center-min), 1fr) minmax(var(--lobby-side-min), var(--lobby-side-max));
-  }
-}
-
-@media (max-width: 1280px) {
+@media (min-width: 1281px) {
   .puzzle-theme-root {
-    --actions-width: clamp(216px, 19vw, 250px);
-  }
-}
-
-@media (max-width: 1024px) {
-  .app-shell--lobby {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .lobby-setup-panel,
-  .lobby-status,
-  .lobby-notice,
-  .setup-preview {
-    grid-column: 1;
-    max-width: 100%;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .setup-preview {
-    grid-row: auto;
-    width: 100%;
-  }
-}
-
-@media (max-width: 760px) {
-  .control-strip {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .app-shell,
-  .app-shell--lobby,
-  .app-shell--playing {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 8px;
-  }
-
-  .lobby-setup-panel,
-  .lobby-status,
-  .lobby-notice,
-  .setup-preview {
-    grid-column: 1;
-  }
-
-  .setup-preview {
-    grid-row: auto;
-    padding: 10px;
-  }
-
-  .play-surface {
-    gap: 8px;
+    /* desktop overrides */
   }
 }
 
@@ -245,61 +250,21 @@
     --rack-tile-size: clamp(36px, 4.35vmin, 46px);
     --rack-shell-padding: 7px;
   }
-
-  .app-shell--playing {
-    gap: 8px;
-    padding: 8px;
-  }
 }
 
-/* PixiJS 8 scale rework: keep board, topbar, and controls in normal document flow.
-   Browser zoom should scroll the page when needed, not collapse the board row. */
-.app-shell--playing {
-  height: auto;
-  min-height: 100dvh;
-  max-height: none;
-  overflow: auto;
-}
-
-.board-stage,
-.match-main {
-  height: auto;
-  min-height: 0;
-}
-
-@media (max-width: 900px) {
-  .topbar-content {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .hud-metrics {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-
-/* Extreme browser zoom guard.
-   At 30% zoom a fixed layout cap becomes physically tiny, so the match
-   surface must be allowed to use the full CSS viewport. At high zoom the page
-   should scroll instead of forcing the board row to collapse. */
-.app-shell--playing,
-.play-surface,
-.match-topbar {
-  max-width: none;
-}
-
-.app-shell--playing {
-  min-width: 0;
-}
-
-.play-surface {
-  width: 100%;
-  max-width: none;
-}
-
-.board-stage {
-  width: 100%;
+.control-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
+  gap: 10px;
+  width: 100%;
+  container-type: inline-size;
+  container-name: controlstrip;
+}
+
+@container playsurface (min-width: 761px) {
+  .control-strip {
+    grid-template-columns: auto auto;
+    justify-content: center;
+  }
 }
