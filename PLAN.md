@@ -133,6 +133,7 @@ Core visual rules:
 - Verified `apps/web` typecheck, web build, root typecheck, root tests, and browser smoke at desktop/laptop/tablet/phone sizes.
 - Organized web CSS into feature folders (components, lobby, match, board) and split large monolithic CSS files.
 - Fully split the old `layout.css` into `styles/layout/app-shell.css`, `lobby-layout.css`, `match-layout.css`, and `match-responsive.css`, then moved the leftover shared alignment rules into the owning feature styles so the compatibility `layout.css` could be removed.
+- Implemented owner-approved endgame rules: `rack-empty`, exhausted-bag pass-cycle by active non-left players, `winnerIds` in authoritative snapshots, and per-started-minute overtime penalties applied by the game engine while keeping the match screen visible for final-state winner notices.
 
 ## Current Stabilization Priority
 
