@@ -14,7 +14,16 @@ export type MatchMode = "classical" | "party";
 export const PREMIUM_MAP_OPTIONS = [
   { id: "scaled-classic", label: "Scaled Classic" },
   { id: "center-classic", label: "Center Classic" },
-  { id: "cross", label: "Cross" }
+  { id: "cross", label: "Cross" },
+  { id: "starlight", label: "Starlight (Balanced)" },
+  { id: "power-rings", label: "Power Rings (Balanced)" },
+  { id: "the-core", label: "The Core (Balanced)" },
+  { id: "diamond", label: "Diamond Ring" },
+  { id: "crossfire", label: "Crossfire" },
+  { id: "starburst", label: "Starburst" },
+  { id: "fortress", label: "The Fortress" },
+  { id: "spider-web", label: "Spider Web" },
+  { id: "four-islands", label: "Four Islands" }
 ] as const;
 export type PremiumMapId = (typeof PREMIUM_MAP_OPTIONS)[number]["id"];
 export const DEFAULT_PREMIUM_MAP_ID: PremiumMapId = "scaled-classic";
