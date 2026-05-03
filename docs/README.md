@@ -27,6 +27,6 @@ For web-only UI work:
 ```bash
 cd apps/web && rtk bun run typecheck
 cd apps/web && rtk bun run build
-rtk bun test apps/web/src/ui/tile-display.test.ts apps/web/src/board/board-interaction.test.ts apps/web/src/turn/turn-controls.test.ts
+rtk bun test apps/web/src/__tests__/tile-display.test.ts apps/web/src/__tests__/board-interaction.test.ts apps/web/src/__tests__/turn-controls.test.ts
 ```
 

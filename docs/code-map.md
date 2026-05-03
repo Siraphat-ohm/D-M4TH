@@ -24,24 +24,23 @@ Server should stay thin: validate protocol, call engine, broadcast snapshots.
 ## Web Client
 
 - `apps/web/src/main.tsx`: React root.
-- `apps/web/src/protocol-client.ts`: WebSocket client wrapper.
-- `apps/web/src/ui/App.tsx`: high-level app shell, protocol wiring, room/create/join flow.
-- `apps/web/src/ui/LobbyRoom.tsx`: create/join/setup/lobby UI.
-- `apps/web/src/ui/MatchTopBar.tsx`: player cards, turn timer, tiles-left.
-- `apps/web/src/ui/MatchLogPanel.tsx`: collapsible match log side panel.
-- `apps/web/src/ui/BoardCanvas.tsx`: PixiJS board adapter and setup preview.
-- `apps/web/src/ui/Rack.tsx`: rack slots, rack tile selection, drag preview.
-- `apps/web/src/ui/Dialogs.tsx`: face selection and full log dialog.
-- `apps/web/src/ui/ColorPicker.tsx`: player color picker.
+- `apps/web/src/client/protocol-client.ts`: WebSocket client wrapper.
+- `apps/web/src/app/App.tsx`: high-level app shell, protocol wiring, room/create/join flow.
+- `apps/web/src/ui/lobby/LobbyRoom.tsx`: create/join/setup/lobby UI.
+- `apps/web/src/ui/match/MatchTopBar.tsx`: player cards, turn timer, tiles-left.
+- `apps/web/src/ui/match/MatchLogPanel.tsx`: collapsible match log side panel.
+- `apps/web/src/board/BoardCanvas.tsx`: PixiJS board adapter and setup preview.
+- `apps/web/src/ui/rack/Rack.tsx`: rack slots, rack tile selection, drag preview.
+- `apps/web/src/ui/dialogs/Dialogs.tsx`: face selection and full log dialog.
+- `apps/web/src/ui/shared/ColorPicker.tsx`: player color picker.
 - `apps/web/src/turn/use-turn-controller.ts`: draft placements, swap mode, preview handling.
 - `apps/web/src/turn/turn-controls.ts`: pure draft/swap helper functions.
 - `apps/web/src/board/board-interaction.ts`: board coordinate math and render tile helpers.
 
-Web tests live beside helpers:
+Web tests live in `apps/web/src/__tests__/`:
 
-- `apps/web/src/ui/tile-display.test.ts`
-- `apps/web/src/board/board-interaction.test.ts`
-- `apps/web/src/turn/turn-controls.test.ts`
+- Bun unit tests: `*.test.ts`
+- Playwright E2E tests: `*.e2e.ts`
 
 ## Styles
 
