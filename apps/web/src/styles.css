@@ -1,11 +1,30 @@
 @import "tailwindcss";
 @import "./styles/base.css";
 @import "./styles/layout.css";
-@import "./styles/panels.css";
-@import "./styles/lobby.css";
-@import "./styles/toast.css";
-@import "./styles/player-cards.css";
-@import "./styles/match-hud.css";
+
+/* Components */
+@import "./styles/components/panels.css";
+@import "./styles/components/inputs.css";
+@import "./styles/components/color-picker.css";
+@import "./styles/components/dialogs.css";
+
+/* Lobby */
+@import "./styles/lobby/lobby.css";
+@import "./styles/lobby/lobby-players.css";
+
+/* Match HUD & Overlays */
+@import "./styles/match/player-cards.css";
+@import "./styles/match/match-hud.css";
+@import "./styles/match/toast.css";
+@import "./styles/match/match-log.css";
+
+/* Match Layout Glue */
 @import "./styles/game.css";
-@import "./styles/dialogs.css";
-@import "./styles/color-picker.css";
+
+/* Board */
+@import "./styles/board/board-host.css";
+@import "./styles/board/board-overlay.css";
+
+/* Match Controls */
+@import "./styles/match/rack.css";
+@import "./styles/match/actions.css";

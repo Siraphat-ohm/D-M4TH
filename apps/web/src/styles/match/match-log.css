@@ -1,0 +1,233 @@
+/* ── Match log panel (floating overlay) ── */
+.board-stage .match-log-panel,
+.match-main .match-log-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 7px;
+  width: var(--floating-log-width);
+  max-width: min(var(--floating-log-width), calc(100% - 20px));
+  max-height: min(42dvh, 340px);
+  min-height: 0;
+  height: auto;
+  border: 1px solid rgb(42 49 66 / 78%);
+  background: rgb(17 20 28 / 78%);
+  padding: 9px;
+  overflow: hidden;
+  opacity: 0.82;
+  transition: opacity 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.board-stage .match-log-panel:hover,
+.board-stage .match-log-panel:focus-within,
+.match-main .match-log-panel:hover,
+.match-main .match-log-panel:focus-within {
+  opacity: 0.98;
+  background: rgb(17 20 28 / 93%);
+  border-color: rgb(42 49 66 / 100%);
+}
+
+@supports (backdrop-filter: blur(4px)) {
+  .board-stage .match-log-panel,
+  .match-main .match-log-panel {
+    backdrop-filter: blur(4px);
+  }
+}
+
+.match-log-title,
+.match-log-actions,
+.match-log-collapse,
+.match-log-view-all {
+  gap: 6px;
+}
+
+.match-log-header {
+  gap: 8px;
+  min-width: 0;
+}
+
+.match-log-title {
+  min-width: 0;
+}
+
+.match-log-actions {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.match-log-collapse,
+.match-log-view-all {
+  min-height: 30px;
+  padding: 0 7px;
+  font-size: 0.68rem;
+}
+
+.match-log-panel--collapsed {
+  grid-template-rows: auto;
+  width: max-content;
+  max-width: calc(100% - 20px);
+}
+
+.match-log-list {
+  display: grid;
+  align-content: start;
+  grid-auto-rows: max-content;
+  gap: 5px;
+  max-height: calc(min(42dvh, 340px) - 46px);
+  overflow: auto;
+  min-height: 0;
+}
+
+.match-log-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--panel-border);
+  padding: 5px 6px;
+  min-height: 29px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.6rem, 0.62vw, 0.72rem);
+  line-height: 1.2;
+  text-transform: uppercase;
+  min-width: 0;
+}
+
+.match-log-row time {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.match-log-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-log-row.success,
+.match-log-row.info,
+.match-log-row.danger {
+  border-color: var(--panel-border);
+}
+
+.match-log-empty {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+/* ── Floating match log launcher ── */
+.floating-log-button {
+  position: fixed;
+  right: clamp(14px, 1.7vw, 28px);
+  bottom: clamp(14px, 1.7vw, 28px);
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  width: clamp(46px, 3.8vw, 56px);
+  height: clamp(46px, 3.8vw, 56px);
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgb(42 49 66 / 72%);
+  border-radius: 999px;
+  background: rgb(17 20 28 / 68%);
+  color: var(--text);
+  opacity: 0.72;
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.floating-log-button:hover:not(:disabled),
+.floating-log-button:focus-visible {
+  border-color: var(--text);
+  background: rgb(17 20 28 / 94%);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+@supports (backdrop-filter: blur(4px)) {
+  .floating-log-button {
+    backdrop-filter: blur(4px);
+  }
+}
+
+.floating-log-button svg {
+  grid-area: 1 / 1;
+}
+
+.floating-log-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel-border);
+  color: var(--text);
+  font-size: 0.58rem;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .board-stage .match-log-panel,
+  .match-main .match-log-panel {
+    top: 8px;
+    right: 8px;
+    max-width: min(260px, calc(100% - 16px));
+  }
+
+  .match-log-row {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .board-stage .match-log-panel,
+  .match-main .match-log-panel {
+    display: none;
+  }
+  .floating-log-button {
+    right: 12px;
+    bottom: 12px;
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 480px) and (min-width: 640px) {
+  .floating-log-button {
+    right: 8px;
+    bottom: 8px;
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-height: 820px) {
+  .board-stage .match-log-panel,
+  .match-main .match-log-panel {
+    padding: 8px;
+    max-height: min(38dvh, 300px);
+  }
+
+  .match-log-list {
+    gap: 4px;
+  }
+
+  .match-log-row {
+    min-height: 27px;
+    padding: 4px 6px;
+  }
+}

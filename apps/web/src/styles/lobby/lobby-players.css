@@ -1,35 +1,3 @@
-.room-code span,
-.lobby-panel-heading span {
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
-.room-code strong {
-  color: var(--text);
-  font-size: 1.35rem;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.lobby-empty-state {
-  margin: 10px 0 14px;
-  color: var(--muted);
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.lobby-panel-heading {
-  display: flex;
-  justify-content: space-between;
-  color: var(--text);
-  text-transform: uppercase;
-}
-
-.lobby-panel-heading strong {
-  color: var(--text);
-  font-weight: 400;
-}
-
 .lobby-player-list {
   display: grid;
   gap: 8px;

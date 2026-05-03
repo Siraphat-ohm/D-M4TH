@@ -1,0 +1,15 @@
+/* ── Board render overlay (loading / error) ── */
+.board-render-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: rgb(10 15 28 / 0.92);
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
