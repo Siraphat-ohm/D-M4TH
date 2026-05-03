@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { ServerMessage } from "@d-m4th/protocol";
+import type { NoticeState, PrivateState } from "@/shared/types";
 import { createRequestId, defaultWebSocketUrl, ProtocolClient } from "./protocol-client";
 import {
   clearReconnectSession,
@@ -10,15 +11,14 @@ import {
 } from "./reconnect-session";
 import type { ReconnectState } from "./leave-match";
 import type { PublicSnapshot } from "@d-m4th/game";
-import type { NoticeState } from "../app/store/app-store";
 
 export interface UseProtocolOrchestratorParams {
   location: string;
   snapshot?: PublicSnapshot;
-  privateState?: { playerId: string; rack: any[] };
+  privateState?: PrivateState;
   turnHandleRef: React.MutableRefObject<(message: ServerMessage) => boolean>;
   setSnapshot: (snapshot: PublicSnapshot) => void;
-  setPrivateState: (state: any) => void;
+  setPrivateState: (state: PrivateState | undefined) => void;
   setGhostPlacements: (placements: any) => void;
   addLog: (message: string, tone: "success" | "info" | "danger") => void;
   setNotice: (notice: NoticeState) => void;

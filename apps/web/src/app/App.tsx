@@ -3,7 +3,8 @@ import type { MatchConfig } from "@d-m4th/config";
 import type { ServerMessage } from "@d-m4th/protocol";
 import { useShallow } from "zustand/react/shallow";
 import { Route, Switch, useLocation } from "wouter";
-import { useAppStore, type NoticeState } from "@/app/store/app-store";
+import { useAppStore } from "@/app/store/app-store";
+import type { NoticeState } from "@/shared/types";
 import { useTurnController } from "@/turn/use-turn-controller";
 import { TurnProvider } from "@/turn/TurnContext";
 import { LogDialog } from "@/ui/dialogs/Dialogs";
@@ -11,7 +12,7 @@ import { leaveMatch as leaveMatchFlow, type ReconnectState } from "@/client/leav
 import { LobbyLayout } from "@/ui/lobby/LobbyLayout";
 import { MatchLayout } from "@/ui/match/MatchLayout";
 import { NoticeToastStack } from "@/ui/toast/NoticeToast";
-import { normalizeRoomCode } from "@/ui/shared/format";
+import { normalizeRoomCode } from "@/shared/room-code";
 import { useProtocolOrchestrator } from "@/client/use-protocol-orchestrator";
 import { useLobbyActions } from "@/client/use-lobby-actions";
 

@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { BoardTile, PublicSnapshot } from "@d-m4th/game";
-import type { PrivateState } from "../app-store";
+import type { PrivateState } from "@/shared/types";
 
 export interface MatchSlice {
   snapshot?: PublicSnapshot;

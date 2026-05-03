@@ -1,6 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { LogEntry, NoticeTone, ViewMode } from "../../../ui/shared/types";
-import type { NoticeState } from "../app-store"; // I will move interfaces around later
+import type { LogEntry, NoticeState, NoticeTone, ViewMode } from "@/shared/types";
 
 const LOG_HISTORY_LIMIT = 30;
 

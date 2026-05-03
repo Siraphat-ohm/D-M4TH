@@ -1,4 +1,4 @@
-import type { NoticeState } from "../../app/store/app-store";
+import type { NoticeState } from "@/shared/types";
 
 export function NoticeToast(props: { notice: NoticeState; onDismiss?: () => void }) {
   const ariaLive = props.notice.tone === "danger" ? "assertive" : "polite";
