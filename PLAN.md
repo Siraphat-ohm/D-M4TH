@@ -126,6 +126,8 @@ Core visual rules:
 - Split turn-controller support code into focused rack-order, swap-mode, score-preview, turn-action, and type modules.
 - Extracted leave-match flow and penalty-delta display logic out of large UI components.
 - Moved player connection state mutation behind `GameEngine.setPlayerConnected()`.
+- Moved cross-layer web state types and room-code normalization into neutral `apps/web/src/shared/*` ownership so app/client no longer depend on `ui/shared` or `app-store` for those type/helper seams.
+- Made `MatchLayout` store-free by lifting its log/store reads to `App`, and tightened `use-protocol-orchestrator` away from avoidable `any` in its private-state and ghost-placement inputs.
 - Verified `apps/web` typecheck, web build, root typecheck, root tests, and browser smoke at desktop/laptop/tablet/phone sizes.
 
 ## Current Stabilization Priority
