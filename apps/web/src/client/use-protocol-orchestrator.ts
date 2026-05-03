@@ -11,6 +11,7 @@ import {
 } from "./reconnect-session";
 import type { ReconnectState } from "./leave-match";
 import type { BoardTile, PublicSnapshot } from "@d-m4th/game";
+import { buildMatchEndedNotice } from "./match-end-notice";
 
 export interface UseProtocolOrchestratorParams {
   location: string;
@@ -158,12 +159,9 @@ export function useProtocolOrchestrator(params: UseProtocolOrchestratorParams) {
         case "match:ended":
           startTransition(() => {
             p.setSnapshot(message.snapshot);
-            p.addLog(`Match ended: ${message.snapshot.endedReason ?? "complete"}`, "info");
-            p.setNotice({
-              text: `Match ended: ${message.snapshot.endedReason ?? "complete"}`,
-              tone: "info",
-              sticky: true
-            });
+            const notice = buildMatchEndedNotice(message.snapshot);
+            p.addLog(notice.text, notice.tone);
+            p.setNotice(notice);
           });
           break;
       }

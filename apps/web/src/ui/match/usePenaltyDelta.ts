@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
 
 const PENALTY_DELTA_VISIBLE_MS = 5000;
-const TIMEOUT_PENALTY_POINTS = 10;
 
 interface PenaltyDelta {
   points: number;
@@ -21,8 +20,8 @@ export function usePenaltyDelta(snapshot: PublicSnapshot | undefined, now: numbe
       const next = keepVisiblePenaltyDeltas(current, now);
       for (const player of snapshot.players) {
         const previousScore = previousScoresRef.current.get(player.id);
-        const detectedPenalty = previousScore !== undefined && previousScore - player.score === TIMEOUT_PENALTY_POINTS
-          ? TIMEOUT_PENALTY_POINTS
+        const detectedPenalty = previousScore !== undefined && previousScore > player.score
+          ? previousScore - player.score
           : undefined;
         const points = player.lastPenaltyPoints ?? detectedPenalty;
         const penaltyKey = points !== undefined ? `${player.id}:${player.score}:${points}` : undefined;

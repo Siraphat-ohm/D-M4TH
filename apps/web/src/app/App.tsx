@@ -124,13 +124,13 @@ export function App() {
   }, [notice, setNotice]);
 
   // -- Derived State --
-  const isPlaying = snapshot?.status === "playing";
+  const isMatchView = snapshot?.status === "playing" || snapshot?.status === "ended";
   const activeConfig = snapshot?.config ?? config;
   const rack = privateState?.rack ?? [];
-  const isMyTurn = snapshot?.currentPlayerId === privateState?.playerId;
+  const isMyTurn = snapshot?.status === "playing" && snapshot?.currentPlayerId === privateState?.playerId;
   const ownColor = snapshot?.players.find((p) => p.id === privateState?.playerId)?.color ?? color;
   const activeColor = snapshot?.players.find((p) => p.id === snapshot.currentPlayerId)?.color ?? ownColor;
-  const actionsFrozen = reconnectState === "waiting" || reconnectState === "resuming";
+  const actionsFrozen = reconnectState === "waiting" || reconnectState === "resuming" || snapshot?.status === "ended";
 
   const turn = useTurnController({
     client,
@@ -184,12 +184,7 @@ export function App() {
   };
 
   useEffect(() => {
-    if (snapshot?.status === "ended" && location === "/match") {
-      setLocation("/", { replace: true });
-      return;
-    }
-
-    if (snapshot?.status === "playing" && location !== "/match") {
+    if ((snapshot?.status === "playing" || snapshot?.status === "ended") && location !== "/match") {
       setLocation("/match", { replace: true });
       return;
     }
@@ -210,10 +205,10 @@ export function App() {
       className="puzzle-theme-root"
       style={STATIC_LAYOUT_VARS}
     >
-      <main className={`app-shell ${isPlaying ? "app-shell--playing" : "app-shell--lobby"}`}>
+      <main className={`app-shell ${isMatchView ? "app-shell--playing" : "app-shell--lobby"}`}>
         <Switch>
           <Route path="/match">
-            {snapshot?.status === "playing" ? (
+            {snapshot?.status === "playing" || snapshot?.status === "ended" ? (
               <TurnProvider turn={turn}>
                 <MatchLayout
                   snapshot={snapshot}
