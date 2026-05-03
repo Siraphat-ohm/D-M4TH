@@ -10,4 +10,5 @@ dist
 .codex
 .remember/
 apps/server/d-m4th.db
-apps/web/test-results/.last-run.json
+apps/web/test-results/
+apps/web/playwright-report/

@@ -59,7 +59,10 @@ export function MatchTopBar(props: {
         <div className="metric metric--turn" aria-label={`${activePlayerName}'s turn`}>
           <div className="turn-indicator">
             <strong className="turn-name">{turnLabel}</strong>
-            <span className={`turn-time${turnRemaining < 0 ? " overtime" : ""}`}>
+            <span
+              className={`turn-time${turnRemaining < 0 ? " overtime" : ""}`}
+              data-testid="turn-timer"
+            >
               {formatSignedTime(turnRemaining)}
             </span>
           </div>

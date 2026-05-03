@@ -37,46 +37,39 @@ test('timeout penalty applied when active player exceeds turn time', async ({ br
   const waitingPage = isP1Active ? page2 : page1;
 
   // Wait for turn time to expire
-  await activePage.waitForTimeout(SHORT_TURN_TIME_MS + 1500);
+  await activePage.waitForTimeout(SHORT_TURN_TIME_MS + 3000);
 
   // Assert negative timer display
-  const timerText = await activePage.locator('.turn-time').innerText();
-  expect(timerText.startsWith('-')).toBe(true);
-  await expect(activePage.locator('.turn-time.overtime')).toBeVisible();
+  const turnTimer = activePage.getByTestId('turn-timer');
+  await expect(turnTimer).toContainText('-');
+  await expect(turnTimer).toHaveClass(/overtime/);
 
   // Record scores BEFORE pass
-  const beforeScores = await activePage.locator('.player-score').allTextContents();
-  console.log('BEFORE pass scores:', JSON.stringify(beforeScores));
+  const activePlayerId = await activePage.locator('[data-testid="player-card"][data-active="true"]').getAttribute('data-player-id');
+  if (!activePlayerId) throw new Error('Active player ID not found');
+
+  const activePlayerCard = activePage.locator(`[data-testid="player-card"][data-player-id="${activePlayerId}"]`);
+  const beforeScoreText = await activePlayerCard.getAttribute('data-score');
+  const beforeScore = parseInt(beforeScoreText || '0', 10);
 
   // Active player passes — finishTurn checks elapsed > turnTimeMs → penalty
   await activePage.locator('button:has-text("Pass")').click();
 
-  // Wait for snapshot to propagate and re-render
-  await activePage.waitForTimeout(1500);
+  // Wait for score to decrease by PENALTY_POINTS
+  const expectedScore = beforeScore - PENALTY_POINTS;
+  await expect(activePlayerCard).toHaveAttribute('data-score', String(expectedScore), { timeout: 10000 });
 
-  // Record scores AFTER pass
-  const afterScores = await activePage.locator('.player-score').allTextContents();
-  console.log('AFTER pass scores:', JSON.stringify(afterScores));
-
-  // Assert at least one player score decreased by PENALTY_POINTS
-  let penaltyFound = false;
-  for (let i = 0; i < afterScores.length; i++) {
-    const before = parseInt(beforeScores[i] ?? '999', 10);
-    const after = parseInt(afterScores[i] ?? '999', 10);
-    console.log(`player ${i}: before=${before} after=${after} diff=${before - after}`);
-    if (before - after === PENALTY_POINTS) {
-      penaltyFound = true;
-    }
-  }
-  expect(penaltyFound, `Expected one player to lose ${PENALTY_POINTS} points. before=${JSON.stringify(beforeScores)} after=${JSON.stringify(afterScores)}`).toBe(true);
+  // Record score AFTER pass
+  const afterScoreText = await activePlayerCard.getAttribute('data-score');
+  const afterScore = parseInt(afterScoreText || '0', 10);
+  expect(beforeScore - afterScore).toBe(PENALTY_POINTS);
 
   // Penalty applied once — turn advanced
   await expect(activePage.locator('button:has-text("Pass")')).toBeDisabled();
 
-  // Waiting player's page also shows the penalty in scores
-  const waitingScores = await waitingPage.locator('.player-score').allTextContents();
-  const waitingHasPenalty = waitingScores.some(s => s.includes(`-${PENALTY_POINTS}`));
-  expect(waitingHasPenalty).toBe(true);
+  // Waiting player's page also shows the penalty
+  const waitingPagePlayerCard = waitingPage.locator(`[data-testid="player-card"][data-player-id="${activePlayerId}"]`);
+  await expect(waitingPagePlayerCard).toHaveAttribute('data-score', String(expectedScore), { timeout: 10000 });
 
   await player1Context.close();
   await player2Context.close();
