@@ -3,6 +3,7 @@ import type { MatchConfig } from "@d-m4th/config";
 export type Direction = "horizontal" | "vertical";
 export type PremiumTag = "2P" | "3P" | "2E" | "3E";
 export type MatchStatus = "lobby" | "playing" | "ended";
+export type EndedReason = "rack-empty" | "exhausted-pass-cycle" | "player-left" | "time-out";
 
 export interface Coordinate {
   x: number;
@@ -86,9 +87,12 @@ export interface MatchState {
   tileBag: Tile[];
   drawsSinceLastEquals: Record<string, number>;
   consecutivePasses: number;
+  exhaustedBagPassers: string[];
+  currentTurnPenaltyMinutesApplied: number;
   turnStartedAt: number;
   createdAt: number;
-  endedReason?: string;
+  endedReason?: EndedReason;
+  winnerIds: string[];
 }
 
 export interface PublicSnapshot {
@@ -104,7 +108,8 @@ export interface PublicSnapshot {
   tileBagCount: number;
   consecutivePasses: number;
   turnStartedAt: number;
-  endedReason?: string;
+  endedReason?: EndedReason;
+  winnerIds: string[];
 }
 
 export interface PrivatePlayerPayload {

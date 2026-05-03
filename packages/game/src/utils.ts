@@ -59,6 +59,10 @@ export function toPublicPlayer(player: Player): PublicPlayer {
   };
 }
 
+export function sumRackValue(tiles: readonly Tile[]): number {
+  return tiles.reduce((total, tile) => total + tile.value, 0);
+}
+
 /**
  * Array / Tile Utilities
  */

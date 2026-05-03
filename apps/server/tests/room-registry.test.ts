@@ -117,6 +117,7 @@ describe("room registry", () => {
     const leftGuest = snapshot.players.find((player) => player.id === guestId);
     expect(snapshot.status).toBe("ended");
     expect(snapshot.endedReason).toBe("player-left");
+    expect(snapshot.winnerIds).toEqual([snapshot.currentPlayerId!]);
     expect(leftGuest?.connected).toBe(false);
     expect(leftGuest?.left).toBe(true);
     expect(registry.resumeConnection(createConnection("guest-resumed"), roomCode, guestId!)).toBe(false);

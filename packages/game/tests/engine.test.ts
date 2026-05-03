@@ -109,21 +109,18 @@ describe("game engine", () => {
     expect(result.error).toContain("5 or fewer");
   });
 
-  test("ends by party stalemate when bag is empty and consecutive passes equal player count", () => {
-    const { engine, match, host, guest } = startedMatch(createPartyConfig({ maxPlayers: 3 }));
+  test("ends a 2-player bag-empty rack-empty turn with A-Math-style final scoring", () => {
+    const { engine, match, host, guest } = startedMatch();
+    host.rack = [
+      { id: "a", label: "3", value: 2 },
+      { id: "b", label: "=", value: 1 },
+      { id: "c", label: "3", value: 2 }
+    ];
+    guest.rack = [
+      { id: "g1", label: "7", value: 3 },
+      { id: "g2", label: "+", value: 1 }
+    ];
     match.tileBag = [];
-
-    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
-    expect(engine.passTurn(match, guest.id, 0).ok).toBe(true);
-
-    expect(match.status).toBe("ended");
-    expect(match.endedReason).toBe("stalemate");
-  });
-
-  test("deducts overtime penalty at turn end", () => {
-    const { engine, match, host } = startedMatch();
-    host.rack = equationRack();
-    match.turnStartedAt = 0;
 
     const result = engine.commitPlay(
       match,
@@ -133,25 +130,176 @@ describe("game engine", () => {
         { tileId: "b", x: 8, y: 7 },
         { tileId: "c", x: 9, y: 7 }
       ],
-      match.config.turnTimeMs + 1
+      0
     );
 
     expect(result.ok).toBe(true);
-    expect(host.score).toBe(-1);
-    expect(host.lastPenaltyPoints).toBe(10);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("rack-empty");
+    expect(host.score).toBe(17);
+    expect(guest.score).toBe(0);
+    expect(match.winnerIds).toEqual([host.id]);
   });
 
-  test("clears shown penalty when that player's next turn starts", () => {
+  test("ends a 2-player exhausted bag pass cycle and supports ties in winnerIds", () => {
+    const { engine, match, host, guest } = startedMatch();
+    host.score = 10;
+    guest.score = 9;
+    host.rack = [{ id: "h1", label: "4", value: 2 }];
+    guest.rack = [{ id: "g1", label: "1", value: 1 }];
+    match.tileBag = [];
+
+    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
+    expect(match.status).toBe("playing");
+    expect(match.consecutivePasses).toBe(1);
+
+    expect(engine.passTurn(match, guest.id, 0).ok).toBe(true);
+
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("exhausted-pass-cycle");
+    expect(host.score).toBe(8);
+    expect(guest.score).toBe(8);
+    expect(match.winnerIds.sort()).toEqual([guest.id, host.id].sort());
+  });
+
+  test("ends a 3-player exhausted bag pass cycle only after all active players pass once", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [host.id, guest.id, third.id];
+    match.currentPlayerId = host.id;
+    host.score = 10;
+    guest.score = 10;
+    third.score = 10;
+    host.rack = [{ id: "h1", label: "1", value: 1 }];
+    guest.rack = [{ id: "g1", label: "2", value: 2 }];
+    third.rack = [{ id: "t1", label: "3", value: 3 }];
+    match.tileBag = [];
+
+    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
+    expect(engine.passTurn(match, guest.id, 0).ok).toBe(true);
+
+    expect(match.status).toBe("playing");
+    expect(match.consecutivePasses).toBe(2);
+
+    expect(engine.passTurn(match, third.id, 0).ok).toBe(true);
+
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("exhausted-pass-cycle");
+    expect(host.score).toBe(9);
+    expect(guest.score).toBe(8);
+    expect(third.score).toBe(7);
+    expect(match.winnerIds).toEqual([host.id]);
+  });
+
+  test("does not end a 3-player match by pass cycle while the bag still has tiles", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [host.id, guest.id, third.id];
+    match.currentPlayerId = host.id;
+
+    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
+    expect(engine.passTurn(match, guest.id, 0).ok).toBe(true);
+    expect(engine.passTurn(match, third.id, 0).ok).toBe(true);
+
+    expect(match.status).toBe("playing");
+    expect(match.endedReason).toBeUndefined();
+    expect(match.consecutivePasses).toBe(0);
+  });
+
+  test("successful play resets the exhausted bag pass cycle", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [host.id, guest.id, third.id];
+    match.currentPlayerId = host.id;
+    match.tileBag = [];
+    guest.rack = [
+      { id: "a", label: "3", value: 2 },
+      { id: "b", label: "=", value: 1 },
+      { id: "c", label: "3", value: 2 },
+      { id: "d", label: "1", value: 1 }
+    ];
+
+    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
+    expect(match.consecutivePasses).toBe(1);
+
+    expect(
+      engine.commitPlay(
+        match,
+        guest.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 8, y: 7 },
+          { tileId: "c", x: 9, y: 7 }
+        ],
+        0
+      ).ok
+    ).toBe(true);
+
+    expect(match.status).toBe("playing");
+    expect(match.consecutivePasses).toBe(0);
+
+    expect(engine.passTurn(match, third.id, 0).ok).toBe(true);
+    expect(engine.passTurn(match, host.id, 0).ok).toBe(true);
+
+    expect(match.status).toBe("playing");
+    expect(match.consecutivePasses).toBe(2);
+  });
+
+  test("does not apply overtime penalty before or at the turn limit", () => {
     const { engine, match, host, guest } = startedMatch();
     match.turnStartedAt = 0;
 
-    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
-    expect(host.lastPenaltyPoints).toBe(10);
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs).ok).toBe(true);
+    expect(host.score).toBe(0);
+    expect(host.lastPenaltyPoints).toBeUndefined();
+    expect(match.status).toBe("playing");
+
+    expect(engine.passTurn(match, guest.id, match.config.turnTimeMs).ok).toBe(true);
+    expect(guest.score).toBe(0);
+    expect(guest.lastPenaltyPoints).toBeUndefined();
+  });
+
+  test("applies -10 for 1 ms or 1 second overtime", () => {
+    expect(passWithOvertime(matchWithPenalty(), 1).host.lastPenaltyPoints).toBe(10);
+    expect(passWithOvertime(matchWithPenalty(), 1_000).host.lastPenaltyPoints).toBe(10);
+  });
+
+  test("applies -10 at exactly 60 seconds overtime and -20 at 60 seconds plus 1 ms", () => {
+    expect(passWithOvertime(matchWithPenalty(), 60_000).host.lastPenaltyPoints).toBe(10);
+    expect(passWithOvertime(matchWithPenalty(), 60_001).host.lastPenaltyPoints).toBe(20);
+  });
+
+  test("applies -30 for 2 minutes and 13 seconds overtime", () => {
+    const { host } = passWithOvertime(matchWithPenalty(), 133_000);
+    expect(host.lastPenaltyPoints).toBe(30);
+    expect(host.score).toBe(-30);
+  });
+
+  test("clears shown penalty when that player's next turn starts and resets next-turn overtime accounting", () => {
+    const { engine, match, host, guest } = startedMatch();
+    match.turnStartedAt = 0;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 60_001).ok).toBe(true);
+    expect(host.lastPenaltyPoints).toBe(20);
     expect(match.currentPlayerId).toBe(guest.id);
 
-    expect(engine.passTurn(match, guest.id, match.config.turnTimeMs + 2).ok).toBe(true);
+    expect(engine.passTurn(match, guest.id, 1).ok).toBe(true);
     expect(match.currentPlayerId).toBe(host.id);
     expect(host.lastPenaltyPoints).toBeUndefined();
+
+    match.turnStartedAt = 0;
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
+    expect(host.lastPenaltyPoints).toBe(10);
+  });
+
+  test("overtime does not end the match by itself even when remaining time reaches zero", () => {
+    const { engine, match, host } = startedMatch();
+    host.remainingMs = 5;
+    match.turnStartedAt = 0;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 120_000).ok).toBe(true);
+
+    expect(host.remainingMs).toBe(0);
+    expect(host.lastPenaltyPoints).toBe(20);
+    expect(match.status).toBe("playing");
+    expect(match.endedReason).toBeUndefined();
   });
 
   test("lets blank tiles choose a face while scoring zero", () => {
@@ -283,6 +431,7 @@ describe("game engine", () => {
       expect(host.connected).toBe(false);
       expect(match.status).toBe("ended");
       expect(match.endedReason).toBe("player-left");
+      expect(match.winnerIds).toEqual([guest.id]);
       expect(match.playerOrder).toEqual([guest.id]);
       expect(match.currentPlayerId).toBe(guest.id);
     });
@@ -306,6 +455,7 @@ describe("game engine", () => {
       expect(secondLeavingPlayer.left).toBe(true);
       expect(match.status).toBe("ended");
       expect(match.endedReason).toBe("player-left");
+      expect(match.winnerIds).toEqual([match.currentPlayerId!]);
       expect(match.players.filter((player) => !player.left)).toHaveLength(1);
       expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
     });
@@ -339,7 +489,7 @@ describe("game engine", () => {
       expect(match.players.find((player) => player.id === match.currentPlayerId)?.left).not.toBe(true);
     });
 
-    test("uses active non-left players for stalemate after a leave", () => {
+    test("uses active non-left players for exhausted bag pass cycle after a leave", () => {
       const { engine, match, host, guest, third } = startedThreePlayerMatch();
       match.playerOrder = [host.id, guest.id, third.id];
       match.currentPlayerId = host.id;
@@ -352,7 +502,7 @@ describe("game engine", () => {
       expect(engine.passTurn(match, guest.id, 3000).ok).toBe(true);
 
       expect(match.status).toBe("ended");
-      expect(match.endedReason).toBe("stalemate");
+      expect(match.endedReason).toBe("exhausted-pass-cycle");
     });
   });
 
@@ -555,4 +705,17 @@ function equationRack(): Tile[] {
     { id: "g", label: "0", value: 1 },
     { id: "h", label: "1", value: 1 }
   ];
+}
+
+function matchWithPenalty() {
+  return startedMatch();
+}
+
+function passWithOvertime(
+  fixture: ReturnType<typeof startedMatch>,
+  overtimeMs: number
+): ReturnType<typeof startedMatch> {
+  fixture.match.turnStartedAt = 0;
+  fixture.engine.passTurn(fixture.match, fixture.host.id, fixture.match.config.turnTimeMs + overtimeMs);
+  return fixture;
 }
