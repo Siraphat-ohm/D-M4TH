@@ -2,7 +2,7 @@ import type { DragEvent } from "react";
 import { ShoppingBag } from "lucide-react";
 import type { Tile } from "@d-m4th/game";
 import { createDragPreviewSize } from "../../board/board-interaction";
-import { displayTileLabel } from "./tile-display";
+import { displayTileLabel } from "../../shared/tile-display";
 
 interface RackProps {
   rackSlots: Array<Tile | undefined>;

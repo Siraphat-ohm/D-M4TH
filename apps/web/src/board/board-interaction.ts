@@ -1,5 +1,4 @@
 import type { BoardTile, Coordinate, Placement, PublicPlayer, Tile } from "@d-m4th/game";
-import { textColorForBackground } from "../ui/shared/format";
 
 export interface BoardBounds {
   left: number;
@@ -118,8 +117,6 @@ export function createRenderTiles(params: {
     })
   ];
 }
-
-export const textColorForPlayerColor = textColorForBackground;
 
 export function colorNumber(color: string): number {
   return Number.parseInt(normalizeHexColor(color).slice(1), 16);

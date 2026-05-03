@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { displayTileLabel } from "../ui/rack/tile-display";
+import { displayTileLabel } from "../shared/tile-display";
 
 describe("tile display", () => {
   test("renders blank tiles with no face", () => {

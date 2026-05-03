@@ -1,6 +1,6 @@
 import type { MatchConfig } from "@d-m4th/config";
 import { createRequestId, ProtocolClient } from "./protocol-client";
-import { normalizeRoomCode } from "../ui/shared/format";
+import { normalizeRoomCode } from "@/shared/room-code";
 import type { PublicSnapshot } from "@d-m4th/game";
 
 export interface UseLobbyActionsParams {

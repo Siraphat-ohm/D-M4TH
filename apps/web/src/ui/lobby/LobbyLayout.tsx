@@ -1,6 +1,6 @@
 import { type MatchConfig } from "@d-m4th/config";
 import type { Placement, PublicSnapshot, Tile } from "@d-m4th/game";
-import { BoardCanvas } from "@/ui/shared/BoardCanvas";
+import { BoardCanvas } from "@/board/BoardCanvas";
 import { LobbyRoom } from "@/ui/lobby/LobbyRoom";
 
 interface LobbyLayoutProps {

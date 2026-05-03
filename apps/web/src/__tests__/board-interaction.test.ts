@@ -3,9 +3,9 @@ import {
   createDragPreviewSize,
   createRenderTiles,
   createTileRenderMetrics,
-  snapClientPointToBoardCell,
-  textColorForPlayerColor
+  snapClientPointToBoardCell
 } from "../board/board-interaction";
+import { textColorForPlayerColor } from "../shared/color";
 
 describe("board interaction", () => {
   test("snaps client coordinates using the visible board bounds", () => {

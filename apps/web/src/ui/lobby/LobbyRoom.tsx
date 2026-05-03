@@ -2,8 +2,8 @@ import type { FormEvent } from "react";
 import { PREMIUM_MAP_OPTIONS, createClassicalConfig, createPartyConfig, type MatchConfig, type PremiumMapId } from "@d-m4th/config";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { ColorPicker } from "@/ui/shared/ColorPicker";
-import { normalizeRoomCode } from "@/ui/shared/format";
-import type { ViewMode } from "@/ui/shared/types";
+import { normalizeRoomCode } from "@/shared/room-code";
+import type { ViewMode } from "@/shared/types";
 
 interface LobbyRoomProps {
   color: string;

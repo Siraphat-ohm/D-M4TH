@@ -1,4 +1,4 @@
-import { textColorForBackground } from "./format";
+import { textColorForBackground } from "../../shared/color";
 
 const COLOR_PICKER_FALLBACK = "#EF476F";
 
