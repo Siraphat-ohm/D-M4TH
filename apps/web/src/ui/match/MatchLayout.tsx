@@ -1,58 +1,46 @@
 import { type CSSProperties } from "react";
 import { Check, RefreshCcw, ScrollText, SkipForward, Undo2 } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
-import { BoardCanvas } from "@/ui/shared/BoardCanvas";
+import type { PublicSnapshot } from "@d-m4th/game";
+import { BoardCanvas } from "@/board/BoardCanvas";
 import { FaceSelectionDialog } from "@/ui/dialogs/Dialogs";
 import { MatchTopBar } from "@/ui/match/MatchTopBar";
 import { Rack } from "@/ui/rack/Rack";
 import { resolvePlayerAccent } from "@/ui/shared/player-colors";
-import { useAppStore } from "@/app/store/app-store";
 import { useTurn } from "@/turn/TurnContext";
+import type { PrivateState } from "@/shared/types";
 
-export function MatchLayout(props: { onLeaveMatch: () => void }) {
-  const {
-    snapshot,
-    ghostPlacements,
-    privateState,
-    logEntries,
-    color: ownColor,
-    setLogOpen
-  } = useAppStore(
-    useShallow((state) => ({
-      snapshot: state.snapshot,
-      ghostPlacements: state.ghostPlacements,
-      privateState: state.privateState,
-      logEntries: state.logEntries,
-      color: state.color,
-      setLogOpen: state.setLogOpen
-    }))
-  );
-
+export function MatchLayout(props: {
+  snapshot: PublicSnapshot;
+  ghostPlacements: Array<{ playerId: string; placements: PublicSnapshot["board"] }>;
+  privateState?: PrivateState;
+  ownColor: string;
+  logEntryCount: number;
+  onOpenLog: () => void;
+  onLeaveMatch: () => void;
+}) {
   const turn = useTurn();
 
-  if (!snapshot) return null;
-
-  const rack = privateState?.rack ?? [];
-  const localPlayerColor = resolvePlayerAccent(snapshot.players, privateState?.playerId, ownColor);
-  const activeTurnColor = resolvePlayerAccent(snapshot.players, snapshot.currentPlayerId, "var(--panel-border)");
-  const isMyTurn = snapshot.currentPlayerId === privateState?.playerId;
+  const rack = props.privateState?.rack ?? [];
+  const localPlayerColor = resolvePlayerAccent(props.snapshot.players, props.privateState?.playerId, props.ownColor);
+  const activeTurnColor = resolvePlayerAccent(props.snapshot.players, props.snapshot.currentPlayerId, "var(--panel-border)");
+  const isMyTurn = props.snapshot.currentPlayerId === props.privateState?.playerId;
   const actionsFrozen = turn.actionsFrozen;
 
   return (
     <section className="play-surface">
       <section className="match-topbar">
-        <MatchTopBar snapshot={snapshot} previewScore={turn.previewScore} onLeaveMatch={props.onLeaveMatch} />
+        <MatchTopBar snapshot={props.snapshot} previewScore={turn.previewScore} onLeaveMatch={props.onLeaveMatch} />
       </section>
 
       <section className="match-main">
         <section className="board-stage">
           <div className="board-scroll-container">
             <BoardCanvas
-              snapshot={snapshot}
-              ghostPlacements={ghostPlacements}
+              snapshot={props.snapshot}
+              ghostPlacements={props.ghostPlacements}
               draft={turn.draft}
               rack={rack}
-              currentPlayerId={privateState?.playerId}
+              currentPlayerId={props.privateState?.playerId}
               selectedTileId={turn.selectedTileId}
               placementDisabled={turn.placementDisabled || actionsFrozen}
               onCellClick={turn.handleBoardCellClick}
@@ -71,7 +59,7 @@ export function MatchLayout(props: { onLeaveMatch: () => void }) {
             playerColor={localPlayerColor}
             canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen}
             canInteractWithRack={!actionsFrozen}
-            tileBagCount={snapshot.tileBagCount}
+            tileBagCount={props.snapshot.tileBagCount}
             onSelect={turn.handleRackSelect}
           />
         </section>
@@ -110,19 +98,19 @@ export function MatchLayout(props: { onLeaveMatch: () => void }) {
         type="button"
         className="floating-log-button"
         aria-label="Open match log"
-        onClick={() => setLogOpen(true)}
+        onClick={props.onOpenLog}
       >
         <ScrollText size={18} aria-hidden="true" />
-        {logEntries.length > 0 && (
+        {props.logEntryCount > 0 && (
           <span className="floating-log-badge" aria-label="Log entries">
-            {Math.min(logEntries.length, 99)}
+            {Math.min(props.logEntryCount, 99)}
           </span>
         )}
       </button>
 
       {turn.pendingFacePlacement && (
         <FaceSelectionDialog
-          playerColor={ownColor}
+          playerColor={props.ownColor}
           tile={turn.pendingFacePlacement.tile}
           onCancel={turn.cancelPendingFace}
           onSelect={(face) =>

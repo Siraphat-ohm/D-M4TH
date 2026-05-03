@@ -215,7 +215,15 @@ export function App() {
           <Route path="/match">
             {snapshot?.status === "playing" ? (
               <TurnProvider turn={turn}>
-                <MatchLayout onLeaveMatch={leaveMatch} />
+                <MatchLayout
+                  snapshot={snapshot}
+                  ghostPlacements={ghostPlacements}
+                  privateState={privateState}
+                  ownColor={color}
+                  logEntryCount={logEntries.length}
+                  onOpenLog={() => setLogOpen(true)}
+                  onLeaveMatch={leaveMatch}
+                />
               </TurnProvider>
             ) : (
               <NoticeToastStack
