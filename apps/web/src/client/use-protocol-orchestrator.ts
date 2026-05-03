@@ -10,7 +10,7 @@ import {
   writeReconnectSession
 } from "./reconnect-session";
 import type { ReconnectState } from "./leave-match";
-import type { PublicSnapshot } from "@d-m4th/game";
+import type { BoardTile, PublicSnapshot } from "@d-m4th/game";
 
 export interface UseProtocolOrchestratorParams {
   location: string;
@@ -19,7 +19,7 @@ export interface UseProtocolOrchestratorParams {
   turnHandleRef: React.MutableRefObject<(message: ServerMessage) => boolean>;
   setSnapshot: (snapshot: PublicSnapshot) => void;
   setPrivateState: (state: PrivateState | undefined) => void;
-  setGhostPlacements: (placements: any) => void;
+  setGhostPlacements: (placements: Array<{ playerId: string; placements: BoardTile[] }>) => void;
   addLog: (message: string, tone: "success" | "info" | "danger") => void;
   setNotice: (notice: NoticeState) => void;
 }
