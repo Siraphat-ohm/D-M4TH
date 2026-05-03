@@ -10,3 +10,4 @@ dist
 .codex
 .remember/
 apps/server/d-m4th.db
+apps/web/test-results/.last-run.json
