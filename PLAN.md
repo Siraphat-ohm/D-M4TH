@@ -113,6 +113,8 @@ Core visual rules:
 
 ### Stabilization / Refactor Pass
 
+- Added Playwright E2E coverage in `apps/web/src/__tests__/*.e2e.ts`, strictly targeted via `testMatch` to avoid Bun test collision.
+- Covered board rendering (preview/match/resize), waiting-player rack planning, gameplay interaction, and timeout penalties.
 - Fixed web board typecheck by restoring `board-interaction.ts` game type imports.
 - Added leave/disconnect regression coverage for:
   - two-player intentional leave ending the match
