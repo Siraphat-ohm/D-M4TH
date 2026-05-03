@@ -204,6 +204,12 @@
   color: var(--tile-text);
 }
 
+.action-bar .primary:disabled {
+  border-color: var(--panel-border);
+  background: var(--panel);
+  color: #5f6675;
+}
+
 /* ── Match log panel (floating overlay) ── */
 .board-stage .match-log-panel,
 .match-main .match-log-panel {
