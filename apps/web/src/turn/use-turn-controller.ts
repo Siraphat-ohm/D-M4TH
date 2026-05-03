@@ -41,11 +41,12 @@ export function useTurnController(params: UseTurnControllerParams): TurnControll
 
   useEffect(() => {
     if (isMyTurn) return;
+    if (turnMode === "swap") exitSwapMode();
     if (draftRef.current.placements.length === 0 && !selectedTileId) return;
     updateDraftManager(draftRef.current.clear());
     setSelectedTileId(undefined);
     clearPreviewScore();
-  }, [clearPreviewScore, isMyTurn, selectedTileId]);
+  }, [clearPreviewScore, isMyTurn, selectedTileId, turnMode, exitSwapMode]);
 
   useEffect(() => {
     if (draftRef.current.placements.length === 0) return;
