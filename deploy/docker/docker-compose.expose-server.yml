@@ -1,0 +1,7 @@
+# Optional debug override. Not required for normal production because web proxies /ws.
+# Usage:
+# docker compose --env-file .env -f docker-compose.prod.yml -f docker-compose.expose-server.yml up -d
+services:
+  server:
+    ports:
+      - "${SERVER_PORT:-2567}:2567"

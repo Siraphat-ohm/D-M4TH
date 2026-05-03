@@ -131,7 +131,7 @@ export function defaultWebSocketUrl(): string {
   }
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.hostname}:2567/ws`;
+  return `${protocol}//${window.location.host}/ws`;
 }
 
 function parseServerMessage(raw: unknown): ServerMessage | undefined {

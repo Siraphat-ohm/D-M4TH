@@ -20,9 +20,10 @@ RUN mkdir -p node_modules/@d-m4th \
   && ln -s ../../packages/config node_modules/@d-m4th/config \
   && ln -s ../../packages/protocol node_modules/@d-m4th/protocol
 
-# Fail the image build if the server cannot resolve the workspace package.
+# Fail the image build if the server cannot resolve workspace packages.
 RUN bun -e "await import('@d-m4th/game'); console.log('workspace import ok')"
 
 EXPOSE 2567
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD bun -e "const r = await fetch('http://127.0.0.1:2567/health'); process.exit(r.ok ? 0 : 1)"
 
 CMD ["bun", "apps/server/src/index.ts"]

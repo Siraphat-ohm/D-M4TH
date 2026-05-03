@@ -1,0 +1,12 @@
+diff --git a/apps/web/src/client/protocol-client.ts b/apps/web/src/client/protocol-client.ts
+--- a/apps/web/src/client/protocol-client.ts
++++ b/apps/web/src/client/protocol-client.ts
+@@ -93,7 +93,7 @@ export function defaultWebSocketUrl(): string {
+   }
+ 
+   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+-  return `${protocol}//${window.location.hostname}:2567/ws`;
++  return `${protocol}//${window.location.host}/ws`;
+ }
+ 
+ function parseServerMessage(raw: unknown): ServerMessage | undefined {
