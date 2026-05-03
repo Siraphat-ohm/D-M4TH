@@ -132,6 +132,7 @@ Core visual rules:
 - Made `MatchLayout` store-free by lifting its log/store reads to `App`, and tightened `use-protocol-orchestrator` away from avoidable `any` in its private-state and ghost-placement inputs.
 - Verified `apps/web` typecheck, web build, root typecheck, root tests, and browser smoke at desktop/laptop/tablet/phone sizes.
 - Organized web CSS into feature folders (components, lobby, match, board) and split large monolithic CSS files.
+- Fully split the old `layout.css` into `styles/layout/app-shell.css`, `lobby-layout.css`, `match-layout.css`, and `match-responsive.css`, then moved the leftover shared alignment rules into the owning feature styles so the compatibility `layout.css` could be removed.
 
 ## Current Stabilization Priority
 
