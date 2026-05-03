@@ -24,6 +24,12 @@
   width: min(92vw, 560px);
 }
 
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .log-list {
   display: grid;
   gap: 8px;

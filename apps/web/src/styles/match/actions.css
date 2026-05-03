@@ -5,6 +5,8 @@
 /* ── Action bar ── */
 .action-bar {
   display: grid;
+  align-items: center;
+  justify-content: space-between;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(32px, auto);
   gap: 7px;

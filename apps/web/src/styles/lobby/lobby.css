@@ -1,3 +1,10 @@
+.sidebar-header,
+.room-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .room-code span,
 .lobby-panel-heading span {
   color: var(--muted);

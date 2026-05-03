@@ -1,0 +1,57 @@
+/* Lobby layout */
+@media (min-width: 641px) {
+  .app-shell--lobby {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--lobby-padding);
+    gap: var(--lobby-gap);
+  }
+}
+
+@media (min-width: 1025px) {
+  .app-shell--lobby {
+    grid-template-columns:
+      minmax(var(--lobby-side-min), var(--lobby-side-max))
+      minmax(var(--lobby-center-min), 1fr)
+      minmax(var(--lobby-side-min), var(--lobby-side-max));
+    align-items: start;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .app-shell--lobby > .lobby-setup-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-shell--lobby > .setup-preview {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    align-self: start;
+    display: grid;
+    place-items: center;
+    width: min(72vw, 980px);
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell--lobby > .lobby-status {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+.lobby-setup-panel,
+.lobby-status,
+.setup-preview {
+  grid-column: 1;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.setup-preview {
+  padding: 10px;
+  width: 100%;
+}

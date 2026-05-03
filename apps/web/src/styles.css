@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "./styles/base.css";
-@import "./styles/layout.css";
+@import "./styles/layout/app-shell.css";
+@import "./styles/layout/lobby-layout.css";
+@import "./styles/layout/match-layout.css";
+@import "./styles/layout/match-responsive.css";
 
 /* Components */
 @import "./styles/components/panels.css";

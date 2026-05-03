@@ -37,6 +37,19 @@
   }
 }
 
+.match-log-header,
+.match-log-title,
+.match-log-actions,
+.match-log-collapse,
+.match-log-view-all {
+  display: flex;
+  align-items: center;
+}
+
+.match-log-header {
+  justify-content: space-between;
+}
+
 .match-log-title,
 .match-log-actions,
 .match-log-collapse,

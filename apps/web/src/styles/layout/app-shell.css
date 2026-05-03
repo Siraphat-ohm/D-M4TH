@@ -1,0 +1,41 @@
+/* App shell variables and shared shell primitives */
+.puzzle-theme-root {
+  min-height: 100dvh;
+  background: var(--bg);
+  --match-max-width: none;
+  --lobby-padding: clamp(10px, 1.4vw, 24px);
+  --lobby-gap: clamp(10px, 1.2vw, 18px);
+  --lobby-side-min: 220px;
+  --lobby-side-max: 300px;
+  --lobby-center-min: 520px;
+  --match-gap: clamp(8px, 1vw, 14px);
+}
+
+.app-shell {
+  display: grid;
+  width: 100%;
+  min-height: 100dvh;
+  min-width: 0;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 8px;
+}
+
+.app-shell--playing {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: clip;
+  --match-gap: 8px;
+  --topbar-card-height: 52px;
+  --rack-tile-size: 56px;
+  --rack-gap: 6px;
+  --rack-padding: 8px;
+  --rack-shell-padding: 8px;
+  --rack-strip-height: 72px;
+}
