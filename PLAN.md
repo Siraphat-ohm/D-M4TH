@@ -131,6 +131,7 @@ Core visual rules:
 - Moved cross-layer web state types and room-code normalization into neutral `apps/web/src/shared/*` ownership so app/client no longer depend on `ui/shared` or `app-store` for those type/helper seams.
 - Made `MatchLayout` store-free by lifting its log/store reads to `App`, and tightened `use-protocol-orchestrator` away from avoidable `any` in its private-state and ghost-placement inputs.
 - Verified `apps/web` typecheck, web build, root typecheck, root tests, and browser smoke at desktop/laptop/tablet/phone sizes.
+- Organized web CSS into feature folders (components, lobby, match, board) and split large monolithic CSS files.
 
 ## Current Stabilization Priority
 
