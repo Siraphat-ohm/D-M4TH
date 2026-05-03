@@ -1,4 +1,4 @@
-/* Fix lobby desktop layout: keep panels in their intended grid columns. */
+/* App shell variables and shared layout primitives */
 .puzzle-theme-root {
   min-height: 100dvh;
   background: var(--bg);
@@ -40,6 +40,7 @@
   --rack-strip-height: 72px;
 }
 
+/* Lobby layout */
 @media (min-width: 641px) {
   .app-shell--lobby {
     grid-template-columns: minmax(0, 1fr);
@@ -84,7 +85,6 @@
 
 .lobby-setup-panel,
 .lobby-status,
-.lobby-notice,
 .setup-preview {
   grid-column: 1;
   display: grid;
@@ -98,28 +98,13 @@
   width: 100%;
 }
 
-.reconnect-notice {
-  grid-column: 1 / -1;
-  min-width: 0;
-}
-
-.reconnect-notice--playing {
-  width: min(100%, 980px);
-}
-
-.reconnect-banner {
-  justify-content: center;
-  border-color: var(--panel-border);
-}
-
+/* Shared alignment helpers */
 .sidebar-header,
 .room-code,
 .dialog-header,
 .tabs,
 .notice,
-.player-info-line,
 .action-bar,
-.action-group,
 .match-log-header,
 .match-log-title,
 .match-log-actions,
@@ -139,6 +124,7 @@
   justify-content: space-between;
 }
 
+/* Match gameplay layout */
 .play-surface {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -272,16 +258,7 @@
   overflow: clip;
 }
 
-.match-notice {
-  min-width: 0;
-}
-
-@media (min-width: 1281px) {
-  .puzzle-theme-root {
-    /* desktop overrides */
-  }
-}
-
+/* Compact-height adjustments */
 @media (max-height: 820px) {
   .app-shell--playing {
     --match-gap: 8px;
@@ -293,6 +270,7 @@
   }
 }
 
+/* Tablet and laptop tightening */
 @media (min-width: 768px) and (max-height: 1050px) {
   .play-surface {
     gap: 6px;
@@ -317,6 +295,7 @@
   }
 }
 
+/* Match control strip layout */
 .control-strip {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -335,6 +314,7 @@
   }
 }
 
+/* Tablet landscape gameplay layout */
 @media (min-width: 900px) and (max-width: 1400px) and (min-height: 768px) and (max-height: 1050px) and (orientation: landscape) {
   .app-shell--playing {
     padding: 6px;
@@ -374,6 +354,7 @@
   }
 }
 
+/* Short phone landscape layout */
 @media (orientation: landscape) and (max-height: 480px) and (min-width: 640px) {
   .app-shell--playing {
     padding: 4px;

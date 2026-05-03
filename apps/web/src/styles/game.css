@@ -1,12 +1,4 @@
-/* ── Board stack & control strip ── */
-.board-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
+/* Match layout glue */
 .control-strip {
   width: 100%;
   max-width: calc(100vw - (var(--match-gap) * 2));

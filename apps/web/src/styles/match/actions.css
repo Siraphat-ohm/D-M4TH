@@ -1,29 +1,5 @@
-.waiting-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-align: center;
-  letter-spacing: 0.05em;
-  padding-bottom: 4px;
-}
-
-.waiting-swatch {
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  border: 1px solid var(--panel-border);
-}
-
 .action-panel--waiting {
   opacity: 0.6;
-}
-
-.action-panel--waiting .waiting-message {
-  opacity: 1;
 }
 
 /* ── Action bar ── */
