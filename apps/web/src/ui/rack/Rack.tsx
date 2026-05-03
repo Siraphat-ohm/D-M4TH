@@ -32,6 +32,7 @@ export function Rack(props: RackProps) {
             className={props.selectedTileIds.has(tile.id) ? "tile selected" : "tile"}
             draggable={props.canDragToBoard}
             key={tile.id}
+            data-testid={`rack-tile-${tile.id}`}
             style={{ "--tile-accent": props.playerColor } as React.CSSProperties}
             onClick={() => {
               if (!props.canInteractWithRack) return;

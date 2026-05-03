@@ -187,6 +187,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
   return (
     <div
       className={`board-host board-host--${props.variant ?? "game"}`}
+      data-testid="board-host"
       data-board-size={boardSize}
       ref={hostRef}
       style={{ "--board-size": `${Math.max(1, boardTargetPixels)}px` } as CSSProperties}

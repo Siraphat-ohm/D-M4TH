@@ -1,0 +1,3 @@
+[test]
+# Ignore e2e tests for bun test runner
+ignore = ["e2e/"]

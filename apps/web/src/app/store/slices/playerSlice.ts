@@ -19,6 +19,21 @@ function readInitialRoomCode(): string {
   return normalizeRoomCode(new URLSearchParams(window.location.search).get("room") ?? "");
 }
 
+function getInitialConfig(): MatchConfig {
+  const config = createClassicalConfig();
+  const searchParams = new URLSearchParams(window.location.search);
+  const testTurnTime = searchParams.get("testTurnTime");
+  
+  if (testTurnTime) {
+    const turnTimeMs = parseInt(testTurnTime, 10);
+    if (!isNaN(turnTimeMs)) {
+      return { ...config, turnTimeMs };
+    }
+  }
+  
+  return config;
+}
+
 export const createPlayerSlice: StateCreator<PlayerSlice, [], [], PlayerSlice> = (set) => {
   const initialRoomCode = readInitialRoomCode();
 
@@ -26,7 +41,7 @@ export const createPlayerSlice: StateCreator<PlayerSlice, [], [], PlayerSlice> =
     name: "",
     color: DEFAULT_PLAYER_COLOR,
     roomCode: normalizeRoomCode(initialRoomCode),
-    config: createClassicalConfig(),
+    config: getInitialConfig(),
     setName: (name) => set({ name }),
     setColor: (color) => set({ color }),
     setRoomCode: (roomCode) => set({ roomCode }),

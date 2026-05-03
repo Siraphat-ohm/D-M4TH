@@ -11,7 +11,7 @@
     "build": "bun run --filter '*' build",
     "dev": "bun run --filter '@d-m4th/server' dev",
     "dev:web": "bun run --filter '@d-m4th/web' dev",
-    "test": "bun test",
+    "test": "bun test apps/server packages apps/web/src",
     "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {
