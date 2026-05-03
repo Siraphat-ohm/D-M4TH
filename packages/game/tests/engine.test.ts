@@ -109,6 +109,58 @@ describe("game engine", () => {
     expect(result.error).toContain("5 or fewer");
   });
 
+  test("blocks swaps when selecting more tiles than available in the bag", () => {
+    const { engine, match, host } = startedMatch();
+    host.rack = equationRack();
+    // Bag has 7 tiles, host tries to swap 8
+    match.tileBag = match.tileBag.slice(0, 7);
+    const tileIds = host.rack.map(t => t.id);
+    expect(tileIds).toHaveLength(8);
+
+    const result = engine.swapTiles(match, host.id, tileIds);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("cannot swap more tiles than available");
+    expect(host.rack).toHaveLength(8);
+    expect(match.tileBag).toHaveLength(7);
+  });
+
+  test("allows swap when bag count equals selected count (if > 5)", () => {
+    const { engine, match, host } = startedMatch();
+    host.rack = equationRack();
+    match.tileBag = match.tileBag.slice(0, 6);
+    const tileIds = host.rack.slice(0, 6).map(t => t.id);
+
+    const result = engine.swapTiles(match, host.id, tileIds);
+
+    expect(result.ok).toBe(true);
+    expect(host.rack).toHaveLength(8);
+    expect(match.tileBag).toHaveLength(6);
+  });
+
+  test("prevents redrawing the same tiles in a swap", () => {
+    const { engine, match, host } = startedMatch();
+    // Force bag to have specific tiles
+    const bagTiles = [
+      { id: "bag1", label: "1", value: 1 },
+      { id: "bag2", label: "2", value: 2 },
+      { id: "bag3", label: "3", value: 3 },
+      { id: "bag4", label: "4", value: 4 },
+      { id: "bag5", label: "5", value: 5 },
+      { id: "bag6", label: "6", value: 6 }
+    ];
+    match.tileBag = bagTiles;
+    
+    const originalRackTileId = host.rack[0].id;
+    const result = engine.swapTiles(match, host.id, [originalRackTileId]);
+
+    expect(result.ok).toBe(true);
+    // The tile we just put in the bag should NOT be in the rack
+    expect(host.rack.find(t => t.id === originalRackTileId)).toBeUndefined();
+    // It should now be in the bag
+    expect(match.tileBag.find(t => t.id === originalRackTileId)).toBeDefined();
+  });
+
   test("ends a 2-player bag-empty rack-empty turn with A-Math-style final scoring", () => {
     const { engine, match, host, guest } = startedMatch();
     host.rack = [

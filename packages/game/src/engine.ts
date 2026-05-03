@@ -172,6 +172,10 @@ export class GameEngine {
         throw new Error("Swap must include 1 to 8 tiles");
       }
 
+      if (tileIds.length > match.tileBag.length) {
+        throw new Error("You cannot swap more tiles than available in the bag");
+      }
+
       const player = getPlayer(match, playerId);
       const selectedIds = new Set(tileIds);
       const selectedTiles = player.rack.filter((tile) => selectedIds.has(tile.id));
