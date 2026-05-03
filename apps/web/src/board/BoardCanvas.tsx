@@ -28,6 +28,12 @@ const BOARD_SIZE_SAFETY_MARGIN = 4;
 type RenderStatus = "loading" | "ready" | "error";
 type RenderErrorKind = "webgl-disabled" | "unknown";
 
+const debugBoardCanvas = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug("[BoardCanvas]", ...args);
+  }
+};
+
 export function BoardCanvas(props: BoardCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const pixiRef = useRef<HTMLDivElement>(null);
@@ -43,28 +49,46 @@ export function BoardCanvas(props: BoardCanvasProps) {
 
   // Initialize Pixi once per mount. The real size is driven by ResizeObserver below.
   useEffect(() => {
+    debugBoardCanvas("effect mount start", { variant: props.variant ?? "game", initAttempt });
     let disposed = false;
     const host = hostRef.current;
     const pixiHost = pixiRef.current;
+    debugBoardCanvas("hostRef", host ? "exists" : "missing");
+    debugBoardCanvas("pixiRef", pixiHost ? "exists" : "missing");
     if (!host || !pixiHost) return;
+    const mountHost = host;
+    const mountPixiHost = pixiHost;
 
     async function mount(): Promise<void> {
       setRenderStatus("loading");
       setRenderErrorKind("unknown");
-      const measured = Math.round(host?.getBoundingClientRect().width ?? 0);
+      const hostRect = mountHost.getBoundingClientRect();
+      debugBoardCanvas("host rect at mount", {
+        width: hostRect.width,
+        height: hostRect.height
+      });
+      const measured = Math.round(hostRect.width ?? 0);
       const fallback = estimateInitialBoardPixels(props.variant ?? "game");
+      debugBoardCanvas("measured width used for initial Pixi size", measured);
+      debugBoardCanvas("fallback size used", fallback);
       const initialSize = Math.max(1, measured > 1 ? measured : fallback);
-      const game = new PixiBoardGame(pixiHost!, initialSize);
+      debugBoardCanvas("initialSize chosen", initialSize);
+      debugBoardCanvas("PixiBoardGame constructor call", { initialSize });
+      const game = new PixiBoardGame(mountPixiHost, initialSize);
       boardGameRef.current = game;
 
       try {
+        debugBoardCanvas("game.init start");
         await game.init();
         if (disposed) {
+          debugBoardCanvas("disposed-before-ready path");
           game.destroy();
           return;
         }
+        debugBoardCanvas("game.init success");
         setRenderStatus("ready");
       } catch (e) {
+        debugBoardCanvas("game.init error", e);
         console.error("Pixi board init failed", e);
         if (!disposed) {
           setRenderStatus("error");
@@ -82,6 +106,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
     mount();
 
     return () => {
+      debugBoardCanvas("effect cleanup");
       disposed = true;
       boardGameRef.current?.destroy();
       boardGameRef.current = null;
@@ -89,14 +114,26 @@ export function BoardCanvas(props: BoardCanvasProps) {
   }, [initAttempt, props.variant]);
 
   useEffect(() => {
+    debugBoardCanvas("renderStatus changes", renderStatus);
+  }, [renderStatus]);
+
+  useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host) {
+      debugBoardCanvas("ResizeObserver skipped: hostRef missing");
+      return;
+    }
     const variant = props.variant ?? "game";
 
     let animationFrame = 0;
     const updateBoardTarget = () => {
       window.cancelAnimationFrame(animationFrame);
       animationFrame = window.requestAnimationFrame(() => {
+        const hostRect = host.getBoundingClientRect();
+        debugBoardCanvas("ResizeObserver callback with observed sizes", {
+          host: { width: hostRect.width, height: hostRect.height },
+          slot: readBoardSlotSize(host)
+        });
         const next = measureBoardTargetPixels(host, variant);
         setBoardTargetPixels((current) => {
           return current === next ? current : next;
@@ -115,14 +152,29 @@ export function BoardCanvas(props: BoardCanvasProps) {
     };
   }, [props.variant]);
 
+  useEffect(() => {
+    debugBoardCanvas("boardTargetPixels updates", boardTargetPixels);
+  }, [boardTargetPixels]);
+
   // Update Pixi on data or dimension change.
   useEffect(() => {
     const game = boardGameRef.current;
-    if (!game || renderStatus !== "ready") return;
+    if (!game) {
+      debugBoardCanvas("update effect skipped because: no game");
+      return;
+    }
+    if (renderStatus !== "ready") {
+      debugBoardCanvas("update effect skipped because: renderStatus not ready", renderStatus);
+      return;
+    }
 
     const boardPixelSize = boardTargetPixels;
-    if (boardPixelSize <= 0) return;
+    if (boardPixelSize <= 0) {
+      debugBoardCanvas("update effect skipped because: boardPixelSize <= 0", boardPixelSize);
+      return;
+    }
 
+    debugBoardCanvas("update effect calls game.resize/update", { boardPixelSize, boardSize, premiumMapId });
     game.resize(boardPixelSize);
     game.update({
       boardPixelSize,

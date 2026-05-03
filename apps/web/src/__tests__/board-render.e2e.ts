@@ -25,6 +25,26 @@ test('lobby preview board renders non-empty', async ({ page }) => {
   expect(canvasBox!.height).toBeGreaterThan(0);
 });
 
+test('lobby preview board keeps canvas across repeated reloads', async ({ page }) => {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await page.goto('/');
+
+    const boardHost = page.locator('[data-testid="board-host"]');
+    await expect(boardHost, `reload ${attempt + 1}: board host visible`).toBeVisible({ timeout: 10000 });
+
+    const overlay = boardHost.locator('.board-render-overlay');
+    await expect(overlay, `reload ${attempt + 1}: loading overlay clears`).not.toBeVisible({ timeout: 15000 });
+
+    const canvas = boardHost.locator('canvas');
+    await expect(canvas, `reload ${attempt + 1}: canvas visible`).toBeVisible({ timeout: 10000 });
+
+    const canvasBox = await canvas.boundingBox();
+    expect(canvasBox, `reload ${attempt + 1}: canvas box exists`).not.toBeNull();
+    expect(canvasBox!.width, `reload ${attempt + 1}: canvas width`).toBeGreaterThan(0);
+    expect(canvasBox!.height, `reload ${attempt + 1}: canvas height`).toBeGreaterThan(0);
+  }
+});
+
 test('match board renders non-empty after starting', async ({ browser }) => {
   const player1Context = await browser.newContext();
   const player2Context = await browser.newContext();
