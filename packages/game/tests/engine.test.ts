@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createClassicalConfig, createPartyConfig } from "@d-m4th/config";
+import { BINGO_BONUS, createClassicalConfig, createPartyConfig } from "@d-m4th/config";
 import { GameEngine } from "../src/engine";
 import type { MatchState, Player, Tile } from "../src/types";
 import { createTileSet } from "../src/tile-catalog";
@@ -428,6 +428,252 @@ describe("game engine", () => {
     expect(result.value?.expression).toBe("2 × 2 = 4");
   });
 
+  describe("cross equation validation", () => {
+    test("rejects preview and commit when a valid main equation creates an invalid cross equation", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [
+        boardTile("top", "8", 4, 6, 3, guest.id),
+        boardTile("bottom", "9", 4, 6, 5, guest.id)
+      ];
+      host.rack = [
+        tile("left", "3", 2),
+        tile("middle", "=", 1),
+        tile("right", "3", 2)
+      ];
+
+      const placements = [
+        { tileId: "left", x: 5, y: 4 },
+        { tileId: "middle", x: 6, y: 4 },
+        { tileId: "right", x: 7, y: 4 }
+      ];
+
+      const preview = engine.previewPlay(match, host.id, placements);
+      expect(preview.ok).toBe(false);
+      expect(preview.error).toContain("same value");
+
+      const commit = engine.commitPlay(match, host.id, placements, 0);
+      expect(commit.ok).toBe(false);
+      expect(commit.error).toContain("same value");
+      expect(match.board).toHaveLength(2);
+      expect(host.score).toBe(0);
+    });
+
+    test("accepts a valid main equation when no cross-line longer than one cell is created", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [boardTile("seed", "7", 3, 0, 0, guest.id)];
+      host.rack = [
+        tile("a", "2", 1),
+        tile("b", "+", 1),
+        tile("c", "2", 1),
+        tile("d", "=", 1),
+        tile("e", "4", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 5, y: 4 },
+          { tileId: "b", x: 6, y: 4 },
+          { tileId: "c", x: 7, y: 4 },
+          { tileId: "d", x: 8, y: 4 },
+          { tileId: "e", x: 9, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.value?.expression).toBe("2 + 2 = 4");
+      expect(result.value?.totalScore).toBe(6);
+    });
+
+    test("accepts a valid main equation with a valid cross equation", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [
+        boardTile("top", "8", 4, 6, 3, guest.id),
+        boardTile("bottom", "8", 4, 6, 5, guest.id)
+      ];
+      host.rack = [
+        tile("left", "3", 2),
+        tile("middle", "=", 1),
+        tile("right", "3", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "left", x: 5, y: 4 },
+          { tileId: "middle", x: 6, y: 4 },
+          { tileId: "right", x: 7, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.value?.expression).toBe("3 = 3");
+      expect(result.value?.totalScore).toBe(14);
+    });
+
+    test("rejects a cross-line longer than one tile when it has no equals sign", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [
+        boardTile("top", "1", 1, 6, 3, guest.id),
+        boardTile("bottom", "1", 1, 6, 5, guest.id)
+      ];
+      host.rack = [
+        tile("a", "2", 1),
+        tile("b", "+", 1),
+        tile("c", "2", 1),
+        tile("d", "=", 1),
+        tile("e", "4", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 5, y: 4 },
+          { tileId: "b", x: 6, y: 4 },
+          { tileId: "c", x: 7, y: 4 },
+          { tileId: "d", x: 8, y: 4 },
+          { tileId: "e", x: 9, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("equals");
+    });
+
+    test("accepts multiple valid cross equations and scores each exactly once", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [
+        boardTile("top-left", "1", 1, 6, 3, guest.id),
+        boardTile("bottom-left", "1", 1, 6, 5, guest.id),
+        boardTile("top-right", "3", 2, 8, 3, guest.id),
+        boardTile("bottom-right", "3", 2, 8, 5, guest.id)
+      ];
+      host.rack = [
+        tile("a", "2", 2),
+        tile("b", "=", 1),
+        tile("c", "2", 2),
+        tile("d", "=", 1),
+        tile("e", "2", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 5, y: 4 },
+          { tileId: "b", x: 6, y: 4 },
+          { tileId: "c", x: 7, y: 4 },
+          { tileId: "d", x: 8, y: 4 },
+          { tileId: "e", x: 9, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.value?.expression).toBe("2 = 2 = 2");
+      expect(result.value?.bingoBonus).toBe(0);
+      expect(result.value?.totalScore).toBe(16);
+    });
+
+    test("rejects the full play when any one of multiple cross equations is invalid", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.board = [
+        boardTile("top-left", "1", 1, 6, 3, guest.id),
+        boardTile("bottom-left", "1", 1, 6, 5, guest.id),
+        boardTile("top-right", "3", 2, 8, 3, guest.id),
+        boardTile("bottom-right", "4", 2, 8, 5, guest.id)
+      ];
+      host.rack = [
+        tile("a", "2", 2),
+        tile("b", "=", 1),
+        tile("c", "2", 2),
+        tile("d", "=", 1),
+        tile("e", "2", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 5, y: 4 },
+          { tileId: "b", x: 6, y: 4 },
+          { tileId: "c", x: 7, y: 4 },
+          { tileId: "d", x: 8, y: 4 },
+          { tileId: "e", x: 9, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("same value");
+    });
+
+    test("applies the bingo bonus only once when a full-rack play also creates cross equations", () => {
+      const { engine, match, host, guest } = startedMatch();
+      match.config.rackSize = 5;
+      match.board = [
+        boardTile("top-left", "1", 1, 6, 3, guest.id),
+        boardTile("bottom-left", "1", 1, 6, 5, guest.id),
+        boardTile("top-right", "3", 2, 8, 3, guest.id),
+        boardTile("bottom-right", "3", 2, 8, 5, guest.id)
+      ];
+      host.rack = [
+        tile("a", "2", 2),
+        tile("b", "=", 1),
+        tile("c", "2", 2),
+        tile("d", "=", 1),
+        tile("e", "2", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 5, y: 4 },
+          { tileId: "b", x: 6, y: 4 },
+          { tileId: "c", x: 7, y: 4 },
+          { tileId: "d", x: 8, y: 4 },
+          { tileId: "e", x: 9, y: 4 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.value?.bingoBonus).toBe(BINGO_BONUS);
+      expect(result.value?.totalScore).toBe(16 + BINGO_BONUS);
+    });
+
+    test("keeps first-play contiguity rules unchanged", () => {
+      const { engine, match, host } = startedMatch();
+      match.board = [];
+      host.rack = [
+        tile("a", "3", 2),
+        tile("b", "=", 1),
+        tile("c", "3", 2)
+      ];
+
+      const result = engine.commitPlay(
+        match,
+        host.id,
+        [
+          { tileId: "a", x: 7, y: 7 },
+          { tileId: "b", x: 9, y: 7 },
+          { tileId: "c", x: 10, y: 7 }
+        ],
+        0
+      );
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("empty gaps");
+    });
+  });
+
   test("uses centered start star for larger boards", () => {
     const { engine, match, host } = startedMatch(createPartyConfig({ boardSize: 19, maxPlayers: 2 }));
     host.rack = equationRack();
@@ -596,19 +842,21 @@ describe("game engine", () => {
 
       const hostPlacements = match.lastPlacements.slice();
 
-      guest.rack = equationRack();
+      guest.rack = [
+        tile("guest-top", "3", 2),
+        tile("guest-bottom", "3", 2)
+      ];
       engine.commitPlay(
         match,
         guest.id,
         [
-          { tileId: "a", x: 7, y: 8 },
-          { tileId: "b", x: 8, y: 8 },
-          { tileId: "c", x: 9, y: 8 }
+          { tileId: "guest-top", x: 8, y: 6 },
+          { tileId: "guest-bottom", x: 8, y: 8 }
         ],
         0
       );
 
-      expect(match.lastPlacements).toHaveLength(3);
+      expect(match.lastPlacements).toHaveLength(2);
       expect(match.lastPlacements).not.toEqual(hostPlacements);
       expect(match.lastPlacements.every((t) => t.ownerId === guest.id)).toBe(true);
     });
@@ -757,6 +1005,14 @@ function equationRack(): Tile[] {
     { id: "g", label: "0", value: 1 },
     { id: "h", label: "1", value: 1 }
   ];
+}
+
+function tile(id: string, label: string, value: number): Tile {
+  return { id, label, value };
+}
+
+function boardTile(id: string, label: string, value: number, x: number, y: number, ownerId: string) {
+  return { id, label, value, x, y, ownerId };
 }
 
 function matchWithPenalty() {

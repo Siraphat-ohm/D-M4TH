@@ -66,12 +66,20 @@ export interface PlacementDraft {
   placements: BoardTile[];
 }
 
+export interface LineScoreBreakdown {
+  baseScore: number;
+  equationMultiplier: number;
+  totalScore: number;
+  expression: string;
+}
+
 export interface ScoreBreakdown {
   baseScore: number;
   equationMultiplier: number;
   bingoBonus: number;
   totalScore: number;
   expression: string;
+  lines: LineScoreBreakdown[];
 }
 
 export interface MatchState {

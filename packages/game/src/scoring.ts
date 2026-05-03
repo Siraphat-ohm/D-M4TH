@@ -1,15 +1,14 @@
 import { BINGO_BONUS } from "@d-m4th/config";
 import { getBoardCell } from "./board-layout";
 import { validateEquation } from "./equation-parser";
-import type { BoardCell, BoardTile, ScoreBreakdown } from "./types";
+import type { BoardCell, BoardTile, LineScoreBreakdown, ScoreBreakdown } from "./types";
 
 export function scoreLine(params: {
   layout: readonly BoardCell[];
   line: readonly BoardTile[];
   placedTileIds: ReadonlySet<string>;
-  rackSize: number;
-}): ScoreBreakdown {
-  const { layout, line, placedTileIds, rackSize } = params;
+}): LineScoreBreakdown {
+  const { layout, line, placedTileIds } = params;
   const equation = validateEquation(line);
 
   let baseScore = 0;
@@ -27,13 +26,30 @@ export function scoreLine(params: {
     }
   }
 
-  const bingoBonus = placedTileIds.size === rackSize ? BINGO_BONUS : 0;
-
   return {
     baseScore,
     equationMultiplier,
-    bingoBonus,
-    totalScore: baseScore * equationMultiplier + bingoBonus,
+    totalScore: baseScore * equationMultiplier,
     expression: equation.expression
+  };
+}
+
+export function createScoreBreakdown(params: {
+  primaryLineScore: LineScoreBreakdown;
+  lineScores: readonly LineScoreBreakdown[];
+  placedTileCount: number;
+  rackSize: number;
+}): ScoreBreakdown {
+  const { primaryLineScore, lineScores, placedTileCount, rackSize } = params;
+  const bingoBonus = placedTileCount === rackSize ? BINGO_BONUS : 0;
+  const lineTotal = lineScores.reduce((sum, lineScore) => sum + lineScore.totalScore, 0);
+
+  return {
+    baseScore: primaryLineScore.baseScore,
+    equationMultiplier: primaryLineScore.equationMultiplier,
+    bingoBonus,
+    totalScore: lineTotal + bingoBonus,
+    expression: primaryLineScore.expression,
+    lines: [...lineScores]
   };
 }

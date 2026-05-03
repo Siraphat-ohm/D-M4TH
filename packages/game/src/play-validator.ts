@@ -1,7 +1,7 @@
 import { buildContiguousLine, createBoardLayout, detectDirection } from "./board-layout";
-import { scoreLine } from "./scoring";
+import { createScoreBreakdown, scoreLine } from "./scoring";
 import { faceOptionsForTileLabel, tileRequiresFace } from "./tile-catalog";
-import type { BoardTile, MatchState, Placement, Player, ScoreBreakdown } from "./types";
+import type { BoardTile, Direction, MatchState, Placement, Player, ScoreBreakdown } from "./types";
 import { cellKey } from "./utils";
 
 export function validatePlay(match: MatchState, player: Player, placements: readonly Placement[]): ScoreBreakdown {
@@ -17,16 +17,72 @@ export function validatePlay(match: MatchState, player: Player, placements: read
   }
 
   const direction = detectDirection(boardTiles);
-  const line = buildContiguousLine({ board: match.board, placements: boardTiles, direction });
   const placedTileIds = new Set(boardTiles.map((tile) => tile.id));
   const layout = createBoardLayout(match.config.boardSize, match.config.premiumMapId);
+  const primaryLine = buildContiguousLine({ board: match.board, placements: boardTiles, direction });
+  const lineScores = [
+    scoreLine({
+      layout,
+      line: primaryLine,
+      placedTileIds
+    })
+  ];
 
-  return scoreLine({
-    layout,
-    line,
-    placedTileIds,
+  for (const crossLine of collectCrossLines(match.board, boardTiles, direction)) {
+    try {
+      lineScores.push(
+        scoreLine({
+          layout,
+          line: crossLine,
+          placedTileIds
+        })
+      );
+    } catch (error) {
+      throw new Error(`Cross equation is invalid: ${errorMessage(error)}`);
+    }
+  }
+
+  return createScoreBreakdown({
+    primaryLineScore: lineScores[0]!,
+    lineScores,
+    placedTileCount: placedTileIds.size,
     rackSize: match.config.rackSize
   });
+}
+
+function collectCrossLines(board: readonly BoardTile[], placements: readonly BoardTile[], primaryDirection: Direction): BoardTile[][] {
+  const crossDirection = primaryDirection === "horizontal" ? "vertical" : "horizontal";
+  const seenKeys = new Set<string>();
+  const crossLines: BoardTile[][] = [];
+
+  for (const placement of placements) {
+    const line = buildContiguousLine({
+      board,
+      placements: [placement],
+      direction: crossDirection
+    });
+
+    if (line.length <= 1) {
+      continue;
+    }
+
+    const key = createLineKey(crossDirection, line);
+
+    if (seenKeys.has(key)) {
+      continue;
+    }
+
+    seenKeys.add(key);
+    crossLines.push(line);
+  }
+
+  return crossLines;
+}
+
+function createLineKey(direction: Direction, line: readonly BoardTile[]): string {
+  const firstTile = line[0]!;
+  const lastTile = line[line.length - 1]!;
+  return `${direction}:${firstTile.x},${firstTile.y}:${lastTile.x},${lastTile.y}`;
 }
 
 function createBoardTiles(player: Player, placements: readonly Placement[]): BoardTile[] {
@@ -97,4 +153,8 @@ function validatePlacementFace(tileLabel: string, face: string | undefined): voi
   if (face && !faceOptionsForTileLabel(tileLabel).includes(face)) {
     throw new Error("Tile face is not supported");
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
 }
