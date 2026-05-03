@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { LogOut } from "lucide-react";
 import type { PublicSnapshot } from "@d-m4th/game";
-import { formatTime } from "@/ui/shared/format";
+import { formatSignedTime } from "@/ui/shared/format";
 import { PlayerInfoList } from "@/ui/match/PlayerInfoList";
 import { usePenaltyDelta } from "@/ui/match/usePenaltyDelta";
 
@@ -32,12 +32,12 @@ export function MatchTopBar(props: {
 
   const elapsed =
     snapshot.status === "playing" && activePlayer
-      ? Math.max(0, now - snapshot.turnStartedAt)
+      ? now - snapshot.turnStartedAt
       : 0;
 
   const turnRemaining =
     snapshot.status === "playing"
-      ? Math.max(0, snapshot.config.turnTimeMs - elapsed)
+      ? snapshot.config.turnTimeMs - elapsed
       : 0;
 
   const visiblePenaltyDeltas = usePenaltyDelta(snapshot, now);
@@ -59,7 +59,9 @@ export function MatchTopBar(props: {
         <div className="metric metric--turn" aria-label={`${activePlayerName}'s turn`}>
           <div className="turn-indicator">
             <strong className="turn-name">{turnLabel}</strong>
-            <span className="turn-time">{formatTime(turnRemaining)}</span>
+            <span className={`turn-time${turnRemaining < 0 ? " overtime" : ""}`}>
+              {formatSignedTime(turnRemaining)}
+            </span>
           </div>
         </div>
 

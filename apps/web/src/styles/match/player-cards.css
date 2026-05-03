@@ -71,6 +71,10 @@
   text-transform: uppercase;
 }
 
+.player-time.overtime {
+  color: #c88491;
+}
+
 .player-score-block {
   display: flex;
   flex-direction: column;
@@ -186,6 +190,10 @@
   color: var(--muted);
   text-transform: none;
   letter-spacing: 0.04em;
+}
+
+.player-time.overtime {
+  color: #c88491;
 }
 
 .player-score-block {

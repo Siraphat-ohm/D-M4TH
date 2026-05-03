@@ -77,7 +77,15 @@ export function MatchLayout(props: {
             </button>
             <button
               onClick={turn.handleSwapAction}
-              disabled={actionsFrozen || !isMyTurn || (turn.turnMode === "swap" && turn.swapSelectedTileIds.length === 0)}
+              disabled={
+                actionsFrozen ||
+                !isMyTurn ||
+                props.snapshot.tileBagCount <= 5 ||
+                (turn.turnMode === "swap" && (
+                  turn.swapSelectedTileIds.length === 0 ||
+                  turn.swapSelectedTileIds.length > props.snapshot.tileBagCount
+                ))
+              }
             >
               <RefreshCcw size={15} aria-hidden="true" />
               {turn.turnMode === "swap" ? `Swap ${turn.swapSelectedTileIds.length}` : "Swap"}

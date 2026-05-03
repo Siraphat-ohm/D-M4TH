@@ -1,6 +1,6 @@
 import { type CSSProperties } from "react";
 import type { PublicSnapshot } from "@d-m4th/game";
-import { formatTime } from "../shared/format";
+import { formatSignedTime } from "../shared/format";
 
 export function PlayerInfoList(props: {
   snapshot: PublicSnapshot;
@@ -16,8 +16,8 @@ export function PlayerInfoList(props: {
         const isActive = props.snapshot.currentPlayerId === player.id;
         const showPreview = isActive && props.previewScore !== undefined;
         const penaltyPoints = props.penaltyDeltas?.[player.id];
-        const elapsed = isActive ? Math.max(0, now - props.snapshot.turnStartedAt) : 0;
-        const fullRemaining = props.snapshot.status === "playing" ? Math.max(0, player.remainingMs - elapsed) : player.remainingMs;
+        const elapsed = isActive ? now - props.snapshot.turnStartedAt : 0;
+        const fullRemaining = props.snapshot.status === "playing" ? player.remainingMs - elapsed : player.remainingMs;
         const scoreDelta = showPreview
           ? `+${props.previewScore}`
           : penaltyPoints !== undefined
@@ -39,10 +39,12 @@ export function PlayerInfoList(props: {
                   <span className="player-status">PLAYING</span>
                 )}
               </span>
-              <span className="player-time">{props.snapshot.status === "lobby" ? "--" : formatTime(fullRemaining)}</span>
+              <span className={`player-time${fullRemaining < 0 ? " overtime" : ""}`}>
+                {props.snapshot.status === "lobby" ? "--" : formatSignedTime(fullRemaining)}
+              </span>
             </div>
             <div className="player-score-block">
-              <strong className={showPreview ? "player-score preview" : "player-score"}>{player.score} pts</strong>
+...
               <span className={deltaClassName}>
                 {scoreDelta || " "}
               </span>

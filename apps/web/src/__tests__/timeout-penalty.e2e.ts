@@ -39,6 +39,11 @@ test('timeout penalty applied when active player exceeds turn time', async ({ br
   // Wait for turn time to expire
   await activePage.waitForTimeout(SHORT_TURN_TIME_MS + 1500);
 
+  // Assert negative timer display
+  const timerText = await activePage.locator('.turn-time').innerText();
+  expect(timerText.startsWith('-')).toBe(true);
+  await expect(activePage.locator('.turn-time.overtime')).toBeVisible();
+
   // Record scores BEFORE pass
   const beforeScores = await activePage.locator('.player-score').allTextContents();
   console.log('BEFORE pass scores:', JSON.stringify(beforeScores));

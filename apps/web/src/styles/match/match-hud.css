@@ -71,6 +71,10 @@
   letter-spacing: 0.04em;
 }
 
+.turn-time.overtime {
+  color: #c88491;
+}
+
 .hud-value {
   font-family: var(--font-pixel);
   font-size: clamp(0.9rem, 1.2vw, 1.05rem);
