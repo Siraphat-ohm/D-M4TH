@@ -1,14 +1,10 @@
 # D-M4TH Documentation
 
-This directory contains high-level documentation and architectural decisions for the D-M4TH project.
-
-## Core Resources
-
-- **[ADRs](./adr/)**: Architectural Decision Records (historical context).
+This directory contains high-level documentation for the D-M4TH project.
 
 ---
 
-## System Overview (Consolidated Architecture)
+## System Overview (Architecture)
 
 D-M4TH is a realtime multiplayer math board game built as a Bun monorepo.
 
