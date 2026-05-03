@@ -1,32 +1,47 @@
-# D-M4TH Docs
+# D-M4TH Documentation
 
-This docs folder is for engineers and agents changing the codebase.
+This directory contains high-level documentation and architectural decisions for the D-M4TH project.
 
-## Start Here
+## Core Resources
 
-- [Architecture](./architecture.md): system boundaries, data flow, and key decisions.
-- [Code Map](./code-map.md): where main behavior lives.
-- [Web UI](./web-ui.md): current match UI structure, theme rules, and browser QA.
-- [ADR 0001](./adr/0001-bun-websocket-runtime.md): Bun WebSocket runtime decision.
-- [ADR 0002](./adr/0002-react-hud-pixijs-board.md): React UI with PixiJS 8 board adapter decision.
+- **[ADRs](./adr/)**: Architectural Decision Records (historical context).
 
-## Command Reference
+---
+
+## System Overview (Consolidated Architecture)
+
+D-M4TH is a realtime multiplayer math board game built as a Bun monorepo.
+
+### Tech Stack
+- **Engine**: Pure TypeScript (`packages/game`).
+- **Server**: Bun HTTP/WebSocket adapter (`apps/server`).
+- **Web**: React 19 + Vite + PixiJS 8 (`apps/web`).
+- **Protocol**: Shared message types (`packages/protocol`).
+
+### Authority Rules
+- **Server** owns the authoritative match state.
+- **Client** never computes authoritative scores or game state.
+- **PixiJS** is strictly for board canvas rendering; React owns the rest of the UI.
+- **Leave vs Disconnect**: Intentional leave (`room:leave`) ends or forfeits a match; accidental disconnects preserve reconnection.
+
+## Development Commands
 
 Use Bun through RTK:
 
 ```bash
-rtk bun test
-rtk bun run typecheck
-rtk bun run build
-rtk bun run dev
-rtk bun run dev:web
+rtk bun test             # Run all tests
+rtk bun run typecheck    # Type-check all packages
+rtk bun run build        # Build all packages
+rtk bun run dev          # Start local development environment
 ```
 
-For web-only UI work:
-
+### Web-Specific
 ```bash
-cd apps/web && rtk bun run typecheck
-cd apps/web && rtk bun run build
-rtk bun test apps/web/src/__tests__/tile-display.test.ts apps/web/src/__tests__/board-interaction.test.ts apps/web/src/__tests__/turn-controls.test.ts
+cd apps/web
+bun run test:e2e        # Run Playwright E2E tests
+bun test src/__tests__  # Run Bun unit tests
 ```
 
+---
+
+*Note: For detailed implementation guidance, design language rules, and current task priorities, refer to `AGENTS.md` and `GEMINI.md` at the project root.*
