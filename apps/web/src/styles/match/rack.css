@@ -52,6 +52,7 @@
   border: 1px solid var(--panel-border);
   background: var(--tile-face);
   color: var(--tile-text);
+  will-change: transform;
 }
 
 .tile.selected {
@@ -74,6 +75,7 @@
 .tile-placeholder {
   border: 1px solid var(--panel-border);
   background: transparent;
+  will-change: transform;
 }
 
 .rack,

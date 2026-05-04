@@ -1,4 +1,4 @@
-import type { DragEvent } from "react";
+import { useLayoutEffect, useRef, type DragEvent } from "react";
 import type { Tile } from "@d-m4th/game";
 import { createDragPreviewSize } from "../../board/board-interaction";
 import { displayTileLabel } from "../../shared/tile-display";
@@ -13,13 +13,59 @@ interface RackProps {
 }
 
 export function Rack(props: RackProps) {
+  const itemRefs = useRef(new Map<string, HTMLElement>());
+  const previousRects = useRef(new Map<string, DOMRect>());
+
+  useLayoutEffect(() => {
+    const nextRects = new Map<string, DOMRect>();
+
+    for (const [key, element] of itemRefs.current.entries()) {
+      nextRects.set(key, element.getBoundingClientRect());
+    }
+
+    for (const [key, element] of itemRefs.current.entries()) {
+      const previousRect = previousRects.current.get(key);
+      const nextRect = nextRects.get(key);
+
+      if (!previousRect || !nextRect) {
+        continue;
+      }
+
+      const deltaX = previousRect.left - nextRect.left;
+      const deltaY = previousRect.top - nextRect.top;
+
+      if (deltaX === 0 && deltaY === 0) {
+        continue;
+      }
+
+      element.style.transition = "none";
+      element.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      element.getBoundingClientRect();
+      element.style.transition = "transform 180ms ease";
+      element.style.transform = "";
+    }
+
+    previousRects.current = nextRects;
+  }, [props.rackSlots]);
+
   return (
     <div className="rack-shell">
       <div className="rack">
       {props.rackSlots.map((tile, index) => {
         if (!tile) {
-          return <div className="tile-placeholder" key={`empty-${index}`} aria-hidden="true" />;
+          const placeholderKey = `empty-${index}`;
+
+          return (
+            <div
+              className="tile-placeholder"
+              key={placeholderKey}
+              aria-hidden="true"
+              ref={(element) => updateRackItemRef(itemRefs.current, placeholderKey, element)}
+            />
+          );
         }
+
+        const tileKey = `tile-${tile.id}`;
 
         return (
           <button
@@ -28,6 +74,7 @@ export function Rack(props: RackProps) {
             key={tile.id}
             data-testid={`rack-tile-${tile.id}`}
             style={{ "--tile-accent": props.playerColor } as React.CSSProperties}
+            ref={(element) => updateRackItemRef(itemRefs.current, tileKey, element)}
             onClick={() => {
               if (!props.canInteractWithRack) return;
               props.onSelect(tile);
@@ -92,4 +139,17 @@ function readBoardCellSize(): number {
 
   const boardSize = Number(board.dataset.boardSize ?? 15);
   return Math.min(board.clientWidth, board.clientHeight) / boardSize;
+}
+
+function updateRackItemRef(
+  refs: Map<string, HTMLElement>,
+  key: string,
+  element: HTMLElement | null
+): void {
+  if (!element) {
+    refs.delete(key);
+    return;
+  }
+
+  refs.set(key, element);
 }
