@@ -58,6 +58,7 @@ test('timeout penalty applied when active player exceeds turn time', async ({ br
   // Wait for score to decrease by PENALTY_POINTS
   const expectedScore = beforeScore - PENALTY_POINTS;
   await expect(activePlayerCard).toHaveAttribute('data-score', String(expectedScore), { timeout: 10000 });
+  await expect(activePlayerCard.getByTestId('player-delta')).toHaveText(`-${PENALTY_POINTS}`, { timeout: 10000 });
 
   // Record score AFTER pass
   const afterScoreText = await activePlayerCard.getAttribute('data-score');
@@ -70,6 +71,7 @@ test('timeout penalty applied when active player exceeds turn time', async ({ br
   // Waiting player's page also shows the penalty
   const waitingPagePlayerCard = waitingPage.locator(`[data-testid="player-card"][data-player-id="${activePlayerId}"]`);
   await expect(waitingPagePlayerCard).toHaveAttribute('data-score', String(expectedScore), { timeout: 10000 });
+  await expect(waitingPagePlayerCard.getByTestId('player-delta')).toHaveText(`-${PENALTY_POINTS}`, { timeout: 10000 });
 
   await player1Context.close();
   await player2Context.close();

@@ -15,7 +15,7 @@ export function PlayerInfoList(props: {
       {props.snapshot.players.map((player) => {
         const isActive = props.snapshot.currentPlayerId === player.id;
         const showPreview = isActive && props.previewScore !== undefined;
-        const penaltyPoints = props.penaltyDeltas?.[player.id];
+        const penaltyPoints = props.penaltyDeltas?.[player.id] ?? player.lastPenaltyPoints;
         const elapsed = isActive ? now - props.snapshot.turnStartedAt : 0;
         const fullRemaining = props.snapshot.status === "playing" ? player.remainingMs - elapsed : player.remainingMs;
         const scoreDelta = showPreview
