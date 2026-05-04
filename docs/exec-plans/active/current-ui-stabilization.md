@@ -1,6 +1,6 @@
 # Current UI Stabilization
 
-This content was preserved from root `PLAN.md`.
+This content was preserved from the former root UI plan.
 
 ## Current State
 

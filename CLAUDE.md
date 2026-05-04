@@ -52,7 +52,7 @@ Defined in `CONTEXT.md`. Key ones: Match, Room, Rack (8 tiles), Tile Bag, Board 
 - Scoring: tile value × piece multiplier, then × equation multiplier. Bingo (+40) for all 8 tiles played
 - Endgame: tile bag empty + rack empty, 3 consecutive passes, or time out
 
-Full rules in `game-detail.md`.
+Full rules in `docs/design-docs/game-rules.md`.
 
 ## Current UI Decisions
 
@@ -82,7 +82,7 @@ Full rules in `game-detail.md`.
 
 ## Current Work
 
-Flat gameplay UI redesign in progress. Full audit and phase reference in `PLAN.md`.
+Flat gameplay UI redesign references live under `docs/PLANS.md`.
 
 Agents: `frontend-ux-game-team` (UI/UX), `backend-game-dev` (server/engine).
 
@@ -139,5 +139,5 @@ packages/config/src/
 packages/protocol/src/
   index.ts              # ClientMessage, ServerMessage union types
 docs/adr/               # Architecture Decision Records
-PLAN.md                 # UI redesign plan + audit
+docs/PLANS.md          # UI planning index
 ```

@@ -1,6 +1,6 @@
 # UI Gameplay Stabilization Summary
 
-This summary was preserved from root `PLAN.md`.
+This summary was preserved from the former root UI plan.
 
 ## Match UI Direction
 

@@ -40,7 +40,8 @@ A player must choose one action during their turn:
 - Base score comes from tile values.
 - Piece multipliers apply to individual tiles first.
 - Equation multipliers apply to the total equation score.
-- Scoring uses one contiguous equation direction: horizontal or vertical, not cross scoring.
+- Scoring includes the primary equation plus any valid perpendicular equations created by newly placed tiles.
+- Each created cross equation must be scored once.
 - Playing all 8 rack tiles in one turn gives a 40 point bonus.
 
 ### Endgame

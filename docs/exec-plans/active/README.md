@@ -6,4 +6,4 @@ Current actionable execution plans live here.
 
 - [Current UI Stabilization](./current-ui-stabilization.md)
 
-Keep root `PLAN.md` as legacy/current compatibility until project instructions stop referring to it.
+Use `docs/PLANS.md` as the planning index.

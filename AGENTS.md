@@ -17,7 +17,7 @@ D-M4TH is a multiplayer math equation board game, Scrabble-like, using:
 - `packages/config`: match config presets
 - `packages/db`: reconnect/session persistence where applicable
 
-Use `PLAN.md` as the current UI/gameplay audit and phase reference.
+Use `docs/PLANS.md` as the current UI/gameplay audit index and phase reference.
 
 ## Hard Architecture Rules
 
@@ -129,6 +129,18 @@ Confirm:
 - no vertical page scroll during normal tablet/desktop gameplay
 - board renders after resize and does not stay on `Loading board`
 - toast/log UI does not cover board/rack/actions
+
+## Game Rule Changes
+
+- Read `docs/design-docs/game-rules.md` before changing `packages/game`.
+- Game rules must be enforced in `packages/game`, not client UI.
+- For validator/rule bugs, add a focused Bun test harness first.
+- Cover both `previewPlay` and `commitPlay`.
+- Invalid commit tests must assert no mutation of board, rack, score, tile bag, status, or turn.
+- Cross-equation rules require validating every perpendicular line created by new placements.
+- Do not commit red tests to `main`; final state must be green.
+- Keep game rule/test implementation separate from docs/agent cleanup when committing.
+- Do not mix CSS, Docker, Pixi, or UI redesign work with game-rule fixes.
 
 ## Implementation Rules
 
