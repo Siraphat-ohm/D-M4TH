@@ -1,7 +1,3 @@
-.match-hud,
-.match-hud button,
-.player-card,
-.metric,
 .turn-indicator {
   font-family: var(--font-pixel);
 }
@@ -36,7 +32,7 @@
 }
 
 .metric--turn {
-  min-width: clamp(136px, 13vw, 174px);
+  min-width: clamp(118px, 11vw, 154px);
   justify-content: center;
   border-color: color-mix(in srgb, var(--active-player-color) 45%, var(--panel-border));
 }
@@ -66,7 +62,7 @@
 
 .turn-time {
   color: var(--active-player-color);
-  font-family: var(--font-pixel);
+  font-family: var(--font-data);
   font-size: clamp(1.05rem, 1.6vw, 1.34rem);
   letter-spacing: 0.04em;
 }
@@ -76,7 +72,7 @@
 }
 
 .hud-value {
-  font-family: var(--font-pixel);
+  font-family: var(--font-data);
   font-size: clamp(0.9rem, 1.2vw, 1.05rem);
   color: var(--text);
 }

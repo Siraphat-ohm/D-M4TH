@@ -21,7 +21,7 @@ type PixiContainer = import("pixi.js").Container;
 const BOARD_BACKGROUND_COLOR = 0x080a0f;
 const MAX_RENDER_RESOLUTION = 3;
 const MAX_BACKING_STORE_PIXELS = 4096;
-let silkscreenBitmapFontInstalled = false;
+let bitmapFontsInstalled = false;
 
 function debugPixiBoard(...args: unknown[]): void {
   if (import.meta.env.DEV) {
@@ -29,8 +29,8 @@ function debugPixiBoard(...args: unknown[]): void {
   }
 }
 
-function installSilkscreenBitmapFont(BitmapFont: typeof import("pixi.js").BitmapFont): void {
-  if (silkscreenBitmapFontInstalled) {
+function installBitmapFonts(BitmapFont: typeof import("pixi.js").BitmapFont): void {
+  if (bitmapFontsInstalled) {
     debugPixiBoard("BitmapFont.install skipped");
     return;
   }
@@ -38,10 +38,15 @@ function installSilkscreenBitmapFont(BitmapFont: typeof import("pixi.js").Bitmap
   debugPixiBoard("BitmapFont.install start");
   BitmapFont.install({
     name: "Silkscreen",
-    style: { fontFamily: "Silkscreen", fontSize: 64 },
+    style: { fontFamily: "Silkscreen", fontSize: 64, fill: "#FFFFFF" },
     chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~★×÷±≤≥"
   });
-  silkscreenBitmapFontInstalled = true;
+  BitmapFont.install({
+    name: "VT323",
+    style: { fontFamily: "VT323", fontSize: 64, fill: "#FFFFFF" },
+    chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~★×÷±≤≥"
+  });
+  bitmapFontsInstalled = true;
   debugPixiBoard("BitmapFont.install done");
 }
 
@@ -66,7 +71,7 @@ export class PixiBoardGame {
     const fontWaitResult = await waitForFonts();
     debugPixiBoard(`fonts:wait:${fontWaitResult}`);
 
-    installSilkscreenBitmapFont(BitmapFont);
+    installBitmapFonts(BitmapFont);
 
     const app = new Application();
     const bootSize = sanitizeSize(this.initialSize);

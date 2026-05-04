@@ -41,7 +41,7 @@ export function MatchTopBar(props: {
       : 0;
 
   const visiblePenaltyDeltas = usePenaltyDelta(snapshot, now);
-  const turnLabel = snapshot.status === "playing" ? activePlayerName : snapshot.status.toLowerCase();
+  const turnLabel = snapshot.status === "playing" ? "TURN TIMER" : snapshot.status.toLowerCase();
 
   return (
     <div
@@ -58,7 +58,7 @@ export function MatchTopBar(props: {
       <div className="hud-metrics match-hud-status" aria-label="Match status">
         <div className="metric metric--turn" aria-label={`${activePlayerName}'s turn`}>
           <div className="turn-indicator">
-            <strong className="turn-name">{turnLabel}</strong>
+            <p className="turn-name">{turnLabel}</p>
             <span
               className={`turn-time${turnRemaining < 0 ? " overtime" : ""}`}
               data-testid="turn-timer"

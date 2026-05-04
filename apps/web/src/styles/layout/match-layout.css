@@ -58,6 +58,7 @@
 .hud-metrics .metric .hud-label {
   color: var(--muted);
   font-size: 0.68rem;
+  font-family: var(--font-pixel);
   text-transform: uppercase;
   line-height: 1;
   margin-right: -2px;
@@ -67,7 +68,7 @@
   font-size: clamp(1.1rem, 1.7vw, 1.3rem);
   line-height: 1;
   font-weight: 500;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-data);
 }
 
 .metric--turn {
@@ -84,7 +85,7 @@
 
 .turn-name {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-family: var(--font-pixel);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 1;
@@ -94,7 +95,7 @@
 .turn-time {
   font-size: clamp(1.1rem, 1.7vw, 1.3rem);
   font-weight: 500;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-data);
   line-height: 1;
 }
 

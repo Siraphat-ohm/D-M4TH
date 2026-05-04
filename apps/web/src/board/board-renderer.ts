@@ -272,7 +272,7 @@ function drawTile(root: Container, cache: BoardRenderCache, tile: RenderTile, is
   if (label) {
     labelText = getBitmapText(cache);
     labelText.text = label;
-    labelText.style.fontFamily = "Silkscreen";
+    labelText.style.fontFamily = "VT323";
     labelText.style.fontSize = label.length > 3 ? metrics.longLabelFontSize : metrics.shortLabelFontSize;
     labelText.tint = colorNumber(tile.textColor);
     labelText.anchor.set(0.5);
@@ -284,7 +284,7 @@ function drawTile(root: Container, cache: BoardRenderCache, tile: RenderTile, is
   const tileHalfSize = metrics.tileSize / 2;
   const valueText = getBitmapText(cache);
   valueText.text = String(tile.value);
-  valueText.style.fontFamily = "Silkscreen";
+  valueText.style.fontFamily = "VT323";
   valueText.style.fontSize = metrics.valueFontSize;
   valueText.tint = colorNumber(tile.textColor);
   valueText.anchor.set(1, 1);
@@ -313,7 +313,7 @@ function getBitmapText(cache: BoardRenderCache): BitmapText {
     pooled.text = "";
     return pooled;
   }
-  return new BitmapText({ style: { fontFamily: "Silkscreen", fontSize: 0.3 } });
+  return new BitmapText({ style: { fontFamily: "VT323", fontSize: 0.3 } });
 }
 
 function recycleTileGroup(cache: BoardRenderCache, group: TileObjectGroup): void {

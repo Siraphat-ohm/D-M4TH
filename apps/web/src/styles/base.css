@@ -1,6 +1,8 @@
 :root {
-  --font-ui: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-ui: "Pixelify Sans", sans-serif;
   --font-pixel: "Silkscreen", monospace;
+  --font-data: "VT323", monospace;
+  --font-logo: "Press Start 2P", monospace;
 
   --bg: #080a0f;
   --panel: #11141c;
@@ -90,7 +92,7 @@ button:disabled {
 
 h1 {
   margin: 0;
-  font-family: var(--font-pixel);
+  font-family: var(--font-logo);
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 400;
   color: var(--text);

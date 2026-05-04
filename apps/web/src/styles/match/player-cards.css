@@ -112,7 +112,7 @@
 /* Overrides from pixel pass and final redefinition */
 
 .player-card {
-  font-family: var(--font-pixel);
+  font-family: var(--font-ui);
 }
 
 .player-list {
@@ -190,6 +190,7 @@
   color: var(--muted);
   text-transform: none;
   letter-spacing: 0.04em;
+  font-family: var(--font-data);
 }
 
 .player-time.overtime {
@@ -208,6 +209,7 @@
   font-size: 0.82rem;
   color: var(--text);
   white-space: nowrap;
+  font-family: var(--font-data);
 }
 
 .player-score.preview {
@@ -218,6 +220,7 @@
   font-size: 0.6rem;
   min-height: 0.6rem;
   line-height: 1;
+  font-family: var(--font-data);
   text-align: right;
   white-space: nowrap;
 }

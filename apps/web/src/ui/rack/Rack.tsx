@@ -19,7 +19,9 @@ export function Rack(props: RackProps) {
     <div className="rack-shell">
       <span className="rack-meta" aria-label={`${props.tileBagCount} tiles left`}>
         <ShoppingBag size={15} aria-hidden="true" />
-        <strong>{props.tileBagCount}</strong>
+        <p>
+          {props.tileBagCount}
+        </p>
       </span>
       <div className="rack">
       {props.rackSlots.map((tile, index) => {
@@ -82,7 +84,7 @@ function setTileDragImage(params: {
   preview.style.borderRadius = "0";
   preview.style.background = "#F2ECDD";
   preview.style.color = "#111111";
-  preview.style.font = `400 ${Math.max(12, Math.floor(size * 0.34))}px "Silkscreen", monospace`;
+  preview.style.font = `400 ${Math.max(12, Math.floor(size * 0.34))}px "VT323", monospace`;
   document.body.append(preview);
   params.event.dataTransfer.effectAllowed = "move";
   params.event.dataTransfer.setDragImage(preview, size / 2, size / 2);
