@@ -30,6 +30,8 @@ export interface BoardRenderCache {
 
 export const NORMAL_CELL_COLOR = 0x171b26;
 export const CELL_BORDER_COLOR = 0x2a3142;
+export const CELL_INNER_STROKE_COLOR = 0x3a4358;
+export const CELL_PREMIUM_STROKE_COLOR = 0xf2ecdd;
 export const START_TEXT_COLOR = "#8C93A3";
 
 /** Ratio of cell width used for the inner (coloured) cell square. */
@@ -38,6 +40,8 @@ const CELL_INNER_PADDING_RATIO = 0.14;
 const CELL_OUTER_UNIT = 0.98;
 /** Fraction of a cell unit for the inner colour fill. */
 const CELL_INNER_UNIT = 1 - CELL_INNER_PADDING_RATIO;
+const CELL_STROKE_UNIT = 0.028;
+const CELL_HIGHLIGHT_HEIGHT = 0.08;
 
 const POOL_MAX_SIZE = 64;
 
@@ -179,7 +183,7 @@ function drawCell(
 
     const outer = new Graphics()
       .rect(-outerHalf, -outerHalf, CELL_OUTER_UNIT, CELL_OUTER_UNIT)
-      .fill({ color: CELL_BORDER_COLOR, alpha: 0.9 });
+      .fill({ color: CELL_BORDER_COLOR, alpha: premium ? 0.98 : 0.94 });
 
     outer.position.set(centerX, centerY);
     root.addChild(outer);
@@ -190,11 +194,32 @@ function drawCell(
 
     const inner = new Graphics()
       .rect(-innerHalf, -innerHalf, CELL_INNER_UNIT, CELL_INNER_UNIT)
-      .fill({ color: fillColor, alpha: fillAlpha });
+      .fill({ color: fillColor, alpha: fillAlpha })
+      .stroke({
+        width: CELL_STROKE_UNIT,
+        color: premium ? CELL_PREMIUM_STROKE_COLOR : CELL_INNER_STROKE_COLOR,
+        alpha: premium ? 0.3 : 0.42
+      });
 
     inner.position.set(centerX, centerY);
     root.addChild(inner);
     cache.cellObjects.push(inner);
+
+    const highlight = new Graphics()
+      .rect(
+        -innerHalf + CELL_STROKE_UNIT,
+        -innerHalf + CELL_STROKE_UNIT,
+        CELL_INNER_UNIT - (CELL_STROKE_UNIT * 2),
+        CELL_HIGHLIGHT_HEIGHT
+      )
+      .fill({
+        color: premium ? CELL_PREMIUM_STROKE_COLOR : 0xffffff,
+        alpha: premium ? 0.06 : 0.035
+      });
+
+    highlight.position.set(centerX, centerY);
+    root.addChild(highlight);
+    cache.cellObjects.push(highlight);
 
     if (premium?.start) {
       const star = getBitmapText(cache);
