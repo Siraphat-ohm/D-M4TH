@@ -21,6 +21,7 @@
 }
 
 .rack-meta {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -32,6 +33,7 @@
   color: var(--muted);
   font-family: var(--font-pixel);
   flex-shrink: 0;
+  cursor: help;
 }
 
 .rack-meta svg {
@@ -40,12 +42,60 @@
   color: var(--muted);
 }
 
-.rack-meta strong {
+.rack-meta p {
+  margin: 0;
   color: var(--text);
   font-family: var(--font-data);
   font-size: 1rem;
   line-height: 1;
   letter-spacing: 0.04em;
+}
+
+.rack-tooltip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 8;
+  display: none;
+  width: min(280px, 70vw);
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgb(17 20 28 / 96%);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.rack-meta:hover .rack-tooltip,
+.rack-meta:focus-visible .rack-tooltip,
+.rack-meta:focus-within .rack-tooltip {
+  display: grid;
+}
+
+.rack-tooltip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rack-tooltip-item {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-strong);
+}
+
+.rack-tooltip-label {
+  font-family: var(--font-pixel);
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.rack-tooltip-count {
+  font-family: var(--font-data);
+  font-size: 0.92rem;
+  line-height: 1;
 }
 
 .action-panel {
@@ -157,6 +207,11 @@
     min-width: 0;
     padding: 4px 0;
     align-self: stretch;
+  }
+
+  .rack-tooltip {
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .rack-panel {

@@ -21,10 +21,18 @@ export function MatchLayout(props: {
   const turn = useTurn();
 
   const rack = props.privateState?.rack ?? [];
+  const localPlayerId = props.privateState?.playerId;
   const localPlayerColor = resolvePlayerAccent(props.snapshot.players, props.privateState?.playerId, props.ownColor);
   const activeTurnColor = resolvePlayerAccent(props.snapshot.players, props.snapshot.currentPlayerId, "var(--panel-border)");
-  const isMyTurn = props.snapshot.currentPlayerId === props.privateState?.playerId;
+  const isMyTurn = props.snapshot.currentPlayerId === localPlayerId;
   const actionsFrozen = turn.actionsFrozen;
+  const opponentRackCount = props.snapshot.players.reduce((total, player) => {
+    if (player.id === localPlayerId) {
+      return total;
+    }
+
+    return total + player.rackCount;
+  }, 0);
 
   return (
     <section className="play-surface">
@@ -54,12 +62,16 @@ export function MatchLayout(props: {
       <section className="control-strip">
         <section className="rack-panel">
           <Rack
+            boardTiles={props.snapshot.board}
+            rack={rack}
             rackSlots={turn.rackSlots}
             selectedTileIds={turn.selectedRackTileIds}
             playerColor={localPlayerColor}
             canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen}
             canInteractWithRack={!actionsFrozen}
             tileBagCount={props.snapshot.tileBagCount}
+            opponentRackCount={opponentRackCount}
+            playerCount={props.snapshot.players.length}
             onSelect={turn.handleRackSelect}
           />
         </section>
