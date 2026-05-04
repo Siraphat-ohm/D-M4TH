@@ -39,7 +39,9 @@ export function PlayerInfoList(props: {
             <div className="player-details">
               <span className="player-name" data-testid="player-name">
                 {player.name}
-                {isActive && props.snapshot.status === "playing"}
+                {isActive && props.snapshot.status === "playing" && (
+                  <span className="player-status">Playing</span>
+                )}
               </span>
               <span className={`player-time${fullRemaining < 0 ? " overtime" : ""}`} data-testid="player-time">
                 {props.snapshot.status === "lobby" ? "--" : formatSignedTime(fullRemaining)}

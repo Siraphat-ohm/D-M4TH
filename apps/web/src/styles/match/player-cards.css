@@ -1,9 +1,8 @@
 .player-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--match-gap);
-  align-items: center;
+  align-items: stretch;
 }
 
 .player-card {
@@ -13,10 +12,11 @@
   background: var(--panel-strong);
   border: 1px solid var(--panel-border);
   padding: 6px 12px;
-  min-width: 160px;
-  max-width: 240px;
-  height: var(--topbar-card-height);
-  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 56px;
+  height: auto;
 }
 
 .player-card.active {
@@ -113,27 +113,17 @@
 
 .player-card {
   font-family: var(--font-ui);
-}
-
-.player-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--match-gap);
-  align-items: center;
-}
-
-.player-card {
   display: flex;
   align-items: center;
   gap: 10px;
   background: var(--panel-strong);
   border: 1px solid var(--panel-border);
-  padding: 6px 12px;
-  min-width: 160px;
-  max-width: 240px;
-  height: var(--topbar-card-height);
-  flex: 1 1 auto;
+  padding: 8px 10px;
+  min-width: 0;
+  max-width: none;
+  min-height: 58px;
+  height: auto;
+  width: 100%;
   box-shadow: none;
 }
 

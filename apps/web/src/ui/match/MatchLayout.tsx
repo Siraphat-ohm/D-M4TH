@@ -1,9 +1,10 @@
-import { type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Check, RefreshCcw, ScrollText, SkipForward, Undo2 } from "lucide-react";
 import type { PublicSnapshot } from "@d-m4th/game";
 import { BoardCanvas } from "@/board/BoardCanvas";
 import { FaceSelectionDialog } from "@/ui/dialogs/Dialogs";
 import { MatchTopBar } from "@/ui/match/MatchTopBar";
+import { TurnContextInline } from "@/ui/match/TurnContextInline";
 import { Rack } from "@/ui/rack/Rack";
 import { resolvePlayerAccent } from "@/ui/shared/player-colors";
 import { useTurn } from "@/turn/TurnContext";
@@ -19,25 +20,27 @@ export function MatchLayout(props: {
   onLeaveMatch: () => void;
 }) {
   const turn = useTurn();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 900px)").matches : false
+  );
 
   const rack = props.privateState?.rack ?? [];
-  const localPlayerId = props.privateState?.playerId;
   const localPlayerColor = resolvePlayerAccent(props.snapshot.players, props.privateState?.playerId, props.ownColor);
   const activeTurnColor = resolvePlayerAccent(props.snapshot.players, props.snapshot.currentPlayerId, "var(--panel-border)");
-  const isMyTurn = props.snapshot.currentPlayerId === localPlayerId;
+  const isMyTurn = props.snapshot.currentPlayerId === props.privateState?.playerId;
   const actionsFrozen = turn.actionsFrozen;
-  const opponentRackCount = props.snapshot.players.reduce((total, player) => {
-    if (player.id === localPlayerId) {
-      return total;
-    }
-
-    return total + player.rackCount;
-  }, 0);
 
   return (
-    <section className="play-surface">
-      <section className="match-topbar">
-        <MatchTopBar snapshot={props.snapshot} previewScore={turn.previewScore} onLeaveMatch={props.onLeaveMatch} />
+    <section className={`play-surface${sidebarCollapsed ? " play-surface--sidebar-collapsed" : ""}`}>
+      <section className="match-sidebar-shell">
+        <MatchTopBar
+          snapshot={props.snapshot}
+          rack={rack}
+          previewScore={turn.previewScore}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+          onLeaveMatch={props.onLeaveMatch}
+        />
       </section>
 
       <section className="match-main">
@@ -60,18 +63,15 @@ export function MatchLayout(props: {
       </section>
 
       <section className="control-strip">
+        <TurnContextInline snapshot={props.snapshot} />
+
         <section className="rack-panel">
           <Rack
-            boardTiles={props.snapshot.board}
-            rack={rack}
             rackSlots={turn.rackSlots}
             selectedTileIds={turn.selectedRackTileIds}
             playerColor={localPlayerColor}
             canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen}
             canInteractWithRack={!actionsFrozen}
-            tileBagCount={props.snapshot.tileBagCount}
-            opponentRackCount={opponentRackCount}
-            playerCount={props.snapshot.players.length}
             onSelect={turn.handleRackSelect}
           />
         </section>

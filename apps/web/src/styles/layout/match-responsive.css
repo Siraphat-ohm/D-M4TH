@@ -1,14 +1,4 @@
 /* Match layout responsive behavior */
-@container playsurface (min-width: 901px) {
-  .topbar-content {
-    flex-wrap: nowrap;
-  }
-
-  .hud-metrics {
-    width: auto;
-  }
-}
-
 @media (max-height: 820px) {
   .app-shell--playing {
     --match-gap: 8px;
@@ -20,34 +10,23 @@
   }
 }
 
+@media (min-width: 768px) and (max-width: 1100px) {
+  .play-surface {
+    --sidebar-width: clamp(172px, 19vw, 208px);
+  }
+}
+
 @media (min-width: 768px) and (max-height: 1050px) {
   .play-surface {
     gap: 6px;
   }
-
-  .match-topbar {
-    padding: 0 4px;
-  }
-
-  .topbar-content {
-    gap: 6px;
-  }
-
-  .hud-metrics {
-    gap: 6px;
-  }
-
-  .hud-metrics .metric,
-  .leave-match-button {
-    padding: 0 10px;
-    gap: 6px;
-  }
 }
 
-@container playsurface (min-width: 761px) {
+@media (min-width: 768px) {
   .control-strip {
     grid-template-columns: auto auto;
     justify-content: center;
+    align-items: stretch;
   }
 }
 
@@ -63,13 +42,6 @@
     --rack-shell-padding: 6px;
     --rack-strip-height: 60px;
     --floating-log-width: 250px;
-  }
-
-  .player-card {
-    min-width: 142px;
-    max-width: 208px;
-    padding: 5px 9px;
-    gap: 7px;
   }
 
   .player-name {
@@ -90,6 +62,40 @@
   }
 }
 
+@media (max-width: 900px) {
+  .play-surface {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: visible;
+  }
+
+  .play-surface--sidebar-collapsed {
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
+
+  .match-sidebar-shell,
+  .match-main,
+  .control-strip {
+    grid-column: 1;
+  }
+
+  .match-sidebar-shell {
+    grid-row: 1;
+  }
+
+  .match-main {
+    grid-row: 2;
+  }
+
+  .control-strip {
+    grid-row: 3;
+  }
+
+  .turn-context-inline {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 480px) and (min-width: 640px) {
   .app-shell--playing {
     padding: 4px;
@@ -105,119 +111,21 @@
   }
 
   .play-surface {
-    grid-template-columns: minmax(0, 1fr) minmax(236px, 292px);
-    grid-template-rows: auto minmax(0, 1fr);
-    align-items: stretch;
+    grid-template-columns: minmax(198px, 234px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     column-gap: 6px;
     row-gap: 4px;
   }
 
-  .match-main {
-    grid-column: 1;
+  .play-surface--sidebar-collapsed {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .match-sidebar-shell {
     grid-row: 1 / span 2;
   }
 
-  .match-topbar {
-    grid-column: 2;
-    grid-row: 1;
-    align-items: stretch;
-    padding: 0;
-  }
-
-  .topbar-content {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-    gap: 4px;
-    width: 100%;
-  }
-
-  .player-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .player-card {
-    min-width: 0;
-    max-width: none;
-    height: var(--topbar-card-height);
-    padding: 3px 5px;
-    gap: 5px;
-  }
-
-  .player-swatch,
-  .player-time,
-  .player-delta {
-    display: none;
-  }
-
-  .player-name {
-    font-size: 0.66rem;
-  }
-
-  .player-status {
-    font-size: 0.52rem;
-    padding: 1px 3px;
-  }
-
-  .player-score {
-    font-size: 0.72rem;
-  }
-
-  .hud-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    width: 100%;
-  }
-
-  .hud-metrics .metric,
-  .leave-match-button {
-    height: 32px;
-    padding: 0 7px;
-    gap: 5px;
-  }
-
-  .hud-metrics .metric .hud-label {
-    font-size: 0.58rem;
-  }
-
-  .hud-metrics .metric .hud-value,
-  .turn-time {
-    font-size: 0.88rem;
-  }
-
-  .turn-name {
-    font-size: 0.58rem;
-  }
-
-  .metric--turn {
-    min-width: 0;
-  }
-
-  .leave-match-button {
-    justify-content: center;
-    font-size: 0.58rem;
-  }
-
-  .notice-toast-stack {
-    top: 4px;
-    right: 4px;
-    width: min(292px, max(180px, calc(100vw - 508px)));
-  }
-
-  .notice-toast {
-    min-height: 30px;
-    padding: 6px 8px;
-    font-size: 0.6rem;
-  }
-
   .control-strip {
-    grid-column: 2;
-    grid-row: 2;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
     justify-items: stretch;
     gap: 5px;
     max-width: 100%;

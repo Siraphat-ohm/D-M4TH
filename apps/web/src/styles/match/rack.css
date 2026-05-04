@@ -14,88 +14,8 @@
 }
 
 .rack-shell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   max-width: 100%;
-}
-
-.rack-meta {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 54px;
-  height: var(--rack-tile-size);
-  padding: 0 10px;
-  border-right: 1px solid var(--panel-border);
-  color: var(--muted);
-  font-family: var(--font-pixel);
-  flex-shrink: 0;
-  cursor: help;
-}
-
-.rack-meta svg {
-  width: 15px;
-  height: 15px;
-  color: var(--muted);
-}
-
-.rack-meta p {
-  margin: 0;
-  color: var(--text);
-  font-family: var(--font-data);
-  font-size: 1rem;
-  line-height: 1;
-  letter-spacing: 0.04em;
-}
-
-.rack-tooltip {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 8px);
-  z-index: 8;
-  display: none;
-  width: min(280px, 70vw);
-  padding: 10px;
-  border: 1px solid var(--panel-border);
-  background: rgb(17 20 28 / 96%);
-  color: var(--text);
-  pointer-events: none;
-}
-
-.rack-meta:hover .rack-tooltip,
-.rack-meta:focus-visible .rack-tooltip,
-.rack-meta:focus-within .rack-tooltip {
-  display: grid;
-}
-
-.rack-tooltip-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.rack-tooltip-item {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 4px 2px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel-strong);
-}
-
-.rack-tooltip-label {
-  font-family: var(--font-pixel);
-  font-size: 0.66rem;
-  line-height: 1;
-}
-
-.rack-tooltip-count {
-  font-family: var(--font-data);
-  font-size: 0.92rem;
-  line-height: 1;
 }
 
 .action-panel {
@@ -104,7 +24,7 @@
   align-items: stretch;
 }
 
-/* ── Rack tiles ── */
+/* Rack tiles */
 .rack {
   display: grid;
   grid-template-columns: repeat(8, var(--rack-tile-size));
@@ -195,25 +115,6 @@
     width: 100%;
   }
 
-  .rack-shell {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .rack-meta {
-    border-right: none;
-    border-bottom: 1px solid var(--panel-border);
-    height: auto;
-    min-width: 0;
-    padding: 4px 0;
-    align-self: stretch;
-  }
-
-  .rack-tooltip {
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
   .rack-panel {
     width: calc((var(--rack-tile-size) * 4) + (var(--rack-gap) * 3) + (var(--rack-shell-padding) * 2));
   }
@@ -224,20 +125,6 @@
     grid-template-columns: repeat(4, var(--rack-tile-size));
     justify-content: center;
     width: 100%;
-  }
-
-  .rack-shell {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .rack-meta {
-    border-right: none;
-    border-bottom: 1px solid var(--panel-border);
-    height: auto;
-    min-width: 0;
-    padding: 4px 0;
-    align-self: stretch;
   }
 
   .rack-panel,
