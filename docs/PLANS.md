@@ -6,9 +6,13 @@ Planning documents are split into active execution plans, completed work, and te
 
 See [`exec-plans/active`](./exec-plans/active/).
 
+Current actionable UI stabilization content from root `PLAN.md` is preserved in [`exec-plans/active/current-ui-stabilization.md`](./exec-plans/active/current-ui-stabilization.md).
+
 ## Completed plans
 
 See [`exec-plans/completed`](./exec-plans/completed/).
+
+Completed UI/gameplay stabilization content from root `PLAN.md` is preserved in [`exec-plans/completed/ui-gameplay-stabilization.md`](./exec-plans/completed/ui-gameplay-stabilization.md).
 
 ## Technical debt
 
