@@ -12,3 +12,6 @@ dist
 apps/server/d-m4th.db
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Graphify generated output
+graphify-out/
