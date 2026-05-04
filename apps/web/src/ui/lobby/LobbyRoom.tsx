@@ -8,6 +8,7 @@ import type { ViewMode } from "@/shared/types";
 interface LobbyRoomProps {
   color: string;
   config: MatchConfig;
+  localPlayerId?: string;
   name: string;
   nameRequired: boolean;
   roomCode: string;
@@ -28,6 +29,8 @@ export function LobbyRoom(props: LobbyRoomProps) {
   const normalizedRoomCode = normalizeRoomCode(props.roomCode);
   const canCreateRoom = !props.actionsDisabled && !props.nameRequired && !props.snapshot;
   const canJoinRoom = !props.actionsDisabled && !props.nameRequired && normalizedRoomCode.length === 6;
+  const hostPlayerId = props.snapshot?.players[0]?.id;
+  const isHost = props.snapshot ? props.localPlayerId === hostPlayerId : true;
 
   function submitLobbyAction(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -96,6 +99,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
               color={props.color}
               config={props.config}
               disabled={!canCreateRoom}
+              canConfigure={isHost}
               roomCreated={props.snapshot !== undefined}
               onChange={props.onConfigChange}
               actionsDisabled={props.actionsDisabled}
@@ -114,6 +118,7 @@ export function LobbyRoom(props: LobbyRoomProps) {
       <LobbyStatusPanel
         color={props.color}
         config={props.config}
+        isHost={isHost}
         snapshot={props.snapshot}
         onStart={props.onStartMatch}
         actionsDisabled={props.actionsDisabled}
@@ -126,11 +131,13 @@ function CreateControls(props: {
   color: string;
   config: MatchConfig;
   disabled: boolean;
+  canConfigure: boolean;
   roomCreated: boolean;
   onChange: (config: MatchConfig) => void;
   actionsDisabled: boolean;
 }) {
   const { config, onChange } = props;
+  const inputsDisabled = props.actionsDisabled || props.roomCreated && !props.canConfigure;
 
   return (
     <>
@@ -140,7 +147,7 @@ function CreateControls(props: {
           id="match-mode"
           name="matchMode"
           value={config.mode}
-          disabled={props.actionsDisabled}
+          disabled={inputsDisabled}
           onChange={(event) => onChange(event.target.value === "classical" ? createClassicalConfig() : createPartyConfig())}
         >
           <option value="classical">Classical</option>
@@ -156,7 +163,7 @@ function CreateControls(props: {
           min={2}
           max={6}
           value={config.maxPlayers}
-          disabled={props.actionsDisabled}
+          disabled={inputsDisabled}
           onChange={(event) => onChange(createPartyConfig({ ...config, maxPlayers: Number(event.target.value) }))}
         />
       </label>
@@ -170,7 +177,7 @@ function CreateControls(props: {
           max={25}
           step={2}
           value={config.boardSize}
-          disabled={props.actionsDisabled}
+          disabled={inputsDisabled}
           onChange={(event) => onChange(createPartyConfig({ ...config, boardSize: Number(event.target.value) }))}
         />
       </label>
@@ -181,7 +188,7 @@ function CreateControls(props: {
             id="map-layout"
             name="mapLayout"
             value={config.premiumMapId}
-            disabled={props.actionsDisabled}
+            disabled={inputsDisabled}
             onChange={(event) => onChange(createPartyConfig({ ...config, premiumMapId: event.target.value as PremiumMapId }))}
           >
             {PREMIUM_MAP_OPTIONS.map((option) => (
@@ -225,9 +232,9 @@ function JoinControls(props: { color: string; disabled: boolean; roomCode: strin
   );
 }
 
-function LobbyStatusPanel(props: { color: string; config: MatchConfig; snapshot?: PublicSnapshot; onStart: () => void; actionsDisabled: boolean }) {
+function LobbyStatusPanel(props: { color: string; config: MatchConfig; isHost: boolean; snapshot?: PublicSnapshot; onStart: () => void; actionsDisabled: boolean }) {
   const snapshot = props.snapshot;
-  const canStart = !props.actionsDisabled && snapshot !== undefined && snapshot.players.length >= snapshot.config.minPlayers;
+  const canStart = !props.actionsDisabled && props.isHost && snapshot !== undefined && snapshot.players.length >= snapshot.config.minPlayers;
   const maxPlayers = snapshot?.config.maxPlayers ?? props.config.maxPlayers;
 
   return (

@@ -10,6 +10,7 @@ interface LobbyLayoutProps {
   roomCode: string;
   activeConfig: MatchConfig;
   snapshot: PublicSnapshot | undefined;
+  localPlayerId?: string;
   onColorChange: (color: string) => void;
   onConfigChange: (config: MatchConfig) => void;
   onCreateRoom: () => void;
@@ -51,6 +52,7 @@ export function LobbyLayout(props: LobbyLayoutProps) {
       <LobbyRoom
         color={color}
         config={activeConfig}
+        localPlayerId={props.localPlayerId}
         name={name}
         nameRequired={playerName.length === 0}
         roomCode={roomCode}

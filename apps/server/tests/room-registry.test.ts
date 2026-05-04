@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { RoomRegistry, type RoomConnection } from "../src/room-registry";
 import type { ServerMessage } from "@d-m4th/protocol";
+import { createPartyConfig } from "@d-m4th/config";
 
 describe("room registry", () => {
   test("creates and joins rooms by code while isolating private racks", () => {
@@ -123,6 +124,42 @@ describe("room registry", () => {
     expect(registry.resumeConnection(createConnection("guest-resumed"), roomCode, guestId!)).toBe(false);
     expect(revoked).toContainEqual({ roomCode, playerId: guestId!, reason: "intentional_leave" });
   });
+
+  test("only host can configure the room in lobby", () => {
+    const registry = new RoomRegistry();
+    const host = createConnection("host");
+    const guest = createConnection("guest");
+
+    registry.handleRawMessage(host, JSON.stringify({ type: "room:create", requestId: "1", name: "Ada", color: "#f97316" }));
+    const roomCode = lastSnapshot(host).snapshot.code;
+    registry.handleRawMessage(guest, JSON.stringify({ type: "room:join", requestId: "2", code: roomCode, name: "Grace", color: "#2563eb" }));
+
+    registry.handleRawMessage(
+      guest,
+      JSON.stringify({ type: "match:configure", requestId: "3", config: createPartyConfig({ boardSize: 19, maxPlayers: 4 }) })
+    );
+
+    const rejection = lastRejected(guest);
+    expect(rejection.reason).toBe("Only the host can configure the room");
+    expect(lastSnapshot(host).snapshot.config.boardSize).toBe(15);
+    expect(lastSnapshot(host).snapshot.config.maxPlayers).toBe(2);
+  });
+
+  test("only host can start the match", () => {
+    const registry = new RoomRegistry();
+    const host = createConnection("host");
+    const guest = createConnection("guest");
+
+    registry.handleRawMessage(host, JSON.stringify({ type: "room:create", requestId: "1", name: "Ada", color: "#f97316" }));
+    const roomCode = lastSnapshot(host).snapshot.code;
+    registry.handleRawMessage(guest, JSON.stringify({ type: "room:join", requestId: "2", code: roomCode, name: "Grace", color: "#2563eb" }));
+
+    registry.handleRawMessage(guest, JSON.stringify({ type: "match:start", requestId: "3" }));
+
+    const rejection = lastRejected(guest);
+    expect(rejection.reason).toBe("Only the host can start the match");
+    expect(lastSnapshot(host).snapshot.status).toBe("lobby");
+  });
 });
 
 function createConnection(id: string): RoomConnection & { messages: ServerMessage[] } {
@@ -143,4 +180,14 @@ function lastSnapshot(connection: { messages: ServerMessage[] }): Extract<Server
   }
 
   return snapshot;
+}
+
+function lastRejected(connection: { messages: ServerMessage[] }): Extract<ServerMessage, { type: "action:rejected" }> {
+  const rejection = [...connection.messages].reverse().find((message: ServerMessage) => message.type === "action:rejected");
+
+  if (!rejection || rejection.type !== "action:rejected") {
+    throw new Error("rejection missing");
+  }
+
+  return rejection;
 }

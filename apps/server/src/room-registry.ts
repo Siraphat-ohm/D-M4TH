@@ -196,6 +196,13 @@ export class RoomRegistry {
 
   private configureMatch(connection: RoomConnection, message: Extract<ClientMessage, { type: "match:configure" }>): void {
     const room = this.readSessionRoom(connection);
+    const session = this.readSession(connection);
+
+    if (!isHostPlayer(room, session.playerId)) {
+      this.reject(connection, message.requestId, "Only the host can configure the room");
+      return;
+    }
+
     const result = this.engine.configureMatch(room.match, message.config);
     this.acceptOrReject(connection, message.requestId, result.ok, result.error, "match:configure");
     this.broadcastSnapshot(room);
@@ -203,6 +210,13 @@ export class RoomRegistry {
 
   private startMatch(connection: RoomConnection, message: Extract<ClientMessage, { type: "match:start" }>): void {
     const room = this.readSessionRoom(connection);
+    const session = this.readSession(connection);
+
+    if (!isHostPlayer(room, session.playerId)) {
+      this.reject(connection, message.requestId, "Only the host can start the match");
+      return;
+    }
+
     const result = this.engine.startMatch(room.match);
     this.acceptOrReject(connection, message.requestId, result.ok, result.error, "match:start");
     this.broadcastSnapshot(room);
@@ -407,4 +421,8 @@ export class RoomRegistry {
 
     return room;
   }
+}
+
+function isHostPlayer(room: RoomRecord, playerId: string): boolean {
+  return room.match.players[0]?.id === playerId;
 }

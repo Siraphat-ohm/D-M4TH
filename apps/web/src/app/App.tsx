@@ -235,6 +235,7 @@ export function App() {
               roomCode={roomCode}
               activeConfig={activeConfig}
               snapshot={snapshot}
+              localPlayerId={privateState?.playerId}
               onColorChange={setColor}
               onConfigChange={configure}
               onCreateRoom={createRoom}
