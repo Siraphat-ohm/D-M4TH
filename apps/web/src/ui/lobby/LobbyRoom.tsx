@@ -235,7 +235,7 @@ function LobbyStatusPanel(props: { color: string; config: MatchConfig; snapshot?
       <section className="panel compact lobby-room-card">
         <div className="room-code">
           <span>Room code</span>
-          <strong>{snapshot?.code ?? "------"}</strong>
+          <p>{snapshot?.code ?? "------"}</p>
         </div>
         {!snapshot && <p className="lobby-empty-state">Create room first</p>}
         <button type="button" className="primary" onClick={props.onStart} disabled={!canStart} style={{ "--button-accent": props.color } as React.CSSProperties}>
@@ -245,9 +245,9 @@ function LobbyStatusPanel(props: { color: string; config: MatchConfig; snapshot?
       <section className="panel compact lobby-players-card">
         <div className="lobby-panel-heading">
           <span>Players</span>
-          <strong>
+          <p>
             {snapshot?.players.length ?? 0} / {maxPlayers}
-          </strong>
+          </p>
         </div>
         <div className="lobby-player-list">
           {snapshot?.players.map((player) => (

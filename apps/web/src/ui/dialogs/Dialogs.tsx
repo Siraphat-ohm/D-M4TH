@@ -1,44 +1,35 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { faceOptionsForTileLabel, type Tile } from "@d-m4th/game";
 import { textColorForPlayerColor } from "../../shared/color";
-import { formatClock } from "../shared/format";
+import { focusFirstDialogButton, handleEscapeKey, trapButtonFocus } from "./dialog-utils";
+import { LogEntryList } from "../match/LogEntryList";
 import type { LogEntry } from "@/shared/types";
 
 export function LogDialog(props: { entries: LogEntry[]; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    dialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    focusFirstDialogButton(dialogRef);
   }, []);
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== "Escape") {
-      return;
-    }
-
-    event.preventDefault();
-    props.onClose();
+    handleEscapeKey(event, props.onClose);
   }
 
   return (
     <div className="dialog-backdrop">
       <div ref={dialogRef} className="log-dialog" role="dialog" aria-modal="true" aria-label="Match log" onKeyDown={handleKeyDown}>
         <div className="dialog-header">
-          <strong>Log</strong>
+          <p>Log</p>
           <button onClick={props.onClose}>Close</button>
         </div>
-        <div className="log-list">
-          {props.entries.length === 0 ? (
-            <span className="log-empty">No log</span>
-          ) : (
-            props.entries.map((entry) => (
-              <div className={`log-row ${entry.tone}`} key={entry.id}>
-                <time>{formatClock(entry.at)}</time>
-                <span>{entry.text}</span>
-              </div>
-            ))
-          )}
-        </div>
+        <LogEntryList
+          entries={props.entries}
+          emptyText="No log"
+          listClassName="log-list"
+          rowClassName="log-row"
+          emptyClassName="log-empty"
+        />
       </div>
     </div>
   );
@@ -55,45 +46,21 @@ export function FaceSelectionDialog(props: {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    dialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    focusFirstDialogButton(dialogRef);
   }, []);
 
   function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      props.onCancel();
+    if (handleEscapeKey(event, props.onCancel)) {
       return;
     }
 
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const buttons = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? []);
-
-    if (buttons.length === 0) {
-      return;
-    }
-
-    const firstButton = buttons[0];
-    const lastButton = buttons[buttons.length - 1];
-
-    if (event.shiftKey && document.activeElement === firstButton) {
-      event.preventDefault();
-      lastButton.focus();
-      return;
-    }
-
-    if (!event.shiftKey && document.activeElement === lastButton) {
-      event.preventDefault();
-      firstButton.focus();
-    }
+    trapButtonFocus(event, dialogRef);
   }
 
   return (
     <div className="dialog-backdrop">
       <div ref={dialogRef} className="face-dialog" role="dialog" aria-modal="true" aria-label={`${props.tile.label} face`} onKeyDown={handleDialogKeyDown}>
-        <strong>{props.tile.label}</strong>
+        <p>{props.tile.label}</p>
         <div className="face-options">
           {faces.map((face) => (
             <button key={face} style={{ background: props.playerColor, color: textColor }} onClick={() => props.onSelect(face)}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { List, ScrollText } from "lucide-react";
 import { formatClock } from "../shared/format";
+import { LogEntryList } from "./LogEntryList";
 import type { LogEntry } from "@/shared/types";
 
 const LOG_PREVIEW_LIMIT = 6;
@@ -14,7 +15,7 @@ export function MatchLogPanel(props: { entries: LogEntry[]; onViewAll: () => voi
       <div className="match-log-header">
         <div className="match-log-title">
           <ScrollText size={16} aria-hidden="true" />
-          <strong>Log</strong>
+          <p>Log</p>
         </div>
         <div className="match-log-actions">
           <button type="button" className="match-log-collapse" onClick={() => setCollapsed((current) => !current)}>
@@ -27,18 +28,14 @@ export function MatchLogPanel(props: { entries: LogEntry[]; onViewAll: () => voi
         </div>
       </div>
       {!collapsed && (
-        <div className="match-log-list">
-          {previewEntries.length === 0 ? (
-            <span className="match-log-empty">No log yet</span>
-          ) : (
-            previewEntries.map((entry) => (
-              <div className={`match-log-row ${entry.tone}`} key={entry.id} title={`${formatClock(entry.at)} ${entry.text}`}>
-                <time>{formatClock(entry.at)}</time>
-                <span>{entry.text}</span>
-              </div>
-            ))
-          )}
-        </div>
+        <LogEntryList
+          entries={previewEntries}
+          emptyText="No log yet"
+          listClassName="match-log-list"
+          rowClassName="match-log-row"
+          emptyClassName="match-log-empty"
+          titleFormatter={(entry) => `${formatClock(entry.at)} ${entry.text}`}
+        />
       )}
     </aside>
   );
