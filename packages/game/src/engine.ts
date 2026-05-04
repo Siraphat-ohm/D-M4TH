@@ -9,7 +9,7 @@ import {
 import { validatePlay } from "./play-validator";
 import { createTileBag, drawTiles } from "./tile-catalog";
 import type { BoardTile, EndedReason, EngineResult, MatchState, Placement, Player, PrivatePlayerPayload, PublicSnapshot, ScoreBreakdown, Tile } from "./types";
-import { createId, createRoomCode, errorMessage, getPlayer, nextTurnPlayer, shuffle, shuffleTiles, sumRackValue, toPublicPlayer } from "./utils";
+import { createId, createRoomCode, errorMessage, getPlayer, isNonLeftPlayer, isPlayablePlayer, nextTurnPlayer, shuffle, shuffleTiles, sumRackValue, toPublicPlayer } from "./utils";
 
 export interface CreateMatchInput {
   hostName: string;
@@ -118,6 +118,7 @@ export class GameEngine {
       ensurePlaying(match);
       ensureCurrentTurn(match, playerId);
       const player = getPlayer(match, playerId);
+      ensurePlayerCanAct(player);
       return accepted(validatePlay(match, player, placements));
     } catch (error) {
       return rejected(errorMessage(error));
@@ -129,6 +130,7 @@ export class GameEngine {
       ensurePlaying(match);
       ensureCurrentTurn(match, playerId);
       const player = getPlayer(match, playerId);
+      ensurePlayerCanAct(player);
       const score = validatePlay(match, player, placements);
 
       const rackById = new Map(player.rack.map((tile) => [tile.id, tile]));
@@ -177,6 +179,7 @@ export class GameEngine {
       }
 
       const player = getPlayer(match, playerId);
+      ensurePlayerCanAct(player);
       const selectedIds = new Set(tileIds);
       const selectedTiles = player.rack.filter((tile) => selectedIds.has(tile.id));
 
@@ -261,6 +264,7 @@ export class GameEngine {
     try {
       ensureCurrentTurn(match, playerId);
       const player = getPlayer(match, playerId);
+      ensurePlayerCanAct(player);
       trackExhaustedBagPass(match, playerId);
       this.finishTurn(match, player, now);
       this.resolveEndgame(match);
@@ -288,19 +292,18 @@ export class GameEngine {
         return accepted(match);
       }
 
-      const activePlayers = match.players.filter((candidate) => !candidate.left);
-      const activePlayerIds = new Set(activePlayers.map((candidate) => candidate.id));
-      match.playerOrder = match.playerOrder.filter((id) => activePlayerIds.has(id));
-      match.exhaustedBagPassers = match.exhaustedBagPassers.filter((id) => activePlayerIds.has(id));
-      match.consecutivePasses = match.exhaustedBagPassers.length;
+      const nonLeftPlayers = getNonLeftPlayers(match);
+      const nonLeftPlayerIds = new Set(nonLeftPlayers.map((candidate) => candidate.id));
+      match.playerOrder = match.playerOrder.filter((id) => nonLeftPlayerIds.has(id));
+      syncExhaustedBagPassCycle(match);
 
-      if (activePlayers.length < 2) {
-        applyPlayerLeftFinalState(match, activePlayers, now);
+      if (countPlayablePlayers(match) < 2) {
+        applyPlayerLeftFinalState(match, nonLeftPlayers, now);
         return accepted(match);
       }
 
       if (match.currentPlayerId === playerId) {
-        match.currentPlayerId = nextActivePlayerAfter(previousPlayerOrder, previousTurnIndex, activePlayerIds);
+        match.currentPlayerId = nextPlayablePlayerAfter(match, previousPlayerOrder, previousTurnIndex);
         match.turnStartedAt = now;
       }
 
@@ -363,9 +366,19 @@ export class GameEngine {
       match.currentTurnPenaltyMinutesApplied = overtimeMinutes;
     }
 
-    const nextPlayerId = nextTurnPlayer(match);
-    const nextPlayer = getPlayer(match, nextPlayerId);
-    nextPlayer.lastPenaltyPoints = undefined;
+    if (player.remainingMs === 0) {
+      player.timedOut = true;
+    }
+
+    syncExhaustedBagPassCycle(match);
+
+    const nextPlayerId = countPlayablePlayers(match) > 0 ? nextTurnPlayer(match) : undefined;
+    const nextPlayer = nextPlayerId ? getPlayer(match, nextPlayerId) : undefined;
+
+    if (nextPlayer) {
+      nextPlayer.lastPenaltyPoints = undefined;
+    }
+
     match.currentPlayerId = nextPlayerId;
     match.currentTurnPenaltyMinutesApplied = 0;
     match.turnStartedAt = now;
@@ -376,22 +389,23 @@ export class GameEngine {
       return;
     }
 
-    const activePlayers = match.players.filter((player) => !player.left);
+    const nonLeftPlayers = getNonLeftPlayers(match);
+    const playablePlayers = getPlayablePlayers(match);
 
-    if (activePlayers.length < 2) {
-      applyPlayerLeftFinalState(match, activePlayers, match.turnStartedAt);
+    if (playablePlayers.length < 2) {
+      applyPlayablePlayersExhaustedFinalState(match, playablePlayers, nonLeftPlayers, match.turnStartedAt);
       return;
     }
 
     if (match.tileBag.length === 0) {
-      const emptyRackPlayer = activePlayers.find((player) => player.rack.length === 0);
+      const emptyRackPlayer = nonLeftPlayers.find((player) => player.rack.length === 0);
       if (emptyRackPlayer) {
-        applyRackEmptyFinalScoring(match, emptyRackPlayer, activePlayers);
+        applyRackEmptyFinalScoring(match, emptyRackPlayer, nonLeftPlayers);
         return;
       }
 
-      if (hasCompletedExhaustedPassCycle(match, activePlayers)) {
-        applyPassCycleFinalScoring(match, activePlayers);
+      if (hasCompletedExhaustedPassCycle(match, playablePlayers)) {
+        applyPassCycleFinalScoring(match, nonLeftPlayers);
       }
     }
   }
@@ -447,6 +461,12 @@ function ensureCurrentTurn(match: MatchState, playerId: string): void {
   }
 }
 
+function ensurePlayerCanAct(player: Player): void {
+  if (player.timedOut) {
+    throw new Error("Timed-out players can only spectate");
+  }
+}
+
 function accepted<T>(value: T): EngineResult<T> {
   return { ok: true, value };
 }
@@ -455,8 +475,8 @@ function rejected<T>(error: string): EngineResult<T> {
   return { ok: false, error };
 }
 
-function countActivePlayers(match: MatchState): number {
-  return match.players.filter((player) => !player.left).length;
+function countPlayablePlayers(match: MatchState): number {
+  return getPlayablePlayers(match).length;
 }
 
 function resetExhaustedBagPassCycle(match: MatchState): void {
@@ -474,7 +494,7 @@ function trackExhaustedBagPass(match: MatchState, playerId: string): void {
     match.exhaustedBagPassers = [...match.exhaustedBagPassers, playerId];
   }
 
-  match.consecutivePasses = match.exhaustedBagPassers.length;
+  syncExhaustedBagPassCycle(match);
 }
 
 function hasCompletedExhaustedPassCycle(match: MatchState, activePlayers: readonly Player[]): boolean {
@@ -530,13 +550,46 @@ function applyPlayerLeftFinalState(match: MatchState, activePlayers: readonly Pl
   finalizeMatch(match, "player-left", activePlayers[0] ? [activePlayers[0].id] : []);
 }
 
+function applyPlayablePlayersExhaustedFinalState(
+  match: MatchState,
+  playablePlayers: readonly Player[],
+  nonLeftPlayers: readonly Player[],
+  now: number
+): void {
+  match.currentPlayerId = playablePlayers[0]?.id ?? nonLeftPlayers[0]?.id;
+  match.turnStartedAt = now;
+
+  if (playablePlayers.length === 1) {
+    finalizeMatch(match, "playable-players-exhausted", [playablePlayers[0].id]);
+    return;
+  }
+
+  finalizeMatch(match, "playable-players-exhausted", calculateWinnerIds(nonLeftPlayers));
+}
+
 function finalizeMatch(match: MatchState, endedReason: EndedReason, winnerIds: string[]): void {
   match.status = "ended";
   match.endedReason = endedReason;
   match.winnerIds = winnerIds;
 }
 
-function nextActivePlayerAfter(previousOrder: readonly string[], previousTurnIndex: number, activePlayerIds: ReadonlySet<string>): string {
+function getNonLeftPlayers(match: MatchState): Player[] {
+  return match.players.filter(isNonLeftPlayer);
+}
+
+function getPlayablePlayers(match: MatchState): Player[] {
+  return match.players.filter(isPlayablePlayer);
+}
+
+function syncExhaustedBagPassCycle(match: MatchState): void {
+  const playablePlayerIds = new Set(getPlayablePlayers(match).map((player) => player.id));
+  match.exhaustedBagPassers = match.exhaustedBagPassers.filter((id) => playablePlayerIds.has(id));
+  match.consecutivePasses = match.exhaustedBagPassers.length;
+}
+
+function nextPlayablePlayerAfter(match: MatchState, previousOrder: readonly string[], previousTurnIndex: number): string {
+  const playablePlayerIds = new Set(getPlayablePlayers(match).map((player) => player.id));
+
   if (previousOrder.length === 0) {
     throw new Error("No active players remain");
   }
@@ -544,7 +597,7 @@ function nextActivePlayerAfter(previousOrder: readonly string[], previousTurnInd
   const startIndex = previousTurnIndex === -1 ? 0 : previousTurnIndex + 1;
   for (let offset = 0; offset < previousOrder.length; offset += 1) {
     const playerId = previousOrder[(startIndex + offset) % previousOrder.length];
-    if (activePlayerIds.has(playerId)) {
+    if (playablePlayerIds.has(playerId)) {
       return playerId;
     }
   }

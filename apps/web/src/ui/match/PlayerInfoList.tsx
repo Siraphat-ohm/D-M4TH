@@ -18,6 +18,13 @@ export function PlayerInfoList(props: {
         const penaltyPoints = props.penaltyDeltas?.[player.id] ?? player.lastPenaltyPoints;
         const elapsed = isActive ? now - props.snapshot.turnStartedAt : 0;
         const fullRemaining = props.snapshot.status === "playing" ? player.remainingMs - elapsed : player.remainingMs;
+        const playerStateLabel = player.left
+          ? "Left"
+          : player.timedOut
+            ? "Timed out"
+            : isActive && props.snapshot.status === "playing"
+              ? "Playing"
+              : undefined;
         const scoreDelta = showPreview
           ? `+${props.previewScore}`
           : penaltyPoints !== undefined
@@ -39,8 +46,8 @@ export function PlayerInfoList(props: {
             <div className="player-details">
               <span className="player-name" data-testid="player-name">
                 {player.name}
-                {isActive && props.snapshot.status === "playing" && (
-                  <span className="player-status">Playing</span>
+                {playerStateLabel && (
+                  <span className="player-status">{playerStateLabel}</span>
                 )}
               </span>
               <span className={`player-time${fullRemaining < 0 ? " overtime" : ""}`} data-testid="player-time">

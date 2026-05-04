@@ -24,6 +24,8 @@ function describeEndedReason(endedReason: PublicSnapshot["endedReason"]): string
       return "Game ended: rack emptied.";
     case "player-left":
       return "Game ended: only one player remains.";
+    case "playable-players-exhausted":
+      return "Game ended: fewer than two playable players remain.";
     case "time-out":
       return "Game ended: time expired.";
     default:

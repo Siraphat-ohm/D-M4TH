@@ -25,6 +25,7 @@ export function MatchLayout(props: {
   );
 
   const rack = props.privateState?.rack ?? [];
+  const localPlayerTimedOut = props.snapshot.players.find((player) => player.id === props.privateState?.playerId)?.timedOut === true;
   const localPlayerColor = resolvePlayerAccent(props.snapshot.players, props.privateState?.playerId, props.ownColor);
   const activeTurnColor = resolvePlayerAccent(props.snapshot.players, props.snapshot.currentPlayerId, "var(--panel-border)");
   const isMyTurn = props.snapshot.currentPlayerId === props.privateState?.playerId;
@@ -70,8 +71,8 @@ export function MatchLayout(props: {
             rackSlots={turn.rackSlots}
             selectedTileIds={turn.selectedRackTileIds}
             playerColor={localPlayerColor}
-            canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen}
-            canInteractWithRack={!actionsFrozen}
+            canDragToBoard={isMyTurn && turn.turnMode === "play" && !actionsFrozen && !localPlayerTimedOut}
+            canInteractWithRack={!actionsFrozen && !localPlayerTimedOut}
             onSelect={turn.handleRackSelect}
           />
         </section>

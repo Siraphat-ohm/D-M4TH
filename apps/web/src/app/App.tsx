@@ -17,6 +17,8 @@ import { useProtocolOrchestrator } from "@/client/use-protocol-orchestrator";
 import { useLobbyActions } from "@/client/use-lobby-actions";
 
 const NOTICE_AUTO_DISMISS_MS = 4000;
+const APP_VERSION = __APP_VERSION__;
+const REPOSITORY_URL = "https://github.com/Siraphat-ohm/D-M4TH";
 
 const STATIC_LAYOUT_VARS = {
   "--layout-scale": "1",
@@ -253,6 +255,17 @@ export function App() {
 
         {logOpen && <LogDialog entries={logEntries} onClose={() => setLogOpen(false)} />}
       </main>
+
+      <a
+        className="app-version-badge"
+        href={REPOSITORY_URL}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`D-M4TH version ${APP_VERSION} on GitHub`}
+      >
+        <span>v{APP_VERSION}</span>
+        <span>GitHub</span>
+      </a>
     </div>
   );
 }

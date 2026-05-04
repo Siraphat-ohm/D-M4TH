@@ -39,3 +39,41 @@
   --rack-shell-padding: 8px;
   --rack-strip-height: 72px;
 }
+
+.app-version-badge {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgb(42 49 66 / 72%);
+  background: rgb(17 20 28 / 82%);
+  color: var(--muted);
+  text-decoration: none;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
+
+.app-version-badge:hover,
+.app-version-badge:focus-visible {
+  color: var(--text);
+  border-color: var(--text);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .app-version-badge {
+    right: 8px;
+    bottom: 8px;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 7px;
+    font-size: 0.64rem;
+  }
+}

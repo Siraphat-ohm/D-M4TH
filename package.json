@@ -12,7 +12,9 @@
     "dev": "bun run --filter '@d-m4th/server' dev",
     "dev:web": "bun run --filter '@d-m4th/web' dev",
     "test": "bun test apps/server packages apps/web/src",
-    "typecheck": "bun run --filter '*' typecheck"
+    "typecheck": "bun run --filter '*' typecheck",
+    "search:ast": "ast-grep",
+    "search:semgrep": "semgrep"
   },
   "devDependencies": {
     "@types/bun": "^1.3.0",

@@ -3,7 +3,7 @@ import type { MatchConfig } from "@d-m4th/config";
 export type Direction = "horizontal" | "vertical";
 export type PremiumTag = "2P" | "3P" | "2E" | "3E";
 export type MatchStatus = "lobby" | "playing" | "ended";
-export type EndedReason = "rack-empty" | "exhausted-pass-cycle" | "player-left" | "time-out";
+export type EndedReason = "rack-empty" | "exhausted-pass-cycle" | "player-left" | "time-out" | "playable-players-exhausted";
 
 export interface Coordinate {
   x: number;
@@ -42,6 +42,7 @@ export interface Player {
   remainingMs: number;
   connected: boolean;
   left?: boolean;
+  timedOut?: boolean;
 }
 
 export interface PublicPlayer {
@@ -54,6 +55,7 @@ export interface PublicPlayer {
   remainingMs: number;
   connected: boolean;
   left?: boolean;
+  timedOut?: boolean;
 }
 
 export interface Placement extends Coordinate {

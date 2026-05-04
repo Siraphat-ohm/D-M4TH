@@ -350,8 +350,156 @@ describe("game engine", () => {
 
     expect(host.remainingMs).toBe(0);
     expect(host.lastPenaltyPoints).toBe(20);
+    expect(host.timedOut).toBe(true);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("playable-players-exhausted");
+  });
+
+  test("player may finish a scoring turn before becoming timed out", () => {
+    const { engine, match, host, guest } = startedThreePlayerMatch();
+    match.playerOrder = [host.id, guest.id, match.players[2]!.id];
+    match.currentPlayerId = host.id;
+    match.turnStartedAt = 0;
+    host.remainingMs = 5;
+    host.rack = equationRack();
+
+    const result = engine.commitPlay(
+      match,
+      host.id,
+      [
+        { tileId: "a", x: 7, y: 7 },
+        { tileId: "b", x: 8, y: 7 },
+        { tileId: "c", x: 9, y: 7 }
+      ],
+      match.config.turnTimeMs + 1
+    );
+
+    expect(result.ok).toBe(true);
+    expect(host.remainingMs).toBe(0);
+    expect(host.timedOut).toBe(true);
+    expect(host.score).toBeLessThan(9);
     expect(match.status).toBe("playing");
-    expect(match.endedReason).toBeUndefined();
+    expect(match.currentPlayerId).toBe(guest.id);
+  });
+
+  test("timed-out players are skipped in future turn rotation", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [host.id, guest.id, third.id];
+    match.currentPlayerId = host.id;
+    match.turnStartedAt = 0;
+    host.remainingMs = 5;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
+    expect(host.timedOut).toBe(true);
+    expect(match.currentPlayerId).toBe(guest.id);
+
+    expect(engine.passTurn(match, guest.id, match.config.turnTimeMs).ok).toBe(true);
+    expect(match.currentPlayerId).toBe(third.id);
+  });
+
+  test("timed-out players cannot take future gameplay actions", () => {
+    const { engine, match, host } = startedMatch();
+    host.timedOut = true;
+    match.currentPlayerId = host.id;
+
+    const passResult = engine.passTurn(match, host.id, match.turnStartedAt + 1);
+    expect(passResult.ok).toBe(false);
+    expect(passResult.error).toContain("Timed-out players");
+
+    const previewResult = engine.previewPlay(match, host.id, []);
+    expect(previewResult.ok).toBe(false);
+    expect(previewResult.error).toContain("Timed-out players");
+
+    const swapResult = engine.swapTiles(match, host.id, [host.rack[0]!.id], match.turnStartedAt + 1);
+    expect(swapResult.ok).toBe(false);
+    expect(swapResult.error).toContain("Timed-out players");
+  });
+
+  test("timed-out players remain visible in snapshots", () => {
+    const { engine, match, host } = startedMatch();
+    host.timedOut = true;
+
+    const snapshot = engine.createSnapshot(match);
+    const publicHost = snapshot.players.find((player) => player.id === host.id);
+
+    expect(publicHost?.timedOut).toBe(true);
+    expect(publicHost?.score).toBe(host.score);
+    expect(publicHost?.rackCount).toBe(host.rack.length);
+  });
+
+  test("timed-out player rack still counts for rack-empty final scoring", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [guest.id, third.id];
+    match.currentPlayerId = guest.id;
+    match.tileBag = [];
+    host.timedOut = true;
+    host.rack = [tile("host-rack", "9", 3)];
+    guest.rack = [
+      tile("g1", "3", 2),
+      tile("g2", "=", 1),
+      tile("g3", "3", 2)
+    ];
+    third.rack = [tile("third-rack", "+", 1)];
+
+    const result = engine.commitPlay(
+      match,
+      guest.id,
+      [
+        { tileId: "g1", x: 7, y: 7 },
+        { tileId: "g2", x: 8, y: 7 },
+        { tileId: "g3", x: 9, y: 7 }
+      ],
+      0
+    );
+
+    expect(result.ok).toBe(true);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("rack-empty");
+    expect(guest.score).toBe(17);
+  });
+
+  test("timed-out players do not block exhausted bag pass cycle", () => {
+    const { engine, match, host, guest, third } = startedThreePlayerMatch();
+    match.playerOrder = [guest.id, third.id];
+    match.currentPlayerId = guest.id;
+    match.tileBag = [];
+    host.timedOut = true;
+    host.rack = [tile("host-rack", "9", 3)];
+    guest.rack = [tile("guest-rack", "4", 2)];
+    third.rack = [tile("third-rack", "5", 2)];
+
+    expect(engine.passTurn(match, guest.id, 0).ok).toBe(true);
+    expect(match.status).toBe("playing");
+
+    expect(engine.passTurn(match, third.id, 0).ok).toBe(true);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("exhausted-pass-cycle");
+  });
+
+  test("ends with playable-players-exhausted when one playable player remains", () => {
+    const { engine, match, host, guest } = startedMatch();
+    match.turnStartedAt = 0;
+    host.remainingMs = 5;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("playable-players-exhausted");
+    expect(match.winnerIds).toEqual([guest.id]);
+  });
+
+  test("ends with playable-players-exhausted and score-based ties when zero playable players remain", () => {
+    const { engine, match, host, guest } = startedMatch();
+    match.turnStartedAt = 0;
+    host.remainingMs = 5;
+    host.score = 20;
+    guest.score = 10;
+    guest.timedOut = true;
+    match.currentPlayerId = host.id;
+
+    expect(engine.passTurn(match, host.id, match.config.turnTimeMs + 1).ok).toBe(true);
+    expect(match.status).toBe("ended");
+    expect(match.endedReason).toBe("playable-players-exhausted");
+    expect(match.winnerIds.sort()).toEqual([guest.id, host.id].sort());
   });
 
   test("lets blank tiles choose a face while scoring zero", () => {

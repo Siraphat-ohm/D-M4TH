@@ -37,12 +37,20 @@ export function nextTurnPlayer(match: MatchState): string {
     const nextIndex = (currentIndex + offset) % match.playerOrder.length;
     const playerId = match.playerOrder[nextIndex];
     const player = match.players.find((candidate) => candidate.id === playerId);
-    if (player && !player.left) {
+    if (player && isPlayablePlayer(player)) {
       return playerId;
     }
   }
 
   throw new Error("No active players remain");
+}
+
+export function isNonLeftPlayer(player: Player): boolean {
+  return !player.left;
+}
+
+export function isPlayablePlayer(player: Player): boolean {
+  return isNonLeftPlayer(player) && !player.timedOut;
 }
 
 export function toPublicPlayer(player: Player): PublicPlayer {
@@ -55,7 +63,8 @@ export function toPublicPlayer(player: Player): PublicPlayer {
     rackCount: player.rack.length,
     remainingMs: player.remainingMs,
     connected: player.connected,
-    left: player.left
+    left: player.left,
+    timedOut: player.timedOut
   };
 }
 

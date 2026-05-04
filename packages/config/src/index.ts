@@ -67,7 +67,7 @@ export interface PartyConfigInput {
 
 export function createPartyConfig(input: PartyConfigInput = {}): MatchConfig {
   const boardSize = normalizeBoardSize(input.boardSize ?? CLASSICAL_BOARD_SIZE);
-  const maxPlayers = clampPlayerCount(input.maxPlayers ?? 6);
+  const maxPlayers = clampPlayerCount(input.maxPlayers ?? 2);
 
   return {
     mode: "party",
